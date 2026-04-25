@@ -49,8 +49,8 @@ class Forecast:
 
 
 @dataclass(frozen=True)
-class ActionEvaluation:
-    action: ActionType
+class ActionPlanEvaluation:
+    actions: tuple[ActionType, ...]
     projected_health_index: float
     predicted_status: str
     risk_score: float
@@ -59,11 +59,11 @@ class ActionEvaluation:
 
 @dataclass(frozen=True)
 class Recommendation:
-    action: ActionType
+    actions: tuple[ActionType, ...]
     priority: Severity
     expected_effect: str
     evidence: list[Evidence]
-    alternatives: list[ActionEvaluation] = field(default_factory=list)
+    alternatives: list[ActionPlanEvaluation] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
