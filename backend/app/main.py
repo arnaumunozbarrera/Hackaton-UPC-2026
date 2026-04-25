@@ -184,6 +184,7 @@ def get_agent_llm_answer(run_id: str, request: AgentLLMAnswerRequest) -> dict:
                 max_alternatives_per_decision=request.max_alternatives_per_decision,
                 provider=request.provider,
                 model=request.model,
+                mode=request.mode,
             )
 
         return generate_llm_answer(
@@ -193,6 +194,7 @@ def get_agent_llm_answer(run_id: str, request: AgentLLMAnswerRequest) -> dict:
             max_alternatives_per_decision=request.max_alternatives_per_decision,
             provider=request.provider,
             model=request.model,
+            mode=request.mode,
         )
 
     except ValueError as error:
