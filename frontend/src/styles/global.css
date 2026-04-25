@@ -118,6 +118,7 @@ h3 {
 }
 
 .panel {
+  min-width: 0;
   background:
     linear-gradient(180deg, rgba(88, 166, 255, 0.04), transparent 4rem),
     linear-gradient(180deg, var(--panel), var(--panel-soft));
@@ -131,7 +132,12 @@ h3 {
   display: flex;
   align-items: start;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 16px;
+}
+
+.section-title-row > div {
+  min-width: 0;
 }
 
 .section-title-row.compact {
@@ -214,12 +220,14 @@ h3 {
 
 .field {
   display: grid;
+  min-width: 0;
   gap: 6px;
 }
 
 .field input,
 .field select {
   width: 100%;
+  min-width: 0;
   min-height: 36px;
   background: #0d1117;
   border: 1px solid var(--border-strong);
@@ -312,6 +320,7 @@ label.secondary-button {
 
 .chart-wrapper {
   height: 340px;
+  min-width: 0;
 }
 
 .model-panel {
@@ -643,6 +652,21 @@ label.secondary-button {
 
   .chart-wrapper {
     height: 300px;
+  }
+
+  .section-title-row {
+    gap: 8px;
+  }
+
+  .section-title-row.compact {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .section-title-row .axis-chip,
+  .section-title-row .db-chip {
+    justify-self: start;
+    max-width: 100%;
   }
 
   .model-canvas {

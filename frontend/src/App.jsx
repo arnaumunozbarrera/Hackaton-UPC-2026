@@ -84,12 +84,13 @@ export default function App() {
         if (!active) return;
 
         const normalizedTimeline = normalizeTimelineForUi(latestTimeline);
+        const latestSelectedComponent = latestRun.selected_component || 'heating_elements';
         setTimeline(normalizedTimeline);
         setMessages(latestMessages);
-        setSelectedComponentId(latestRun.selected_component || 'heating_elements');
-        setDependencies(extractDependenciesFromTimeline(normalizedTimeline, latestRun.selected_component));
-        if (latestRun.selected_component) {
-          const latestPrediction = await fetchPrediction(latestRun.run_id, latestRun.selected_component);
+        setSelectedComponentId(latestSelectedComponent);
+        setDependencies(extractDependenciesFromTimeline(normalizedTimeline, latestSelectedComponent));
+        if (latestSelectedComponent) {
+          const latestPrediction = await fetchPrediction(latestRun.run_id, latestSelectedComponent);
           if (!active) return;
           setPrediction(latestPrediction);
         }
