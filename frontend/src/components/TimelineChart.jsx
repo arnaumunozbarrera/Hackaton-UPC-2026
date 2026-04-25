@@ -1,6 +1,5 @@
 import {
   CartesianGrid,
-  Legend,
   Line,
   LineChart,
   ReferenceLine,
@@ -9,6 +8,7 @@ import {
   XAxis,
   YAxis
 } from 'recharts';
+import ComponentSelector from './ComponentSelector';
 import { COMPONENT_LABELS } from '../data/modelState';
 import { formatLabel } from '../services/formatters';
 
@@ -16,7 +16,9 @@ export default function TimelineChart({
   chartData,
   axisTemplate,
   totalUsages,
+  modelState,
   selectedComponentId,
+  onSelectComponent,
   loading,
   error
 }) {
@@ -34,7 +36,16 @@ export default function TimelineChart({
           <p className="eyebrow">Runtime timeline</p>
           <h2>{componentLabel} health</h2>
         </div>
-        <span className="axis-chip">Normalized axis</span>
+        <div className="chart-panel-actions">
+          <span className="axis-chip">Normalized axis</span>
+          {modelState?.components ? (
+            <ComponentSelector
+              modelState={modelState}
+              selectedComponentId={selectedComponentId}
+              onChange={onSelectComponent}
+            />
+          ) : null}
+        </div>
       </div>
 
       <div className="chart-wrapper">
@@ -66,11 +77,6 @@ export default function TimelineChart({
               contentStyle={{ background: '#161b22', border: '1px solid #30363d', borderRadius: 10, color: '#c9d1d9', fontSize: 12 }}
               formatter={(value, name) => [typeof value === 'number' ? value.toFixed(3) : 'pending', name]}
               labelFormatter={(value) => `Usage = ${formatUsageValue(value)}`}
-            />
-            <Legend
-              verticalAlign="top"
-              align="right"
-              wrapperStyle={{ color: '#8b949e', fontSize: 11, paddingBottom: 6 }}
             />
             <ReferenceLine y={0.4} stroke="#d29922" strokeDasharray="4 4" label={{ value: 'critical', position: 'insideTopLeft', fill: '#d29922', fontSize: 11 }} />
             <ReferenceLine y={0.15} stroke="#f85149" strokeDasharray="4 4" label={{ value: 'failed', position: 'insideTopLeft', fill: '#f85149', fontSize: 11 }} />

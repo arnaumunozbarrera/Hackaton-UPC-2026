@@ -270,7 +270,9 @@ export default function App() {
             chartData={chartData}
             axisTemplate={axisTemplate}
             totalUsages={config.totalUsages}
+            modelState={displayModelState}
             selectedComponentId={selectedComponentId}
+            onSelectComponent={setSelectedComponentId}
             loading={loading}
             error={error}
           />
