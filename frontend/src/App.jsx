@@ -15,7 +15,17 @@ import { fetchRunMessages } from './services/messagesApi';
 import { fetchAiPrediction, fetchCurrentModel, fetchPrediction } from './services/modelApi';
 import { buildAxisTemplate, runSimulation } from './services/simulationApi';
 
-const AI_COMPONENT_IDS = new Set(['recoater_blade', 'recoater_drive_motor']);
+const AI_COMPONENT_IDS = new Set([
+  'cleaning_interface',
+  'heating_elements',
+  'insulation_panels',
+  'linear_guide',
+  'nozzle_plate',
+  'recoater_blade',
+  'recoater_drive_motor',
+  'temperature_sensors',
+  'thermal_firing_resistors'
+]);
 
 export default function App() {
   const [modelState, setModelState] = useState(null);
@@ -96,14 +106,15 @@ export default function App() {
         const [currentModel, runsPayload] = await Promise.all([fetchCurrentModel(), listRuns()]);
         if (!active) return;
 
+        const latestRun = selectInitialRun(runsPayload);
         setModelState(currentModel);
         setHistorianState({
           runs: runsPayload.runs || [],
-          latestRun: runsPayload.latest_run || null
+          latestRun
         });
 
-        const latestRun = runsPayload.latest_run;
         if (!latestRun) return;
+        setConfig(configFromRun(latestRun));
 
         const [latestTimeline, latestMessages] = await Promise.all([
           getRunTimeline(latestRun.run_id),
@@ -364,6 +375,51 @@ function toBackendSimulationConfig(config, selectedComponentId) {
     },
     selected_component: selectedComponentId,
     seed
+  };
+}
+
+function selectInitialRun(runsPayload) {
+  const runs = runsPayload?.runs || [];
+  const defaultTotalUsages = Number(DEFAULT_SIMULATION_CONFIG.totalUsages);
+  const completeRun = runs.find((run) => Number(run.total_usages) >= defaultTotalUsages);
+
+  return completeRun || runsPayload?.latest_run || null;
+}
+
+function configFromRun(run) {
+  const rawConfig = run?.config || {};
+  const initialConditions = rawConfig.initial_conditions || {};
+
+  return {
+    ...DEFAULT_SIMULATION_CONFIG,
+    scenarioId: rawConfig.scenario_id || run?.scenario_id || DEFAULT_SIMULATION_CONFIG.scenarioId,
+    totalUsages: getFiniteNumber(
+      rawConfig.total_usages ?? run?.total_usages,
+      DEFAULT_SIMULATION_CONFIG.totalUsages
+    ),
+    usageStep: getFiniteNumber(
+      rawConfig.usage_step ?? run?.usage_step,
+      DEFAULT_SIMULATION_CONFIG.usageStep
+    ),
+    temperatureC: getFiniteNumber(
+      initialConditions.temperature_c,
+      DEFAULT_SIMULATION_CONFIG.temperatureC
+    ),
+    humidity: getFiniteNumber(initialConditions.humidity, DEFAULT_SIMULATION_CONFIG.humidity),
+    contamination: getFiniteNumber(
+      initialConditions.contamination,
+      DEFAULT_SIMULATION_CONFIG.contamination
+    ),
+    operationalLoad: getFiniteNumber(
+      initialConditions.operational_load,
+      DEFAULT_SIMULATION_CONFIG.operationalLoad
+    ),
+    maintenanceLevel: getFiniteNumber(
+      initialConditions.maintenance_level,
+      DEFAULT_SIMULATION_CONFIG.maintenanceLevel
+    ),
+    stochasticity: getFiniteNumber(initialConditions.stochasticity, DEFAULT_SIMULATION_CONFIG.stochasticity),
+    seed: getFiniteNumber(rawConfig.seed, DEFAULT_SIMULATION_CONFIG.seed)
   };
 }
 

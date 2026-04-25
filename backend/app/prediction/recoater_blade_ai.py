@@ -12,6 +12,7 @@ from datetime import datetime, timedelta, timezone
 from time import perf_counter
 
 from app.core.phase1 import load_phase1_config
+from app.prediction.ai_curve_utils import calibrate_ai_health
 from model_mathematic.recoater_blade import calculate_recoater_blade_state
 from sklearn.ensemble import HistGradientBoostingRegressor
 
@@ -19,7 +20,7 @@ from sklearn.ensemble import HistGradientBoostingRegressor
 COMPONENT_ID = "recoater_blade"
 PREVENTIVE_FAILURE_THRESHOLD = 0.15
 MODEL_RANDOM_STATE = 2026
-SYNTHETIC_LABEL_SCALE = 0.82
+SYNTHETIC_LABEL_SCALE = 1.0
 
 FEATURE_NAMES = (
     "previous_health",
@@ -242,7 +243,15 @@ def _build_ai_curve(
         )
         damage_per_usage = max(float(model.predict([features])[0]), 0.0)
         damage = damage_per_usage * usage_delta
-        ai_health = _clamp(ai_health - damage, 0.0, 1.0)
+        predicted_health = _clamp(ai_health - damage, 0.0, 1.0)
+        ai_health = calibrate_ai_health(
+            predicted_health=predicted_health,
+            mathematical_health=_component_health(point["components"][COMPONENT_ID]),
+            previous_health=ai_health,
+            usage_count=usage_count,
+            drivers=drivers,
+            component_phase=0.2,
+        )
         previous_wear_rate = damage_per_usage
         previous_usage = usage_count
         curve.append(

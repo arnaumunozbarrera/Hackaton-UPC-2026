@@ -1,4 +1,4 @@
-"""Scikit-learn AI predictor for the recoater drive motor."""
+"""Scikit-learn AI predictor for the insulation panels."""
 
 from __future__ import annotations
 
@@ -7,27 +7,26 @@ from time import perf_counter
 
 from app.core.phase1 import load_phase1_config
 from app.prediction.ai_curve_utils import calibrate_ai_health
-from model_mathematic.recoater_drive_motor import calculate_recoater_drive_motor_state
+from model_mathematic.insulation_panels import calculate_insulation_panels_state
 from sklearn.ensemble import HistGradientBoostingRegressor
 
 
-COMPONENT_ID = "recoater_drive_motor"
+COMPONENT_ID = "insulation_panels"
 PREVENTIVE_FAILURE_THRESHOLD = 0.15
 MODEL_RANDOM_STATE = 2026
 SYNTHETIC_LABEL_SCALE = 1.0
 
 FEATURE_NAMES = (
     "previous_health",
-    "effective_age_cycles",
     "operational_load",
     "contamination",
     "humidity",
     "temperature_stress",
     "maintenance_level",
-    "linear_guide_health",
-    "torque_margin",
-    "current_draw_factor",
-    "vibration_index",
+    "insulation_efficiency",
+    "heat_loss_factor",
+    "panel_integrity",
+    "thermal_gradient_c",
     "previous_damage_per_usage",
     "usage_count",
 )
@@ -64,57 +63,42 @@ def _status_from_health(health: float) -> str:
     return "FUNCTIONAL"
 
 
-def _guide_health_from_point(point: dict) -> float:
-    guide_state = point.get("components", {}).get("linear_guide")
-    if guide_state is None:
-        motor_metrics = point.get("components", {}).get(COMPONENT_ID, {}).get("metrics", {})
-        return float(motor_metrics.get("linear_guide_health", 1.0))
-    return _component_health(guide_state)
-
-
-def _metrics_from_health(config: dict, health: float, guide_health: float) -> dict:
-    state = calculate_recoater_drive_motor_state(
+def _metrics_from_state(config: dict, health: float, drivers: dict) -> dict:
+    no_load_drivers = dict(drivers)
+    no_load_drivers["operational_load"] = 0.0
+    state = calculate_insulation_panels_state(
         previous_state={"health": health},
-        drivers={
-            "operational_load": 0.0,
-            "contamination": 0.0,
-            "humidity": 0.0,
-            "temperature_stress": 0.0,
-            "maintenance_level": 0.0,
-        },
+        drivers=no_load_drivers,
         config=config,
-        linear_guide_state={"health": guide_health},
     )
     return state["metrics"]
 
 
 def _feature_row(
     previous_health: float,
-    effective_age_cycles: float,
     operational_load: float,
     contamination: float,
     humidity: float,
     temperature_stress: float,
     maintenance_level: float,
-    linear_guide_health: float,
-    torque_margin: float,
-    current_draw_factor: float,
-    vibration_index: float,
+    insulation_efficiency: float,
+    heat_loss_factor: float,
+    panel_integrity: float,
+    thermal_gradient_c: float,
     previous_damage_per_usage: float,
     usage_count: float,
 ) -> list[float]:
     return [
         float(previous_health),
-        float(effective_age_cycles),
         float(operational_load),
         float(contamination),
         float(humidity),
         float(temperature_stress),
         float(maintenance_level),
-        float(linear_guide_health),
-        float(torque_margin),
-        float(current_draw_factor),
-        float(vibration_index),
+        float(insulation_efficiency),
+        float(heat_loss_factor),
+        float(panel_integrity),
+        float(thermal_gradient_c),
         float(previous_damage_per_usage),
         float(usage_count),
     ]
@@ -126,27 +110,29 @@ def _synthetic_label_multiplier(
     humidity: float,
     temperature_stress: float,
     maintenance_level: float,
-    linear_guide_health: float,
     previous_health: float,
 ) -> float:
     degradation = 1.0 - previous_health
-    guide_degradation = 1.0 - linear_guide_health
-    ingress_stress = contamination * (0.6 + 0.4 * humidity)
-    thermal_mechanical_stress = temperature_stress * (0.5 + guide_degradation)
+    thermal_cycling_stress = temperature_stress * (0.6 + 0.4 * degradation)
+    moisture_stress = humidity * (0.55 + 0.45 * temperature_stress)
+    fouling_stress = contamination * (0.5 + 0.5 * humidity)
+    heat_loss_memory = degradation * (0.5 + 0.5 * temperature_stress)
     periodic_residual = (
         (
-            usage_count * 0.011
-            + contamination * 1.7
-            + temperature_stress * 1.3
-            + guide_degradation * 2.1
+            usage_count * 0.0095
+            + temperature_stress * 1.6
+            + humidity * 1.4
+            + contamination * 1.1
+            + degradation * 1.2
         )
         % 1.0
     ) - 0.5
     multiplier = (
         1.0
-        + 0.08 * ingress_stress
-        + 0.10 * thermal_mechanical_stress
-        + 0.06 * degradation**2
+        + 0.09 * thermal_cycling_stress
+        + 0.08 * moisture_stress
+        + 0.05 * fouling_stress
+        + 0.05 * heat_loss_memory
         - 0.05 * maintenance_level
         + 0.035 * periodic_residual
     )
@@ -155,79 +141,78 @@ def _synthetic_label_multiplier(
 
 def _build_training_dataset(config: dict) -> tuple[list[list[float]], list[float]]:
     health_values = (0.16, 0.25, 0.4, 0.58, 0.75, 0.9, 1.0)
-    load_values = (0.2, 0.72, 1.2, 2.0)
-    contamination_values = (0.0, 0.35, 0.7, 1.0)
-    humidity_values = (0.0, 0.5, 1.0)
-    temperature_values = (0.0, 0.35, 0.7, 1.0)
-    maintenance_values = (0.0, 0.55, 1.0)
-    guide_health_values = (0.35, 0.7, 1.0)
-    usage_values = (0.0, 1000.0, 2200.0, 3200.0)
+    load_values = (0.2, 0.55, 0.9, 1.35, 2.0)
+    contamination_values = (0.0, 0.25, 0.55, 0.8, 1.0)
+    humidity_values = (0.0, 0.35, 0.7, 1.0)
+    temperature_values = (0.0, 0.25, 0.55, 0.8, 1.0)
+    maintenance_values = (0.0, 0.35, 0.7, 1.0)
+    usage_values = (0.0, 1200.0, 2600.0, 4200.0, 5600.0)
 
     rows = []
     targets = []
     for health in health_values:
-        for guide_health in guide_health_values:
-            metrics = _metrics_from_health(config, health, guide_health)
-            for operational_load in load_values:
-                for contamination in contamination_values:
-                    for humidity in humidity_values:
-                        for temperature_stress in temperature_values:
-                            for maintenance_level in maintenance_values:
-                                for usage_count in usage_values:
-                                    drivers = {
-                                        "operational_load": operational_load,
-                                        "contamination": contamination,
-                                        "humidity": humidity,
-                                        "temperature_stress": temperature_stress,
-                                        "maintenance_level": maintenance_level,
-                                    }
-                                    next_state = calculate_recoater_drive_motor_state(
-                                        previous_state={"health": health},
-                                        drivers=drivers,
-                                        config=config,
-                                        linear_guide_state={"health": guide_health},
+        for operational_load in load_values:
+            for contamination in contamination_values:
+                for humidity in humidity_values:
+                    for temperature_stress in temperature_values:
+                        for maintenance_level in maintenance_values:
+                            drivers = {
+                                "operational_load": operational_load,
+                                "contamination": contamination,
+                                "humidity": humidity,
+                                "temperature_stress": temperature_stress,
+                                "maintenance_level": maintenance_level,
+                            }
+                            metrics = _metrics_from_state(config, health, drivers)
+                            next_state = calculate_insulation_panels_state(
+                                previous_state={"health": health},
+                                drivers=drivers,
+                                config=config,
+                            )
+                            mathematical_damage = float(next_state["damage"]["total"])
+                            for usage_count in usage_values:
+                                multiplier = _synthetic_label_multiplier(
+                                    usage_count,
+                                    contamination,
+                                    humidity,
+                                    temperature_stress,
+                                    maintenance_level,
+                                    health,
+                                )
+                                rows.append(
+                                    _feature_row(
+                                        previous_health=health,
+                                        operational_load=operational_load,
+                                        contamination=contamination,
+                                        humidity=humidity,
+                                        temperature_stress=temperature_stress,
+                                        maintenance_level=maintenance_level,
+                                        insulation_efficiency=float(
+                                            metrics["insulation_efficiency"]
+                                        ),
+                                        heat_loss_factor=float(
+                                            metrics["heat_loss_factor"]
+                                        ),
+                                        panel_integrity=float(
+                                            metrics["panel_integrity"]
+                                        ),
+                                        thermal_gradient_c=float(
+                                            metrics["thermal_gradient_c"]
+                                        ),
+                                        previous_damage_per_usage=0.0,
+                                        usage_count=usage_count,
                                     )
-                                    mathematical_damage = float(next_state["damage"]["total"])
-                                    multiplier = _synthetic_label_multiplier(
-                                        usage_count,
-                                        contamination,
-                                        humidity,
-                                        temperature_stress,
-                                        maintenance_level,
-                                        guide_health,
-                                        health,
-                                    )
-                                    rows.append(
-                                        _feature_row(
-                                            previous_health=health,
-                                            effective_age_cycles=float(
-                                                metrics["effective_age_cycles"]
-                                            ),
-                                            operational_load=operational_load,
-                                            contamination=contamination,
-                                            humidity=humidity,
-                                            temperature_stress=temperature_stress,
-                                            maintenance_level=maintenance_level,
-                                            linear_guide_health=guide_health,
-                                            torque_margin=float(metrics["torque_margin"]),
-                                            current_draw_factor=float(
-                                                metrics["current_draw_factor"]
-                                            ),
-                                            vibration_index=float(metrics["vibration_index"]),
-                                            previous_damage_per_usage=0.0,
-                                            usage_count=usage_count,
-                                        )
-                                    )
-                                    targets.append(
-                                        mathematical_damage
-                                        * multiplier
-                                        * SYNTHETIC_LABEL_SCALE
-                                    )
+                                )
+                                targets.append(
+                                    mathematical_damage
+                                    * multiplier
+                                    * SYNTHETIC_LABEL_SCALE
+                                )
 
     return rows, targets
 
 
-def train_recoater_drive_motor_model() -> tuple[HistGradientBoostingRegressor, dict]:
+def train_insulation_panels_model() -> tuple[HistGradientBoostingRegressor, dict]:
     started_at = perf_counter()
     config = load_phase1_config()
     rows, targets = _build_training_dataset(config)
@@ -272,20 +257,18 @@ def _build_ai_curve(
         usage_count = float(point["usage_count"])
         usage_delta = max(usage_count - previous_usage, 0.0)
         drivers = point["drivers"]
-        guide_health = _guide_health_from_point(point)
-        metrics = _metrics_from_health(config, ai_health, guide_health)
+        metrics = _metrics_from_state(config, ai_health, drivers)
         features = _feature_row(
             previous_health=ai_health,
-            effective_age_cycles=float(metrics["effective_age_cycles"]),
             operational_load=float(drivers["operational_load"]),
             contamination=float(drivers["contamination"]),
             humidity=float(drivers["humidity"]),
             temperature_stress=float(drivers["temperature_stress"]),
             maintenance_level=float(drivers["maintenance_level"]),
-            linear_guide_health=guide_health,
-            torque_margin=float(metrics["torque_margin"]),
-            current_draw_factor=float(metrics["current_draw_factor"]),
-            vibration_index=float(metrics["vibration_index"]),
+            insulation_efficiency=float(metrics["insulation_efficiency"]),
+            heat_loss_factor=float(metrics["heat_loss_factor"]),
+            panel_integrity=float(metrics["panel_integrity"]),
+            thermal_gradient_c=float(metrics["thermal_gradient_c"]),
             previous_damage_per_usage=previous_damage_per_usage,
             usage_count=usage_count,
         )
@@ -298,7 +281,7 @@ def _build_ai_curve(
             previous_health=ai_health,
             usage_count=usage_count,
             drivers=drivers,
-            component_phase=0.9,
+            component_phase=4.8,
         )
         previous_damage_per_usage = damage_per_usage
         previous_usage = usage_count
@@ -320,7 +303,10 @@ def _first_failure_point(curve: list[dict]) -> dict | None:
     return None
 
 
-def predict_recoater_drive_motor_ai_from_timeline(run_id: str, timeline: list[dict]) -> dict:
+def predict_insulation_panels_ai_from_timeline(
+    run_id: str,
+    timeline: list[dict],
+) -> dict:
     points = [
         point
         for point in timeline
@@ -331,13 +317,13 @@ def predict_recoater_drive_motor_ai_from_timeline(run_id: str, timeline: list[di
             "run_id": run_id,
             "component_id": COMPONENT_ID,
             "confidence": 0.2,
-            "model_family": "recoater_drive_motor_sklearn_gradient_boosting",
+            "model_family": "insulation_panels_sklearn_gradient_boosting",
             "prediction_method": "supervised_synthetic_gradient_boosting",
-            "reason": "Not enough motor history for the AI predictor.",
+            "reason": "Not enough insulation panels history for the AI predictor.",
         }
 
     config = load_phase1_config()
-    model, training = train_recoater_drive_motor_model()
+    model, training = train_insulation_panels_model()
     curve = _build_ai_curve(points, model, config)
     failure_point = _first_failure_point(curve)
     last_point = points[-1]
@@ -368,7 +354,7 @@ def predict_recoater_drive_motor_ai_from_timeline(run_id: str, timeline: list[di
         "predicted_failure_timestamp": predicted_failure_timestamp,
         "predicted_failure_usage": predicted_failure_usage,
         "confidence": round(_clamp(confidence, 0.2, 0.9), 2),
-        "model_family": "recoater_drive_motor_sklearn_gradient_boosting",
+        "model_family": "insulation_panels_sklearn_gradient_boosting",
         "prediction_method": "supervised_synthetic_gradient_boosting",
         "horizon": {
             "threshold": PREVENTIVE_FAILURE_THRESHOLD,
@@ -387,10 +373,10 @@ def predict_recoater_drive_motor_ai_from_timeline(run_id: str, timeline: list[di
             "target": "damage_per_usage",
             "feature_names": list(FEATURE_NAMES),
             "top_factors": [
-                {"name": "effective_age_cycles", "direction": "state"},
-                {"name": "linear_guide_health", "direction": "risk"},
                 {"name": "temperature_stress", "direction": "risk"},
-                {"name": "contamination", "direction": "risk"},
+                {"name": "humidity", "direction": "risk"},
+                {"name": "heat_loss_factor", "direction": "risk"},
+                {"name": "insulation_efficiency", "direction": "state"},
                 {"name": "maintenance_level", "direction": "protective"},
             ],
         },

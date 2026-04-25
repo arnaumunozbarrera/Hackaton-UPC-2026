@@ -1,4 +1,4 @@
-"""Scikit-learn AI predictor for the recoater drive motor."""
+"""Scikit-learn AI predictor for the thermal firing resistors."""
 
 from __future__ import annotations
 
@@ -7,27 +7,31 @@ from time import perf_counter
 
 from app.core.phase1 import load_phase1_config
 from app.prediction.ai_curve_utils import calibrate_ai_health
-from model_mathematic.recoater_drive_motor import calculate_recoater_drive_motor_state
+from model_mathematic.thermal_firing_resistors import (
+    calculate_thermal_firing_resistors_state,
+)
 from sklearn.ensemble import HistGradientBoostingRegressor
 
 
-COMPONENT_ID = "recoater_drive_motor"
+COMPONENT_ID = "thermal_firing_resistors"
 PREVENTIVE_FAILURE_THRESHOLD = 0.15
 MODEL_RANDOM_STATE = 2026
 SYNTHETIC_LABEL_SCALE = 1.0
 
 FEATURE_NAMES = (
     "previous_health",
-    "effective_age_cycles",
     "operational_load",
     "contamination",
     "humidity",
     "temperature_stress",
     "maintenance_level",
-    "linear_guide_health",
-    "torque_margin",
-    "current_draw_factor",
-    "vibration_index",
+    "heating_elements_health",
+    "effective_temperature_stress",
+    "resistance_ohm",
+    "firing_energy_factor",
+    "pulse_uniformity",
+    "misfire_risk",
+    "effective_load",
     "previous_damage_per_usage",
     "usage_count",
 )
@@ -64,57 +68,61 @@ def _status_from_health(health: float) -> str:
     return "FUNCTIONAL"
 
 
-def _guide_health_from_point(point: dict) -> float:
-    guide_state = point.get("components", {}).get("linear_guide")
-    if guide_state is None:
-        motor_metrics = point.get("components", {}).get(COMPONENT_ID, {}).get("metrics", {})
-        return float(motor_metrics.get("linear_guide_health", 1.0))
-    return _component_health(guide_state)
+def _heating_health_from_point(point: dict) -> float:
+    components = point.get("components", {})
+    heating_state = components.get("heating_elements")
+    if heating_state is not None:
+        return _component_health(heating_state)
+    resistor_metrics = components.get(COMPONENT_ID, {}).get("metrics", {})
+    return float(resistor_metrics.get("heating_elements_health", 1.0))
 
 
-def _metrics_from_health(config: dict, health: float, guide_health: float) -> dict:
-    state = calculate_recoater_drive_motor_state(
+def _metrics_from_state(
+    config: dict,
+    health: float,
+    drivers: dict,
+    heating_elements_health: float,
+) -> dict:
+    state = calculate_thermal_firing_resistors_state(
         previous_state={"health": health},
-        drivers={
-            "operational_load": 0.0,
-            "contamination": 0.0,
-            "humidity": 0.0,
-            "temperature_stress": 0.0,
-            "maintenance_level": 0.0,
-        },
+        drivers=drivers,
         config=config,
-        linear_guide_state={"health": guide_health},
+        heating_elements_state={"health": heating_elements_health},
     )
     return state["metrics"]
 
 
 def _feature_row(
     previous_health: float,
-    effective_age_cycles: float,
     operational_load: float,
     contamination: float,
     humidity: float,
     temperature_stress: float,
     maintenance_level: float,
-    linear_guide_health: float,
-    torque_margin: float,
-    current_draw_factor: float,
-    vibration_index: float,
+    heating_elements_health: float,
+    effective_temperature_stress: float,
+    resistance_ohm: float,
+    firing_energy_factor: float,
+    pulse_uniformity: float,
+    misfire_risk: float,
+    effective_load: float,
     previous_damage_per_usage: float,
     usage_count: float,
 ) -> list[float]:
     return [
         float(previous_health),
-        float(effective_age_cycles),
         float(operational_load),
         float(contamination),
         float(humidity),
         float(temperature_stress),
         float(maintenance_level),
-        float(linear_guide_health),
-        float(torque_margin),
-        float(current_draw_factor),
-        float(vibration_index),
+        float(heating_elements_health),
+        float(effective_temperature_stress),
+        float(resistance_ohm),
+        float(firing_energy_factor),
+        float(pulse_uniformity),
+        float(misfire_risk),
+        float(effective_load),
         float(previous_damage_per_usage),
         float(usage_count),
     ]
@@ -126,94 +134,114 @@ def _synthetic_label_multiplier(
     humidity: float,
     temperature_stress: float,
     maintenance_level: float,
-    linear_guide_health: float,
+    heating_elements_health: float,
     previous_health: float,
 ) -> float:
+    heating_degradation = 1.0 - heating_elements_health
+    thermal_stress = temperature_stress + 0.25 * heating_degradation
+    deposit_stress = contamination * (0.6 + 0.4 * humidity)
     degradation = 1.0 - previous_health
-    guide_degradation = 1.0 - linear_guide_health
-    ingress_stress = contamination * (0.6 + 0.4 * humidity)
-    thermal_mechanical_stress = temperature_stress * (0.5 + guide_degradation)
+    misfire_pressure = degradation * (0.5 + 0.5 * thermal_stress)
     periodic_residual = (
         (
-            usage_count * 0.011
-            + contamination * 1.7
-            + temperature_stress * 1.3
-            + guide_degradation * 2.1
+            usage_count * 0.0108
+            + temperature_stress * 1.8
+            + contamination * 1.5
+            + heating_degradation * 1.7
         )
         % 1.0
     ) - 0.5
     multiplier = (
         1.0
-        + 0.08 * ingress_stress
-        + 0.10 * thermal_mechanical_stress
-        + 0.06 * degradation**2
+        + 0.10 * thermal_stress
+        + 0.07 * deposit_stress
+        + 0.06 * misfire_pressure
+        + 0.04 * humidity
         - 0.05 * maintenance_level
         + 0.035 * periodic_residual
     )
-    return _clamp(multiplier, 0.9, 1.22)
+    return _clamp(multiplier, 0.9, 1.24)
 
 
 def _build_training_dataset(config: dict) -> tuple[list[list[float]], list[float]]:
-    health_values = (0.16, 0.25, 0.4, 0.58, 0.75, 0.9, 1.0)
-    load_values = (0.2, 0.72, 1.2, 2.0)
+    health_values = (0.16, 0.28, 0.45, 0.62, 0.8, 1.0)
+    load_values = (0.2, 0.72, 1.2, 1.8)
     contamination_values = (0.0, 0.35, 0.7, 1.0)
     humidity_values = (0.0, 0.5, 1.0)
     temperature_values = (0.0, 0.35, 0.7, 1.0)
     maintenance_values = (0.0, 0.55, 1.0)
-    guide_health_values = (0.35, 0.7, 1.0)
-    usage_values = (0.0, 1000.0, 2200.0, 3200.0)
+    heating_health_values = (0.35, 0.7, 1.0)
+    usage_values = (0.0, 1200.0, 2400.0)
 
     rows = []
     targets = []
     for health in health_values:
-        for guide_health in guide_health_values:
-            metrics = _metrics_from_health(config, health, guide_health)
+        for heating_elements_health in heating_health_values:
             for operational_load in load_values:
                 for contamination in contamination_values:
                     for humidity in humidity_values:
                         for temperature_stress in temperature_values:
                             for maintenance_level in maintenance_values:
-                                for usage_count in usage_values:
-                                    drivers = {
-                                        "operational_load": operational_load,
-                                        "contamination": contamination,
-                                        "humidity": humidity,
-                                        "temperature_stress": temperature_stress,
-                                        "maintenance_level": maintenance_level,
-                                    }
-                                    next_state = calculate_recoater_drive_motor_state(
+                                drivers = {
+                                    "operational_load": operational_load,
+                                    "contamination": contamination,
+                                    "humidity": humidity,
+                                    "temperature_stress": temperature_stress,
+                                    "maintenance_level": maintenance_level,
+                                }
+                                next_state = (
+                                    calculate_thermal_firing_resistors_state(
                                         previous_state={"health": health},
                                         drivers=drivers,
                                         config=config,
-                                        linear_guide_state={"health": guide_health},
+                                        heating_elements_state={
+                                            "health": heating_elements_health
+                                        },
                                     )
-                                    mathematical_damage = float(next_state["damage"]["total"])
+                                )
+                                metrics = next_state["metrics"]
+                                mathematical_damage = float(
+                                    next_state["damage"]["total"]
+                                )
+                                for usage_count in usage_values:
                                     multiplier = _synthetic_label_multiplier(
                                         usage_count,
                                         contamination,
                                         humidity,
                                         temperature_stress,
                                         maintenance_level,
-                                        guide_health,
+                                        heating_elements_health,
                                         health,
                                     )
                                     rows.append(
                                         _feature_row(
                                             previous_health=health,
-                                            effective_age_cycles=float(
-                                                metrics["effective_age_cycles"]
-                                            ),
                                             operational_load=operational_load,
                                             contamination=contamination,
                                             humidity=humidity,
                                             temperature_stress=temperature_stress,
                                             maintenance_level=maintenance_level,
-                                            linear_guide_health=guide_health,
-                                            torque_margin=float(metrics["torque_margin"]),
-                                            current_draw_factor=float(
-                                                metrics["current_draw_factor"]
+                                            heating_elements_health=heating_elements_health,
+                                            effective_temperature_stress=float(
+                                                metrics[
+                                                    "effective_temperature_stress"
+                                                ]
                                             ),
-                                            vibration_index=float(metrics["vibration_index"]),
+                                            resistance_ohm=float(
+                                                metrics["resistance_ohm"]
+                                            ),
+                                            firing_energy_factor=float(
+                                                metrics["firing_energy_factor"]
+                                            ),
+                                            pulse_uniformity=float(
+                                                metrics["pulse_uniformity"]
+                                            ),
+                                            misfire_risk=float(
+                                                metrics["misfire_risk"]
+                                            ),
+                                            effective_load=float(
+                                                metrics["effective_load"]
+                                            ),
                                             previous_damage_per_usage=0.0,
                                             usage_count=usage_count,
                                         )
@@ -227,7 +255,7 @@ def _build_training_dataset(config: dict) -> tuple[list[list[float]], list[float
     return rows, targets
 
 
-def train_recoater_drive_motor_model() -> tuple[HistGradientBoostingRegressor, dict]:
+def train_thermal_firing_resistors_model() -> tuple[HistGradientBoostingRegressor, dict]:
     started_at = perf_counter()
     config = load_phase1_config()
     rows, targets = _build_training_dataset(config)
@@ -272,20 +300,29 @@ def _build_ai_curve(
         usage_count = float(point["usage_count"])
         usage_delta = max(usage_count - previous_usage, 0.0)
         drivers = point["drivers"]
-        guide_health = _guide_health_from_point(point)
-        metrics = _metrics_from_health(config, ai_health, guide_health)
+        heating_elements_health = _heating_health_from_point(point)
+        metrics = _metrics_from_state(
+            config,
+            ai_health,
+            drivers,
+            heating_elements_health,
+        )
         features = _feature_row(
             previous_health=ai_health,
-            effective_age_cycles=float(metrics["effective_age_cycles"]),
             operational_load=float(drivers["operational_load"]),
             contamination=float(drivers["contamination"]),
             humidity=float(drivers["humidity"]),
             temperature_stress=float(drivers["temperature_stress"]),
             maintenance_level=float(drivers["maintenance_level"]),
-            linear_guide_health=guide_health,
-            torque_margin=float(metrics["torque_margin"]),
-            current_draw_factor=float(metrics["current_draw_factor"]),
-            vibration_index=float(metrics["vibration_index"]),
+            heating_elements_health=heating_elements_health,
+            effective_temperature_stress=float(
+                metrics["effective_temperature_stress"]
+            ),
+            resistance_ohm=float(metrics["resistance_ohm"]),
+            firing_energy_factor=float(metrics["firing_energy_factor"]),
+            pulse_uniformity=float(metrics["pulse_uniformity"]),
+            misfire_risk=float(metrics["misfire_risk"]),
+            effective_load=float(metrics["effective_load"]),
             previous_damage_per_usage=previous_damage_per_usage,
             usage_count=usage_count,
         )
@@ -298,7 +335,7 @@ def _build_ai_curve(
             previous_health=ai_health,
             usage_count=usage_count,
             drivers=drivers,
-            component_phase=0.9,
+            component_phase=3.1,
         )
         previous_damage_per_usage = damage_per_usage
         previous_usage = usage_count
@@ -320,7 +357,10 @@ def _first_failure_point(curve: list[dict]) -> dict | None:
     return None
 
 
-def predict_recoater_drive_motor_ai_from_timeline(run_id: str, timeline: list[dict]) -> dict:
+def predict_thermal_firing_resistors_ai_from_timeline(
+    run_id: str,
+    timeline: list[dict],
+) -> dict:
     points = [
         point
         for point in timeline
@@ -331,13 +371,13 @@ def predict_recoater_drive_motor_ai_from_timeline(run_id: str, timeline: list[di
             "run_id": run_id,
             "component_id": COMPONENT_ID,
             "confidence": 0.2,
-            "model_family": "recoater_drive_motor_sklearn_gradient_boosting",
+            "model_family": "thermal_firing_resistors_sklearn_gradient_boosting",
             "prediction_method": "supervised_synthetic_gradient_boosting",
-            "reason": "Not enough motor history for the AI predictor.",
+            "reason": "Not enough thermal firing resistor history for the AI predictor.",
         }
 
     config = load_phase1_config()
-    model, training = train_recoater_drive_motor_model()
+    model, training = train_thermal_firing_resistors_model()
     curve = _build_ai_curve(points, model, config)
     failure_point = _first_failure_point(curve)
     last_point = points[-1]
@@ -368,7 +408,7 @@ def predict_recoater_drive_motor_ai_from_timeline(run_id: str, timeline: list[di
         "predicted_failure_timestamp": predicted_failure_timestamp,
         "predicted_failure_usage": predicted_failure_usage,
         "confidence": round(_clamp(confidence, 0.2, 0.9), 2),
-        "model_family": "recoater_drive_motor_sklearn_gradient_boosting",
+        "model_family": "thermal_firing_resistors_sklearn_gradient_boosting",
         "prediction_method": "supervised_synthetic_gradient_boosting",
         "horizon": {
             "threshold": PREVENTIVE_FAILURE_THRESHOLD,
@@ -387,10 +427,10 @@ def predict_recoater_drive_motor_ai_from_timeline(run_id: str, timeline: list[di
             "target": "damage_per_usage",
             "feature_names": list(FEATURE_NAMES),
             "top_factors": [
-                {"name": "effective_age_cycles", "direction": "state"},
-                {"name": "linear_guide_health", "direction": "risk"},
-                {"name": "temperature_stress", "direction": "risk"},
+                {"name": "effective_temperature_stress", "direction": "risk"},
+                {"name": "heating_elements_health", "direction": "risk"},
                 {"name": "contamination", "direction": "risk"},
+                {"name": "pulse_uniformity", "direction": "state"},
                 {"name": "maintenance_level", "direction": "protective"},
             ],
         },
