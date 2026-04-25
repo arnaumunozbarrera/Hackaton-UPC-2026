@@ -12,6 +12,9 @@ class LLMClient(Protocol):
     def generate(self, messages: list[dict[str, str]]) -> str:
         ...
 
+    def rewrite(self, source_text: str) -> str:
+        ...
+
 
 class MockLLMClient:
     provider = "mock"
@@ -57,6 +60,9 @@ class MockLLMClient:
 
         return "\n".join(lines)
 
+    def rewrite(self, source_text: str) -> str:
+        return source_text
+
 
 class OllamaLLMClient:
     provider = "ollama"
@@ -72,6 +78,56 @@ class OllamaLLMClient:
             "stream": False,
             "options": {
                 "temperature": 0.2,
+            },
+        }
+
+        request = Request(
+            url=f"{self.base_url}/api/chat",
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+
+        try:
+            with urlopen(request, timeout=120) as response:
+                response_data = json.loads(response.read().decode("utf-8"))
+        except HTTPError as error:
+            body = error.read().decode("utf-8", errors="replace")
+            raise RuntimeError(f"Ollama HTTP error {error.code}: {body}") from error
+        except URLError as error:
+            raise RuntimeError(f"Could not connect to Ollama at {self.base_url}. Is Ollama running?") from error
+        except TimeoutError as error:
+            raise RuntimeError("Ollama request timed out") from error
+
+        message = response_data.get("message", {})
+        content = message.get("content")
+
+        if not content:
+            raise RuntimeError(f"Ollama returned an empty response: {response_data}")
+
+        return content
+    
+    def rewrite(self, source_text: str) -> str:
+        payload = {
+            "model": self.model,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": (
+                        "Rewrite the provided maintenance summary to make it clearer and more readable. "
+                        "Do not add, remove, or change any technical facts, numbers, actions, statuses, timestamps, priorities, or component names. "
+                        "Do not introduce new causes, downtime, cost, urgency, or production impact. "
+                        "Keep all recommendations and evidence."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": source_text,
+                },
+            ],
+            "stream": False,
+            "options": {
+                "temperature": 0.0,
             },
         }
 
@@ -120,3 +176,6 @@ def extract_context(messages: list[dict[str, str]]) -> dict[str, Any]:
             return json.loads(message["content"])
 
     raise ValueError("No user message found in LLM messages")
+
+    def rewrite(self, source_text: str) -> str:
+        return source_text

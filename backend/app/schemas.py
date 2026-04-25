@@ -88,3 +88,4 @@ class AgentLLMAnswerRequest(BaseModel):
     include_context: bool = False
     provider: str = "mock"
     model: str | None = None
+    mode: str = "rewrite"
