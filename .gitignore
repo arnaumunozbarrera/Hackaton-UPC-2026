@@ -3,6 +3,11 @@ __pycache__/
 *.py[codz]
 *$py.class
 
+# JavaScript dependencies and generated frontend output
+node_modules/
+.vite/
+frontend/src/.build-check/
+
 # C extensions
 *.so
 
@@ -217,5 +222,6 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
-backend/storage/*.sqlite
-backend/storage/*.sqlite-*
+# Runtime databases
+*.sqlite
+*.sqlite-*

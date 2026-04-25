@@ -27,10 +27,3 @@ export async function runSimulation(config) {
     body: JSON.stringify(config)
   });
 }
-
-export async function runSimulationStep(payload) {
-  return fetchJson('/api/simulation/step', {
-    method: 'POST',
-    body: JSON.stringify(payload)
-  });
-}

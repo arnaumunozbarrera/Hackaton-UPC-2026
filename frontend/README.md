@@ -17,7 +17,7 @@ React + Vite frontend for the Component Health Index Estimation dashboard.
   - `damage`
   - `metrics`
   - `alerts`
-- Frontend-only SQLite historian using `sql.js` and browser `localStorage`.
+- Backend-backed SQLite historian exposed through the `/api/historian/*` routes.
 
 ## Important packaging note
 

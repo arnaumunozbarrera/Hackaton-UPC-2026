@@ -7,9 +7,3 @@ export async function listRuns() {
 export async function getRunTimeline(runId) {
   return fetchJson(`/api/historian/runs/${runId}/timeline`);
 }
-
-export async function clearHistorian() {
-  return fetchJson('/api/historian', {
-    method: 'DELETE'
-  });
-}
