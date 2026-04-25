@@ -4,6 +4,7 @@ from pathlib import Path
 from agent.src.decision import make_agent_decisions
 from agent.src.explainer import explain_decisions
 from agent.src.explainer import format_actions
+from agent.src.planner import find_selected_evaluation
 
 
 def load_history(path: Path) -> list[dict]:
@@ -20,13 +21,17 @@ def print_summary(scenario_name: str, decisions: list) -> None:
         return
 
     for decision in decisions:
+        selected = find_selected_evaluation(decision.recommendation)
+
         print(
             f"{decision.diagnosis.component_id} | "
             f"issue={decision.diagnosis.issue} | "
             f"priority={decision.recommendation.priority.value} | "
             f"forecast={decision.forecast.predicted_status} | "
             f"plan={format_actions(decision.recommendation.actions)} | "
-            f"risk={decision.recommendation.alternatives[0].risk_score}"
+            f"selected_risk={selected.risk_score} | "
+            f"projected_status={selected.predicted_status} | "
+            f"projected_health={selected.projected_health_index}"
         )
 
 

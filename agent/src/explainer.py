@@ -1,15 +1,17 @@
-from agent.src.schemas import ActionType, AgentDecision
+from agent.src.schemas import ActionPlanEvaluation, ActionType, AgentDecision
 
 
 def explain_decision(decision: AgentDecision) -> str:
     diagnosis = decision.diagnosis
     recommendation = decision.recommendation
+    selected = find_selected_evaluation(decision)
 
     lines = [
         f"{recommendation.priority.value}: {diagnosis.component_id} requires attention.",
         "",
         f"Diagnosis: {diagnosis.description}.",
         f"Recommended action plan: {format_actions(recommendation.actions)}.",
+        f"Why this plan: {build_selection_reason(decision, selected)}",
         f"Expected effect: {recommendation.expected_effect}.",
         "",
         build_forecast_sentence(decision),
@@ -68,6 +70,42 @@ def build_forecast_sentence(decision: AgentDecision) -> str:
         return "Forecast without intervention: if current conditions continue, the component is expected to reach CRITICAL within the forecast horizon."
 
     return f"Forecast without intervention: predicted status after {forecast.horizon_steps} steps is {forecast.predicted_status}, with risk score {forecast.risk_score:.2f}."
+
+
+def build_selection_reason(decision: AgentDecision, selected: ActionPlanEvaluation) -> str:
+    forecast = decision.forecast
+    best_raw = decision.recommendation.alternatives[0]
+
+    if forecast.predicted_status == "FAILED" and selected.predicted_status != "FAILED":
+        return (
+            f"it prevents the forecasted failure and projects the component to {selected.predicted_status} "
+            f"with health index {selected.projected_health_index}"
+        )
+
+    if forecast.predicted_status == "CRITICAL" and selected.predicted_status in {"FUNCTIONAL", "DEGRADED"}:
+        return (
+            f"it avoids the forecasted critical state and projects the component to {selected.predicted_status} "
+            f"with health index {selected.projected_health_index}"
+        )
+
+    if selected.actions != best_raw.actions:
+        return (
+            f"it stays within the acceptable risk range while using a less invasive plan than "
+            f"{format_actions(best_raw.actions)}"
+        )
+
+    return (
+        f"it has the best projected risk among the evaluated plans, with risk score {selected.risk_score} "
+        f"and projected status {selected.predicted_status}"
+    )
+
+
+def find_selected_evaluation(decision: AgentDecision) -> ActionPlanEvaluation:
+    for evaluation in decision.recommendation.alternatives:
+        if evaluation.actions == decision.recommendation.actions:
+            return evaluation
+
+    raise ValueError("Selected action plan was not found in alternatives")
 
 
 def format_actions(actions: tuple[ActionType, ...]) -> str:
