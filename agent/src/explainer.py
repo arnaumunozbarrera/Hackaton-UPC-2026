@@ -76,7 +76,19 @@ def build_selection_reason(decision: AgentDecision, selected: ActionPlanEvaluati
     forecast = decision.forecast
     best_raw = decision.recommendation.alternatives[0]
 
-    if forecast.predicted_status == "FAILED" and selected.predicted_status != "FAILED":
+    if forecast.predicted_status == "FAILED" and selected.predicted_status == "FAILED":
+        return (
+            f"it reduces projected risk compared with continuing operation, but the component is still expected to fail "
+            f"with health index {selected.projected_health_index}"
+        )
+
+    if forecast.predicted_status == "FAILED" and selected.predicted_status == "CRITICAL":
+        return (
+            f"it improves the projected outcome from FAILED to CRITICAL with health index "
+            f"{selected.projected_health_index}, but follow-up maintenance is still required"
+        )
+
+    if forecast.predicted_status == "FAILED" and selected.predicted_status in {"DEGRADED", "FUNCTIONAL"}:
         return (
             f"it prevents the forecasted failure and projects the component to {selected.predicted_status} "
             f"with health index {selected.projected_health_index}"

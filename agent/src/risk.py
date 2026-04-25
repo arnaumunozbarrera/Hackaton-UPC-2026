@@ -9,4 +9,4 @@ def compute_risk_score(projected_health: float, predicted_status: str, cost: flo
 
     health_penalty = (1.0 - projected_health) * 100.0
 
-    return status_penalty[predicted_status] + health_penalty + cost
+    return round(status_penalty[predicted_status] + health_penalty + cost, 4)

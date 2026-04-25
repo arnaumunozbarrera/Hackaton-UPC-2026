@@ -78,7 +78,7 @@ def risk_tolerance_from_forecast(forecast: Forecast) -> float:
         return 18.0
 
     if forecast.predicted_status == "DEGRADED":
-        return 25.0
+        return 12.0
 
     return 10.0
 

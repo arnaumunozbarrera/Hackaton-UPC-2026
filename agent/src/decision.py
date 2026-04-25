@@ -21,6 +21,9 @@ def make_agent_decisions(run_id: str, latest_record: dict, history: list[dict], 
         )
         recommendation = escalate_recommendation_priority(recommendation, forecast)
 
+        if recommendation.priority == Severity.INFO:
+            continue
+
         decisions.append(
             AgentDecision(
                 diagnosis=diagnosis,

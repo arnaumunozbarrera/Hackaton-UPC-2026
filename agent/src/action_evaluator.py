@@ -3,6 +3,7 @@ from operator import mul
 
 from agent.src.schemas import ActionPlanEvaluation, ActionType, Diagnosis
 from agent.src.risk import compute_risk_score
+from agent.src.health import status_from_health
 
 def evaluate_candidate_action_plans(
     diagnosis: Diagnosis,
@@ -182,16 +183,6 @@ def action_cost(action: ActionType) -> float:
     }
 
     return costs[action]
-
-
-def status_from_health(health: float) -> str:
-    if health <= 0.05:
-        return "FAILED"
-    if health <= 0.30:
-        return "CRITICAL"
-    if health <= 0.70:
-        return "DEGRADED"
-    return "FUNCTIONAL"
 
 def build_expected_effect(
     actions: tuple[ActionType, ...],

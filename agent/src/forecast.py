@@ -1,5 +1,6 @@
 from math import ceil
 
+from agent.src.health import CRITICAL_HEALTH_THRESHOLD, FAILED_HEALTH_THRESHOLD, status_from_health
 from agent.src.risk import compute_risk_score
 from agent.src.schemas import Forecast
 
@@ -20,7 +21,7 @@ def forecast_from_health_trend(history: list[dict], component_id: str, horizon_s
     degradation_rate = max((first - last) / steps, 0.0)
 
     if degradation_rate == 0.0:
-        predicted_status = history[-1]["components"][component_id]["status"]
+        predicted_status = status_from_health(last)
         return Forecast(
             horizon_steps=horizon_steps,
             predicted_status=predicted_status,
@@ -29,23 +30,11 @@ def forecast_from_health_trend(history: list[dict], component_id: str, horizon_s
             risk_score=compute_risk_score(last, predicted_status),
         )
 
-    critical_threshold = 0.30
-    failure_threshold = 0.05
-
-    time_to_critical = ceil((last - critical_threshold) / degradation_rate) if last > critical_threshold else 0
-    time_to_failure = ceil((last - failure_threshold) / degradation_rate) if last > failure_threshold else 0
+    time_to_critical = ceil((last - CRITICAL_HEALTH_THRESHOLD) / degradation_rate) if last > CRITICAL_HEALTH_THRESHOLD else 0
+    time_to_failure = ceil((last - FAILED_HEALTH_THRESHOLD) / degradation_rate) if last > FAILED_HEALTH_THRESHOLD else 0
 
     future_health = max(0.0, last - degradation_rate * horizon_steps)
-
-    if future_health <= failure_threshold:
-        predicted_status = "FAILED"
-    elif future_health <= critical_threshold:
-        predicted_status = "CRITICAL"
-    elif future_health <= 0.70:
-        predicted_status = "DEGRADED"
-    else:
-        predicted_status = "FUNCTIONAL"
-
+    predicted_status = status_from_health(future_health)
     risk_score = compute_risk_score(future_health, predicted_status)
 
     return Forecast(
