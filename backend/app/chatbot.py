@@ -206,12 +206,6 @@ def _build_grounded_context(question: str, run_id: str | None, component_id: str
         evidence.extend(component_summary["evidence"])
         metadata["component_points"] = len(component_history)
         llm_context["component"] = component_summary["llm_component"]
-        action_options = _build_action_options(
-            component_id=inferred_component_id,
-            component=latest_point["components"][inferred_component_id],
-            prediction=prediction,
-        )
-        llm_context["action_options"] = action_options
 
         if prediction:
             prediction_fact = _prediction_fact(prediction)
@@ -225,6 +219,18 @@ def _build_grounded_context(question: str, run_id: str | None, component_id: str
                     }
                 )
             llm_context["prediction"] = prediction
+            llm_context["prediction_summary"] = _prediction_summary(prediction)
+            support_metrics = _merge_support_metrics(
+                support_metrics,
+                _prediction_support_metrics(prediction),
+            )
+
+        action_options = _build_action_options(
+            component_id=inferred_component_id,
+            component=latest_point["components"][inferred_component_id],
+            prediction=prediction,
+        )
+        llm_context["action_options"] = action_options
 
         for message in component_messages[:3]:
             facts.append(
@@ -259,6 +265,7 @@ def _build_grounded_context(question: str, run_id: str | None, component_id: str
         run_metadata=run_metadata,
         latest_point=latest_point,
         component_id=inferred_component_id,
+        prediction=llm_context.get("prediction"),
         facts=facts,
         messages=messages,
         evidence=evidence,
@@ -353,6 +360,7 @@ def _compose_summary(
     run_metadata: dict[str, Any],
     latest_point: dict[str, Any],
     component_id: str | None,
+    prediction: dict[str, Any] | None,
     facts: list[str],
     messages: list[dict[str, Any]],
     evidence: list[dict[str, Any]],
@@ -392,13 +400,13 @@ def _compose_summary(
             _describe_replacement_timing(
                 component_id=component_id,
                 latest_point=latest_point,
-                facts=facts,
+                prediction=prediction,
             ),
             True,
         )
 
     if any(keyword in lower_question for keyword in PREDICTION_KEYWORDS):
-        prediction_fact = next((fact for fact in facts if fact.startswith("Latest prediction")), None)
+        prediction_fact = next((fact for fact in facts if fact.startswith("The predictor")), None)
         if prediction_fact:
             return (prediction_fact, True)
         return (
@@ -621,15 +629,23 @@ def _prediction_fact(prediction: dict[str, Any]) -> str | None:
     if not prediction:
         return None
 
-    if "predicted_status" in prediction:
+    if prediction.get("predicted_failure_timestamp"):
+        confidence = prediction.get("confidence")
+        confidence_text = (
+            f" with confidence {confidence}"
+            if isinstance(confidence, (int, float))
+            else ""
+        )
         return (
-            "The latest prediction suggests that this component may continue moving toward a more critical state if conditions stay the same."
+            "The predictor estimates a failure point around "
+            f"{prediction['predicted_failure_timestamp']} at usage {prediction.get('predicted_failure_usage')}"
+            f"{confidence_text}."
         )
 
-    if "prediction" in prediction:
-        return "There is stored prediction data for this component, but it only supports a cautious explanation rather than a precise forecast in natural language."
+    if prediction.get("reason"):
+        return f"The predictor could not produce a reliable failure estimate: {prediction['reason']}"
 
-    return "There is stored prediction data for this component, but it does not support a more detailed natural-language forecast."
+    return "There is stored prediction data for this component, but it does not support a more detailed forecast."
 
 
 def _build_support_metrics(latest_point: dict[str, Any], component_id: str | None) -> list[dict[str, Any]]:
@@ -653,6 +669,21 @@ def _build_support_metrics(latest_point: dict[str, Any], component_id: str | Non
 
     ranked_metrics.sort(key=lambda item: item[0], reverse=True)
     return [metric for _, metric in ranked_metrics[:3]]
+
+
+def _prediction_support_metrics(prediction: dict[str, Any] | None) -> list[dict[str, Any]]:
+    if not prediction:
+        return []
+
+    metrics = []
+    if prediction.get("predicted_failure_usage") is not None:
+        metrics.append(_metric_entry("Predicted failure usage", prediction["predicted_failure_usage"], "usage", "Prediction"))
+    if prediction.get("confidence") is not None:
+        metrics.append(_metric_entry("Prediction confidence", prediction["confidence"], "score", "Prediction"))
+    evidence = prediction.get("evidence") or {}
+    if evidence.get("health") is not None:
+        metrics.append(_metric_entry("Prediction evidence health", evidence["health"], "index", "Prediction"))
+    return metrics[:2]
 
 
 def _build_action_options(component_id: str, component: dict[str, Any], prediction: dict[str, Any] | None) -> list[dict[str, Any]]:
@@ -691,6 +722,8 @@ def _build_action_options(component_id: str, component: dict[str, Any], predicti
         options[0 if status in {"FAILED", "CRITICAL"} else 1]["forecast_hint"] = (
             f"Predicted failure timing is around {prediction['predicted_failure_timestamp']}."
         )
+    elif prediction and prediction.get("reason"):
+        options[0 if status in {"FAILED", "CRITICAL"} else 1]["forecast_hint"] = prediction["reason"]
 
     return options[:3]
 
@@ -780,6 +813,18 @@ def _metric_priority(metric_name: str, metric_value: Any, scope: str) -> int:
     return int(weight + round(severity))
 
 
+def _merge_support_metrics(base_metrics: list[dict[str, Any]], extra_metrics: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    merged = []
+    seen = set()
+    for metric in [*extra_metrics, *base_metrics]:
+        key = (metric.get("scope"), metric.get("label"))
+        if key in seen:
+            continue
+        seen.add(key)
+        merged.append(metric)
+    return merged[:3]
+
+
 def _describe_parameter_effects(component_id: str | None, latest_point: dict[str, Any]) -> str:
     component_text = component_id if component_id else "the observed components"
     active_drivers = latest_point.get("drivers", {})
@@ -808,7 +853,7 @@ def _describe_parameter_effects(component_id: str | None, latest_point: dict[str
     )
 
 
-def _describe_replacement_timing(component_id: str | None, latest_point: dict[str, Any], facts: list[str]) -> str:
+def _describe_replacement_timing(component_id: str | None, latest_point: dict[str, Any], prediction: dict[str, Any] | None) -> str:
     if not component_id:
         return "I need a specific component to explain replacement timing. Ask about a component such as the recoater blade or nozzle plate."
 
@@ -822,10 +867,33 @@ def _describe_replacement_timing(component_id: str | None, latest_point: dict[st
     if status == "FAILED":
         return f"{component_name.capitalize()} should already be considered for replacement, because the latest stored record shows it in a failed condition."
     if status == "CRITICAL":
+        if prediction and prediction.get("predicted_failure_timestamp"):
+            return (
+                f"{component_name.capitalize()} should be replaced as soon as possible. "
+                f"The component is already critical, and the predictor places failure around {prediction['predicted_failure_timestamp']}."
+            )
         return f"{component_name.capitalize()} should be replaced as soon as possible, because the latest stored record shows it in a critical condition with very little remaining margin."
     if status == "DEGRADED":
+        if prediction and prediction.get("predicted_failure_timestamp"):
+            return (
+                f"{component_name.capitalize()} is not yet in confirmed failure, but replacement should be planned before {prediction['predicted_failure_timestamp']} "
+                f"if the same trend continues. The predictor estimates failure near usage {prediction.get('predicted_failure_usage')}."
+            )
         return f"{component_name.capitalize()} is not yet at confirmed failure, but the stored trend suggests replacement should be prepared if the current degradation pattern continues or alert activity increases."
     return f"{component_name.capitalize()} does not yet appear to require immediate replacement from the stored records, but it should continue to be monitored for degradation and alert escalation."
+
+
+def _prediction_summary(prediction: dict[str, Any]) -> dict[str, Any]:
+    if not prediction:
+        return {}
+
+    return {
+        "predicted_failure_timestamp": prediction.get("predicted_failure_timestamp"),
+        "predicted_failure_usage": prediction.get("predicted_failure_usage"),
+        "confidence": prediction.get("confidence"),
+        "reason": prediction.get("reason"),
+        "evidence": prediction.get("evidence"),
+    }
 
 
 def _interesting_metric_phrases(metrics: dict[str, Any]) -> list[str]:
