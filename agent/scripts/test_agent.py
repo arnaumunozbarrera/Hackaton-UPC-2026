@@ -40,12 +40,23 @@ def main() -> None:
         print(f"Diagnosis severity: {decision.diagnosis.severity.value}")
         print(f"Recommendation priority: {decision.recommendation.priority.value}")
         print(f"Description: {decision.diagnosis.description}")
-        print(f"Predicted status: {decision.forecast.predicted_status}")
+        print(f"Predicted status without intervention: {decision.forecast.predicted_status}")
         print(f"Time to critical steps: {decision.forecast.time_to_critical_steps}")
         print(f"Time to failure steps: {decision.forecast.time_to_failure_steps}")
-        print(f"Risk score: {decision.forecast.risk_score:.2f}")
+        print(f"Baseline risk score: {decision.forecast.risk_score:.2f}")
         print(f"Recommended action: {decision.recommendation.action.value}")
         print(f"Expected effect: {decision.recommendation.expected_effect}")
+        print("Evaluated alternatives:")
+
+        for alternative in decision.recommendation.alternatives:
+            print(
+                f"- {alternative.action.value}: "
+                f"projected_status={alternative.predicted_status}, "
+                f"projected_health={alternative.projected_health_index}, "
+                f"risk_score={alternative.risk_score}, "
+                f"expected_effect={alternative.expected_effect}"
+            )
+
         print("Evidence:")
 
         for evidence in decision.diagnosis.evidence:
