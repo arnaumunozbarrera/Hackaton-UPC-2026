@@ -9,48 +9,27 @@ This model is deterministic and belongs to Phase 1. It does not know about
 timestamps, scenario IDs, run IDs, persistence, or simulation steps.
 """
 
-from .common import DAMAGE_PRECISION, HEALTH_PRECISION, clamp, get_status_from_health
+from .common import (
+    DAMAGE_PRECISION,
+    HEALTH_PRECISION,
+    clamp,
+    get_component_config,
+    get_component_health,
+    get_previous_component_state,
+    get_previous_health,
+    get_reported_damage,
+    get_status_from_health,
+    snap_health_to_failure_threshold,
+)
 
 
 COMPONENT_NAME = "nozzle_plate"
 
 
-def _get_component_config(config):
-    if "components" in config:
-        return config["components"][COMPONENT_NAME]
-    return config
-
-
-def _get_previous_component_state(previous_state):
-    if not previous_state:
-        return {}
-
-    if "components" in previous_state:
-        return previous_state.get("components", {}).get(COMPONENT_NAME, {})
-
-    return previous_state
-
-
-def _get_previous_health(previous_state, health_config):
-    component_state = _get_previous_component_state(previous_state)
-    return component_state.get("health", health_config["initial"])
-
-
 def _get_previous_metric(previous_state, metric_name, default_value=0.0):
-    component_state = _get_previous_component_state(previous_state)
+    component_state = get_previous_component_state(previous_state, COMPONENT_NAME)
     metrics = component_state.get("metrics", {})
     return metrics.get(metric_name, default_value)
-
-
-def _get_component_health(component_state):
-    if not component_state:
-        return 1.0
-
-    return clamp(
-        float(component_state.get("health", 1.0)),
-        0.0,
-        1.0,
-    )
 
 
 def _build_alerts(
@@ -107,9 +86,11 @@ def calculate_nozzle_plate_state(
     config: dict,
     recoater_blade_state: dict | None = None,
     heating_elements_state: dict | None = None,
+    cleaning_interface_state: dict | None = None,
+    thermal_firing_resistors_state: dict | None = None,
 ) -> dict:
     """Calculate the deterministic Phase 1 state for the nozzle plate."""
-    component_config = _get_component_config(config)
+    component_config = get_component_config(config, COMPONENT_NAME)
     health_config = component_config["health"]
     calibration_config = component_config["calibration"]
     sensitivity = component_config["sensitivity"]
@@ -118,7 +99,7 @@ def calculate_nozzle_plate_state(
     alerts_config = component_config["alerts"]
 
     previous_health = clamp(
-        float(_get_previous_health(previous_state, health_config)),
+        float(get_previous_health(previous_state, COMPONENT_NAME, health_config)),
         health_config["min"],
         health_config["max"],
     )
@@ -143,8 +124,12 @@ def calculate_nozzle_plate_state(
     temperature_stress = clamp(float(drivers.get("temperature_stress", 0.0)), 0.0, 1.0)
     maintenance_level = clamp(float(drivers.get("maintenance_level", 0.0)), 0.0, 1.0)
 
-    recoater_blade_health = _get_component_health(recoater_blade_state)
-    heating_elements_health = _get_component_health(heating_elements_state)
+    recoater_blade_health = get_component_health(recoater_blade_state)
+    heating_elements_health = get_component_health(heating_elements_state)
+    cleaning_interface_health = get_component_health(cleaning_interface_state)
+    thermal_firing_resistors_health = get_component_health(
+        thermal_firing_resistors_state
+    )
 
     base_damage_per_cycle = (
         health_config["initial"] - calibration_config["failure_threshold"]
@@ -154,16 +139,22 @@ def calculate_nozzle_plate_state(
 
     recoater_degradation = 1.0 - recoater_blade_health
     heating_degradation = 1.0 - heating_elements_health
+    cleaning_degradation = 1.0 - cleaning_interface_health
+    firing_resistor_degradation = 1.0 - thermal_firing_resistors_health
 
     effective_contamination = clamp(
-        contamination + sensitivity["recoater_cascade"] * recoater_degradation,
+        contamination
+        + sensitivity["recoater_cascade"] * recoater_degradation
+        + sensitivity.get("cleaning_cascade", 0.0) * cleaning_degradation,
         0.0,
         1.0,
     )
 
     effective_temperature_stress = clamp(
         temperature_stress
-        + sensitivity.get("heating_cascade", 0.0) * heating_degradation,
+        + sensitivity.get("heating_cascade", 0.0) * heating_degradation
+        + sensitivity.get("firing_resistor_cascade", 0.0)
+        * firing_resistor_degradation,
         0.0,
         1.0,
     )
@@ -217,10 +208,8 @@ def calculate_nozzle_plate_state(
     )
 
     rounded_health = round(new_health, HEALTH_PRECISION)
-    reported_damage = max(
-        0.0,
-        round(previous_health - rounded_health, DAMAGE_PRECISION),
-    )
+    rounded_health = snap_health_to_failure_threshold(rounded_health, health_config)
+    reported_damage = get_reported_damage(previous_health, rounded_health)
     status = get_status_from_health(rounded_health, health_config)
 
     if damage > 0:
@@ -247,8 +236,10 @@ def calculate_nozzle_plate_state(
         metrics_config["max_blocked_nozzles_pct"] * clogging_ratio
     )
 
+    clogging_penalty = metrics_config["jetting_efficiency_clogging_penalty"]
+
     jetting_efficiency = clamp(
-        rounded_health * (1.0 - 0.5 * clogging_ratio),
+        rounded_health * (1.0 - clogging_penalty * clogging_ratio),
         metrics_config["min_jetting_efficiency"],
         1.0,
     )
@@ -275,10 +266,16 @@ def calculate_nozzle_plate_state(
             "effective_temperature_stress": round(effective_temperature_stress, 6),
             "recoater_blade_health": round(recoater_blade_health, 6),
             "heating_elements_health": round(heating_elements_health, 6),
+            "cleaning_interface_health": round(cleaning_interface_health, 6),
+            "thermal_firing_resistors_health": round(
+                thermal_firing_resistors_health,
+                6,
+            ),
             "clogging_ratio": rounded_clogging_ratio,
             "blocked_nozzles_pct": round(blocked_nozzles_pct, 6),
             "thermal_fatigue_index": rounded_thermal_fatigue_index,
             "jetting_efficiency": rounded_jetting_efficiency,
+            "jetting_efficiency_clogging_penalty": round(clogging_penalty, 6),
             "contamination_factor": round(contamination_factor, 6),
             "humidity_factor": round(humidity_factor, 6),
             "temperature_factor": round(temperature_factor, 6),

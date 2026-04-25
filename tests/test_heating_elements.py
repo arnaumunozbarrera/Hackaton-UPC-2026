@@ -69,6 +69,7 @@ CONFIG = {
             "metrics": {
                 "max_blocked_nozzles_pct": 100.0,
                 "min_jetting_efficiency": 0.0,
+                "jetting_efficiency_clogging_penalty": 0.5,
             },
             "alerts": {
                 "high_clogging_threshold": 0.60,
