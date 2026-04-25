@@ -12,7 +12,13 @@ def make_agent_decisions(run_id: str, latest_record: dict, history: list[dict], 
 
     for diagnosis in diagnoses:
         forecast = forecast_from_health_trend(history, diagnosis.component_id, horizon_steps)
-        recommendation = recommend_action(diagnosis)
+        recommendation = recommend_action(
+            diagnosis=diagnosis,
+            forecast=forecast,
+            latest_record=latest_record,
+            history=history,
+            horizon_steps=horizon_steps,
+        )
         recommendation = escalate_recommendation_priority(recommendation, forecast)
 
         decisions.append(

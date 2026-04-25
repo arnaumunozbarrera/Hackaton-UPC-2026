@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
@@ -49,11 +49,21 @@ class Forecast:
 
 
 @dataclass(frozen=True)
+class ActionEvaluation:
+    action: ActionType
+    projected_health_index: float
+    predicted_status: str
+    risk_score: float
+    expected_effect: str
+
+
+@dataclass(frozen=True)
 class Recommendation:
     action: ActionType
     priority: Severity
     expected_effect: str
     evidence: list[Evidence]
+    alternatives: list[ActionEvaluation] = field(default_factory=list)
 
 
 @dataclass(frozen=True)

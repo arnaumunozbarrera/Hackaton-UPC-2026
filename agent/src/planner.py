@@ -1,34 +1,37 @@
-from agent.src.schemas import ActionType, Diagnosis, Recommendation, Severity
+from agent.src.action_evaluator import evaluate_candidate_actions
+from agent.src.schemas import Diagnosis, Forecast, Recommendation, Severity
 
 
-def recommend_action(diagnosis: Diagnosis) -> Recommendation:
-    if diagnosis.issue == "thermal_instability":
-        return Recommendation(
-            action=ActionType.TRIGGER_COOLDOWN,
-            priority=Severity.CRITICAL,
-            expected_effect="Reduce thermal stress and slow degradation of heating elements",
-            evidence=diagnosis.evidence,
-        )
+def recommend_action(
+    diagnosis: Diagnosis,
+    forecast: Forecast,
+    latest_record: dict,
+    history: list[dict],
+    horizon_steps: int,
+) -> Recommendation:
+    evaluations = evaluate_candidate_actions(
+        diagnosis=diagnosis,
+        latest_record=latest_record,
+        history=history,
+        horizon_steps=horizon_steps,
+    )
 
-    if diagnosis.issue == "nozzle_clogging":
-        return Recommendation(
-            action=ActionType.RUN_CLEANING_CYCLE,
-            priority=Severity.WARNING,
-            expected_effect="Reduce clogging ratio and recover jetting efficiency",
-            evidence=diagnosis.evidence,
-        )
-
-    if diagnosis.issue == "recoater_wear":
-        return Recommendation(
-            action=ActionType.SCHEDULE_MAINTENANCE,
-            priority=Severity.WARNING,
-            expected_effect="Prevent increased powder contamination and downstream nozzle clogging",
-            evidence=diagnosis.evidence,
-        )
+    best = evaluations[0]
 
     return Recommendation(
-        action=ActionType.CONTINUE_OPERATION,
-        priority=Severity.INFO,
-        expected_effect="No immediate intervention required",
+        action=best.action,
+        priority=initial_priority_from_forecast(forecast),
+        expected_effect=best.expected_effect,
         evidence=diagnosis.evidence,
+        alternatives=evaluations,
     )
+
+
+def initial_priority_from_forecast(forecast: Forecast) -> Severity:
+    if forecast.predicted_status in {"FAILED", "CRITICAL"}:
+        return Severity.CRITICAL
+
+    if forecast.predicted_status == "DEGRADED":
+        return Severity.WARNING
+
+    return Severity.INFO
