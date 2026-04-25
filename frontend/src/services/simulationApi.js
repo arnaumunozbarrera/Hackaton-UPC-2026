@@ -1,9 +1,21 @@
 import { fetchJson } from './apiClient';
 
 export function buildAxisTemplate(totalUsages, usageStep) {
-  const steps = Math.max(1, Math.floor(totalUsages / usageStep));
-  return Array.from({ length: steps + 1 }, (_, index) => ({
-    usage_count: index * usageStep,
+  const usageCounts = [0];
+  const epsilon = 1e-9;
+  let currentUsage = usageStep;
+
+  while (currentUsage < totalUsages - epsilon) {
+    usageCounts.push(Number(currentUsage.toFixed(6)));
+    currentUsage += usageStep;
+  }
+
+  if (Math.abs(usageCounts[usageCounts.length - 1] - totalUsages) > epsilon) {
+    usageCounts.push(Number(totalUsages.toFixed(6)));
+  }
+
+  return usageCounts.map((usage_count) => ({
+    usage_count,
     health: null,
     status: null
   }));

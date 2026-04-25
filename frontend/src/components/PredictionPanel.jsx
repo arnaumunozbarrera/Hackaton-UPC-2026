@@ -32,22 +32,6 @@ export default function PredictionPanel({ prediction }) {
         </div>
       </div>
 
-      <h3>Suggested actions</h3>
-      <ul className="measure-list">
-        {(prediction.recommended_measures || [prediction.reason || 'No recommendation available.']).map((measure) => (
-          <li key={measure}>{measure}</li>
-        ))}
-      </ul>
-
-      <h3>Affected dependencies</h3>
-      <div className="dependency-tags">
-        {(prediction.affected_dependencies || []).map((dependency) => (
-          <span key={`${dependency.component_id}-${dependency.impact}`}>
-            {COMPONENT_LABELS[dependency.component_id] || dependency.component_id} · {dependency.impact}
-          </span>
-        ))}
-      </div>
-
       <div className="evidence-box">
         <strong>Evidence:</strong>{' '}
         {prediction.evidence
