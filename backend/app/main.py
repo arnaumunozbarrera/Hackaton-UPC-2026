@@ -5,10 +5,11 @@ from __future__ import annotations
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.chatbot import answer_chat_question
 from app.adapters.phase1_adapter import adapt_phase1_output
 from app.core.phase1 import get_default_simulation_config, load_phase1_config, run_phase1_update, to_phase1_drivers
 from app.prediction.predictor import predict_component_failure
-from app.schemas import PredictionRequest, SimulationRunRequest, SimulationStepRequest
+from app.schemas import ChatQueryRequest, PredictionRequest, SimulationRunRequest, SimulationStepRequest
 from app.simulation.simulation_runner import run_simulation, run_single_step
 from app.storage import historian
 
@@ -75,6 +76,18 @@ def predict_failure(request: PredictionRequest) -> dict:
 @app.get("/api/messages/{run_id}")
 def get_messages(run_id: str) -> list[dict]:
     return historian.get_messages(run_id)
+
+
+@app.post("/api/chat/query")
+def chat_query(request: ChatQueryRequest) -> dict:
+    try:
+        return answer_chat_question(
+            question=request.question,
+            run_id=request.run_id,
+            component_id=request.component_id,
+        )
+    except Exception as error:  # pragma: no cover
+        raise _structured_error(500, "chat_query_failed", str(error)) from error
 
 
 @app.get("/api/historian/runs/{run_id}/timeline")

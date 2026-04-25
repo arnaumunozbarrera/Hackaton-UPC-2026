@@ -67,3 +67,9 @@ class SimulationStepRequest(BaseModel):
 class PredictionRequest(BaseModel):
     run_id: str
     component_id: str
+
+
+class ChatQueryRequest(BaseModel):
+    run_id: str | None = None
+    component_id: str | None = None
+    question: str = Field(min_length=1)

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import ChatbotPanel from './components/ChatbotPanel';
 import ComponentSelector from './components/ComponentSelector';
 import HealthSummary from './components/HealthSummary';
 import HumanDependencyMap from './components/HumanDependencyMap';
@@ -295,6 +296,14 @@ export default function App() {
       <section className="bottom-grid stacked-grid">
         <MessagesPanel messages={messages} />
         <HumanDependencyMap selectedComponentId={selectedComponentId} dependencies={dependencies} />
+      </section>
+
+      <section className="bottom-grid full-width-grid">
+        <ChatbotPanel
+          runId={historianState.latestRun?.run_id || null}
+          selectedComponentId={selectedComponentId}
+          disabled={!historianState.latestRun?.run_id}
+        />
       </section>
     </main>
   );
