@@ -1,11 +1,4 @@
-"""Recoater Blade degradation model.
-
-The Recoater Blade model represents abrasive wear caused by repeated powder
-spreading cycles. The base degradation rate is calibrated using a synthetic
-target lifetime. Operational load increases wear linearly, contamination
-amplifies abrasive damage, humidity worsens powder spreading conditions, and
-maintenance reduces the effective degradation rate.
-"""
+"""Linear Guide degradation model for the recoating system."""
 
 from .common import (
     DAMAGE_PRECISION,
@@ -16,39 +9,46 @@ from .common import (
     get_reported_damage,
     get_status_from_health,
     snap_health_to_failure_threshold,
+    split_damage_by_pressure,
 )
 
 
-COMPONENT_NAME = "recoater_blade"
+COMPONENT_NAME = "linear_guide"
 
 
-def _build_alerts(status, wear_rate, roughness_index, thickness_mm, alerts_config):
+def _build_alerts(
+    status,
+    friction_coefficient,
+    straightness_error_mm,
+    carriage_drag_factor,
+    alerts_config,
+):
     alerts = []
 
-    if wear_rate >= alerts_config["high_wear_rate_threshold"]:
+    if friction_coefficient >= alerts_config["high_friction_threshold"]:
         alerts.append(
             {
                 "severity": "WARNING",
-                "code": "HIGH_WEAR_RATE",
-                "message": "Recoater blade wear rate exceeds configured threshold.",
+                "code": "HIGH_GUIDE_FRICTION",
+                "message": "Linear guide friction exceeds configured threshold.",
             }
         )
 
-    if roughness_index >= alerts_config["high_roughness_threshold"]:
+    if straightness_error_mm >= alerts_config["high_straightness_error_mm"]:
         alerts.append(
             {
                 "severity": "WARNING",
-                "code": "HIGH_ROUGHNESS",
-                "message": "Recoater blade roughness exceeds configured threshold.",
+                "code": "HIGH_STRAIGHTNESS_ERROR",
+                "message": "Linear guide straightness error exceeds configured threshold.",
             }
         )
 
-    if thickness_mm <= alerts_config["low_thickness_threshold_mm"]:
+    if carriage_drag_factor >= alerts_config["high_carriage_drag_factor"]:
         alerts.append(
             {
                 "severity": "CRITICAL",
-                "code": "LOW_BLADE_THICKNESS",
-                "message": "Recoater blade thickness is below configured threshold.",
+                "code": "HIGH_CARRIAGE_DRAG",
+                "message": "Recoating carriage drag exceeds configured threshold.",
             }
         )
 
@@ -57,24 +57,24 @@ def _build_alerts(status, wear_rate, roughness_index, thickness_mm, alerts_confi
             {
                 "severity": "CRITICAL",
                 "code": "COMPONENT_FAILED",
-                "message": "Recoater blade health is below the failure threshold.",
+                "message": "Linear guide health is below the failure threshold.",
             }
         )
 
     return alerts
 
 
-def calculate_recoater_blade_state(
+def calculate_linear_guide_state(
     previous_state: dict,
     drivers: dict,
     config: dict,
 ) -> dict:
-    """Calculate the deterministic Phase 1 state for the recoater blade."""
+    """Calculate deterministic wear, friction, and misalignment for the rail."""
     component_config = get_component_config(config, COMPONENT_NAME)
     health_config = component_config["health"]
     calibration_config = component_config["calibration"]
-    physical_properties = component_config["physical_properties"]
     sensitivity = component_config["sensitivity"]
+    physical_properties = component_config["physical_properties"]
     alerts_config = component_config["alerts"]
 
     previous_health = clamp(
@@ -106,12 +106,7 @@ def calculate_recoater_blade_state(
         * maintenance_factor
     )
 
-    damage = clamp(
-        raw_damage,
-        0.0,
-        previous_health - health_config["min"],
-    )
-
+    damage = clamp(raw_damage, 0.0, previous_health - health_config["min"])
     new_health = clamp(
         previous_health - damage,
         health_config["min"],
@@ -125,48 +120,29 @@ def calculate_recoater_blade_state(
 
     degradation_ratio = 1.0 - rounded_health
 
-    thickness_mm = max(
-        physical_properties["min_thickness_mm"],
-        physical_properties["initial_thickness_mm"] * rounded_health,
+    friction_coefficient = (
+        physical_properties["nominal_friction_coefficient"]
+        + physical_properties["max_friction_increase"] * degradation_ratio
     )
-
-    roughness_index = clamp(
-        degradation_ratio * physical_properties["max_roughness_index"],
-        0.0,
-        physical_properties["max_roughness_index"],
+    straightness_error_mm = (
+        physical_properties["max_straightness_error_mm"] * degradation_ratio
     )
-
-    wear_rate = reported_damage / max(operational_load, 1.0)
-
-    abrasive_pressure = 1.0
-    contamination_pressure = sensitivity["contamination"] * contamination
-    humidity_pressure = sensitivity["humidity"] * humidity
-
-    total_pressure = (
-        abrasive_pressure
-        + contamination_pressure
-        + humidity_pressure
+    carriage_drag_factor = (
+        1.0 + physical_properties["max_carriage_drag_increase"] * degradation_ratio
     )
+    alignment_score = clamp(1.0 - degradation_ratio, 0.0, 1.0)
 
-    damage_breakdown = {
-        "total": reported_damage,
-        "abrasive_wear": round(
-            reported_damage * abrasive_pressure / total_pressure,
-            DAMAGE_PRECISION,
-        ),
-        "contamination_damage": round(
-            reported_damage * contamination_pressure / total_pressure,
-            DAMAGE_PRECISION,
-        ),
-        "humidity_damage": round(
-            reported_damage * humidity_pressure / total_pressure,
-            DAMAGE_PRECISION,
-        ),
+    pressures = {
+        "rail_wear": 1.0,
+        "contamination_scoring": sensitivity["contamination"] * contamination,
+        "humidity_corrosion": sensitivity["humidity"] * humidity,
     }
+    damage_breakdown = {"total": reported_damage}
+    damage_breakdown.update(split_damage_by_pressure(reported_damage, pressures))
 
-    rounded_thickness_mm = round(thickness_mm, 6)
-    rounded_roughness_index = round(roughness_index, 6)
-    rounded_wear_rate = round(wear_rate, 6)
+    rounded_friction = round(friction_coefficient, 6)
+    rounded_straightness = round(straightness_error_mm, 6)
+    rounded_drag = round(carriage_drag_factor, 6)
 
     return {
         "subsystem": component_config["subsystem"],
@@ -175,18 +151,19 @@ def calculate_recoater_blade_state(
         "status": status,
         "damage": damage_breakdown,
         "metrics": {
-            "thickness_mm": rounded_thickness_mm,
-            "roughness_index": rounded_roughness_index,
-            "wear_rate": rounded_wear_rate,
+            "friction_coefficient": rounded_friction,
+            "straightness_error_mm": rounded_straightness,
+            "carriage_drag_factor": rounded_drag,
+            "alignment_score": round(alignment_score, 6),
             "contamination_factor": round(contamination_factor, 6),
             "humidity_factor": round(humidity_factor, 6),
             "maintenance_factor": round(maintenance_factor, 6),
         },
         "alerts": _build_alerts(
             status,
-            rounded_wear_rate,
-            rounded_roughness_index,
-            rounded_thickness_mm,
+            rounded_friction,
+            rounded_straightness,
+            rounded_drag,
             alerts_config,
         ),
     }

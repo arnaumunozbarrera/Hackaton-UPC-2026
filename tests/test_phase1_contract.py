@@ -1,8 +1,10 @@
+import copy
 from pathlib import Path
 
 import pytest
 import yaml
 
+from model_mathematic.common import COMPONENT_MODEL_TYPES
 from model_mathematic.heating_elements import calculate_heating_elements_state
 from model_mathematic.logic_engine import update_machine_state
 from model_mathematic.nozzle_plate import calculate_nozzle_plate_state
@@ -15,6 +17,37 @@ CONFIG_PATH = Path(__file__).resolve().parents[1] / "config" / "model_parameters
 def load_real_config():
     with CONFIG_PATH.open("r", encoding="utf-8") as config_file:
         return yaml.safe_load(config_file)
+
+
+def test_update_machine_state_is_deterministic_with_real_config():
+    config = load_real_config()
+    previous_state = {
+        "components": {
+            "recoater_blade": {"health": 1.0},
+            "nozzle_plate": {"health": 1.0},
+            "heating_elements": {"health": 1.0},
+        }
+    }
+    drivers = {
+        "operational_load": 10,
+        "contamination": 0.3,
+        "humidity": 0.45,
+        "temperature_stress": 0.25,
+        "maintenance_level": 0.2,
+    }
+
+    first = update_machine_state(
+        previous_state=copy.deepcopy(previous_state),
+        drivers=copy.deepcopy(drivers),
+        config=config,
+    )
+    second = update_machine_state(
+        previous_state=copy.deepcopy(previous_state),
+        drivers=copy.deepcopy(drivers),
+        config=config,
+    )
+
+    assert first == second
 
 
 def test_logic_engine_accepts_nozzle_plate_only_config():
@@ -44,6 +77,47 @@ def test_logic_engine_accepts_nozzle_plate_only_config():
     )
 
 
+@pytest.mark.parametrize("component_name", COMPONENT_MODEL_TYPES)
+def test_logic_engine_accepts_direct_single_component_config(component_name):
+    config = load_real_config()
+    direct_component_config = config["components"][component_name]
+
+    result = update_machine_state(
+        previous_state={"health": 0.9},
+        drivers={
+            "operational_load": 0,
+            "contamination": 0.0,
+            "humidity": 0.0,
+            "temperature_stress": 0.0,
+            "maintenance_level": 0.0,
+        },
+        config=direct_component_config,
+    )
+
+    assert set(result["components"]) == {component_name}
+    assert result["components"][component_name]["health"] == 0.9
+
+
+def test_logic_engine_respects_enabled_false_for_direct_component_config():
+    config = load_real_config()
+    direct_component_config = copy.deepcopy(config["components"]["nozzle_plate"])
+    direct_component_config["enabled"] = False
+
+    result = update_machine_state(
+        previous_state={"health": 1.0},
+        drivers={
+            "operational_load": 1,
+            "contamination": 0.2,
+            "humidity": 0.1,
+            "temperature_stress": 0.3,
+            "maintenance_level": 0.0,
+        },
+        config=direct_component_config,
+    )
+
+    assert result["components"] == {}
+
+
 def test_logic_engine_respects_enabled_false():
     config = load_real_config()
     config["components"]["nozzle_plate"]["enabled"] = False
@@ -60,7 +134,7 @@ def test_logic_engine_respects_enabled_false():
         config=config,
     )
 
-    assert set(result["components"]) == {"heating_elements", "recoater_blade"}
+    assert set(result["components"]) == set(config["components"]) - {"nozzle_plate"}
 
 
 def test_logic_engine_passes_updated_recoater_blade_state_to_nozzle_plate():
@@ -179,6 +253,45 @@ def test_nozzle_jetting_efficiency_is_monotonic_with_health_and_clogging():
     )
 
 
+def test_nozzle_jetting_efficiency_penalty_comes_from_yaml():
+    config = load_real_config()
+    no_penalty_config = copy.deepcopy(config)
+    high_penalty_config = copy.deepcopy(config)
+    no_penalty_config["components"]["nozzle_plate"]["metrics"][
+        "jetting_efficiency_clogging_penalty"
+    ] = 0.0
+    high_penalty_config["components"]["nozzle_plate"]["metrics"][
+        "jetting_efficiency_clogging_penalty"
+    ] = 1.0
+
+    drivers = {
+        "operational_load": 0,
+        "contamination": 0.0,
+        "humidity": 0.0,
+        "temperature_stress": 0.0,
+        "maintenance_level": 0.0,
+    }
+    previous_state = {"health": 0.8, "metrics": {"clogging_ratio": 0.5}}
+
+    no_penalty = calculate_nozzle_plate_state(
+        previous_state=previous_state,
+        drivers=drivers,
+        config=no_penalty_config,
+        recoater_blade_state={"health": 1.0},
+    )
+    high_penalty = calculate_nozzle_plate_state(
+        previous_state=previous_state,
+        drivers=drivers,
+        config=high_penalty_config,
+        recoater_blade_state={"health": 1.0},
+    )
+
+    assert (
+        no_penalty["metrics"]["jetting_efficiency"]
+        > high_penalty["metrics"]["jetting_efficiency"]
+    )
+
+
 def test_real_yaml_has_required_phase1_parameters_and_valid_ranges():
     config = load_real_config()
     components = config["components"]
@@ -206,6 +319,9 @@ def test_real_yaml_has_required_phase1_parameters_and_valid_ranges():
 
         assert calibration["target_cycles_until_failure"] > 0
         assert 0 <= calibration["failure_threshold"] < health["initial"] <= 1
+        assert calibration["failure_threshold"] == pytest.approx(
+            health["failed_threshold"]
+        )
         assert (
             health["failed_threshold"]
             < health["critical_threshold"]
@@ -218,6 +334,74 @@ def test_real_yaml_has_required_phase1_parameters_and_valid_ranges():
     assert nozzle_weights["clogging"] + nozzle_weights[
         "thermal_fatigue"
     ] == pytest.approx(1.0)
+    assert (
+        "jetting_efficiency_clogging_penalty"
+        in components["nozzle_plate"]["metrics"]
+    )
+
+
+def test_update_machine_state_rejects_mismatched_failure_thresholds():
+    config = load_real_config()
+    config["components"]["recoater_blade"]["calibration"][
+        "failure_threshold"
+    ] = 0.2
+
+    with pytest.raises(ValueError, match="failure_threshold"):
+        update_machine_state(
+            previous_state={},
+            drivers={
+                "operational_load": 1,
+                "contamination": 0.0,
+                "humidity": 0.0,
+                "temperature_stress": 0.0,
+                "maintenance_level": 0.0,
+            },
+            config=config,
+        )
+
+
+def test_update_machine_state_rejects_missing_nozzle_metric_config():
+    config = load_real_config()
+    del config["components"]["nozzle_plate"]["metrics"][
+        "jetting_efficiency_clogging_penalty"
+    ]
+
+    with pytest.raises(ValueError, match="jetting_efficiency_clogging_penalty"):
+        update_machine_state(
+            previous_state={},
+            drivers={
+                "operational_load": 1,
+                "contamination": 0.0,
+                "humidity": 0.0,
+                "temperature_stress": 0.0,
+                "maintenance_level": 0.0,
+            },
+            config=config,
+        )
+
+
+def test_component_damage_breakdowns_sum_to_total_damage():
+    config = load_real_config()
+
+    result = update_machine_state(
+        previous_state={},
+        drivers={
+            "operational_load": 10,
+            "contamination": 0.5,
+            "humidity": 0.4,
+            "temperature_stress": 0.3,
+            "maintenance_level": 0.1,
+        },
+        config=config,
+    )
+
+    for component_state in result["components"].values():
+        damage = component_state["damage"]
+        breakdown_total = sum(
+            value for name, value in damage.items() if name != "total"
+        )
+
+        assert breakdown_total == pytest.approx(damage["total"], abs=1e-6)
 
 
 @pytest.mark.parametrize(

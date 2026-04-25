@@ -13,35 +13,18 @@ import math
 
 from .common import (
     DAMAGE_PRECISION,
-    FAILURE_THRESHOLD_TOLERANCE,
     HEALTH_PRECISION,
     clamp,
+    get_component_config,
     get_status_from_health,
+    get_component_health,
+    get_previous_health,
+    get_reported_damage,
+    snap_health_to_failure_threshold,
 )
 
 
 COMPONENT_NAME = "heating_elements"
-
-
-def _get_component_config(config):
-    if "components" in config:
-        return config["components"][COMPONENT_NAME]
-    return config
-
-
-def _get_previous_component_state(previous_state):
-    if not previous_state:
-        return {}
-
-    if "components" in previous_state:
-        return previous_state.get("components", {}).get(COMPONENT_NAME, {})
-
-    return previous_state
-
-
-def _get_previous_health(previous_state, health_config):
-    component_state = _get_previous_component_state(previous_state)
-    return component_state.get("health", health_config["initial"])
 
 
 def _build_alerts(
@@ -106,6 +89,8 @@ def calculate_heating_elements_state(
     previous_state: dict,
     drivers: dict,
     config: dict,
+    temperature_sensors_state: dict | None = None,
+    insulation_panels_state: dict | None = None,
 ) -> dict:
     """Calculate the deterministic Phase 1 state for the heating elements.
 
@@ -115,7 +100,7 @@ def calculate_heating_elements_state(
         - humidity: normalized value from 0.0 to 1.0
         - maintenance_level: normalized value from 0.0 to 1.0
     """
-    component_config = _get_component_config(config)
+    component_config = get_component_config(config, COMPONENT_NAME)
     health_config = component_config["health"]
     calibration_config = component_config["calibration"]
     sensitivity = component_config["sensitivity"]
@@ -123,7 +108,7 @@ def calculate_heating_elements_state(
     alerts_config = component_config["alerts"]
 
     previous_health = clamp(
-        float(_get_previous_health(previous_state, health_config)),
+        float(get_previous_health(previous_state, COMPONENT_NAME, health_config)),
         health_config["min"],
         health_config["max"],
     )
@@ -135,6 +120,11 @@ def calculate_heating_elements_state(
     humidity = clamp(float(drivers.get("humidity", 0.0)), 0.0, 1.0)
     maintenance_level = clamp(float(drivers.get("maintenance_level", 0.0)), 0.0, 1.0)
 
+    temperature_sensors_health = get_component_health(temperature_sensors_state)
+    insulation_panels_health = get_component_health(insulation_panels_state)
+    sensor_degradation = 1.0 - temperature_sensors_health
+    insulation_degradation = 1.0 - insulation_panels_health
+
     initial_health = health_config["initial"]
     failure_threshold = calibration_config["failure_threshold"]
     target_cycles_until_failure = calibration_config["target_cycles_until_failure"]
@@ -142,7 +132,19 @@ def calculate_heating_elements_state(
     decay_lambda = -math.log(failure_threshold / initial_health) / target_cycles_until_failure
 
     load_factor = operational_load ** sensitivity["load_exponent"]
-    temperature_factor = 1.0 + sensitivity["temperature_stress"] * temperature_stress
+    effective_temperature_stress = clamp(
+        temperature_stress
+        + sensitivity.get("temperature_sensor_cascade", 0.0) * sensor_degradation,
+        0.0,
+        1.0,
+    )
+    insulation_heat_loss_factor = (
+        1.0 + sensitivity.get("insulation_cascade", 0.0) * insulation_degradation
+    )
+
+    temperature_factor = (
+        1.0 + sensitivity["temperature_stress"] * effective_temperature_stress
+    )
     humidity_factor = 1.0 + sensitivity["humidity"] * humidity
     maintenance_factor = 1.0 - sensitivity["maintenance_protection"] * maintenance_level
 
@@ -151,6 +153,7 @@ def calculate_heating_elements_state(
         * temperature_factor
         * humidity_factor
         * maintenance_factor
+        * insulation_heat_loss_factor
     )
 
     raw_damage = previous_health * (1.0 - math.exp(-decay_lambda * effective_load))
@@ -168,12 +171,8 @@ def calculate_heating_elements_state(
     )
 
     rounded_health = round(new_health, HEALTH_PRECISION)
-    if failure_threshold < rounded_health <= failure_threshold + FAILURE_THRESHOLD_TOLERANCE:
-        rounded_health = round(failure_threshold, HEALTH_PRECISION)
-    reported_damage = max(
-        0.0,
-        round(previous_health - rounded_health, DAMAGE_PRECISION),
-    )
+    rounded_health = snap_health_to_failure_threshold(rounded_health, health_config)
+    reported_damage = get_reported_damage(previous_health, rounded_health)
     status = get_status_from_health(rounded_health, health_config)
 
     degradation_ratio = 1.0 - rounded_health
@@ -206,10 +205,16 @@ def calculate_heating_elements_state(
     )
 
     electrical_pressure = 1.0
-    thermal_pressure = sensitivity["temperature_stress"] * temperature_stress
+    thermal_pressure = sensitivity["temperature_stress"] * effective_temperature_stress
     humidity_pressure = sensitivity["humidity"] * humidity
+    insulation_pressure = sensitivity.get("insulation_cascade", 0.0) * insulation_degradation
 
-    total_pressure = electrical_pressure + thermal_pressure + humidity_pressure
+    total_pressure = (
+        electrical_pressure
+        + thermal_pressure
+        + humidity_pressure
+        + insulation_pressure
+    )
 
     damage_breakdown = {
         "total": reported_damage,
@@ -223,6 +228,10 @@ def calculate_heating_elements_state(
         ),
         "humidity_stress": round(
             reported_damage * humidity_pressure / total_pressure,
+            DAMAGE_PRECISION,
+        ),
+        "insulation_heat_loss": round(
+            reported_damage * insulation_pressure / total_pressure,
             DAMAGE_PRECISION,
         ),
     }
@@ -243,9 +252,13 @@ def calculate_heating_elements_state(
             "energy_factor": rounded_energy_factor,
             "thermal_stability": rounded_thermal_stability,
             "temperature_control_error_c": rounded_temperature_control_error_c,
+            "effective_temperature_stress": round(effective_temperature_stress, 6),
+            "temperature_sensors_health": round(temperature_sensors_health, 6),
+            "insulation_panels_health": round(insulation_panels_health, 6),
             "temperature_factor": round(temperature_factor, 6),
             "humidity_factor": round(humidity_factor, 6),
             "maintenance_factor": round(maintenance_factor, 6),
+            "insulation_heat_loss_factor": round(insulation_heat_loss_factor, 6),
             "effective_load": round(effective_load, 6),
             "decay_lambda": round(decay_lambda, 10),
         },
