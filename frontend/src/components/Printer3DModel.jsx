@@ -1,12 +1,12 @@
 import { Component, Suspense, useEffect, useMemo } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
-import { Html, OrbitControls, useGLTF } from '@react-three/drei';
-import { Box3, Vector3 } from 'three';
+import { Environment, Html, OrbitControls, ContactShadows, useGLTF } from '@react-three/drei';
+import { Box3, Color, MeshStandardMaterial, Vector3 } from 'three';
 import { COMPONENT_LABELS } from '../data/modelState';
 import { formatLabel } from '../services/formatters';
 
 const MODEL_VIEW_SIZE = 2.1;
-const MODEL_GROUND_Y = -0.95;
+const INDUSTRIAL_PALETTE = ['#ccb49b', '#b89574', '#9d7757', '#e0c8ae', '#7f634d'];
 
 const MODEL_ASSETS = {
   recoater_blade: '/Blade.glb',
@@ -38,18 +38,44 @@ export default function Printer3DModel({ modelState, selectedComponentId, onSele
       </div>
 
       <div className="model-canvas dark">
-        <Canvas camera={{ position: [3.2, 2.3, 5.6], fov: 34, near: 0.01, far: 1000 }}>
-          <color attach="background" args={['#05080d']} />
-          <ambientLight intensity={0.55} />
-          <hemisphereLight args={['#f0f6fc', '#0d1117', 1.1]} />
-          <directionalLight position={[5, 7, 4]} intensity={1.8} />
-          <directionalLight position={[-4, 2, -3]} intensity={0.65} />
+        <Canvas
+          shadows
+          gl={{ alpha: true, toneMappingExposure: 1.25 }}
+          camera={{ position: [3.2, 2.3, 5.6], fov: 34, near: 0.01, far: 1000 }}
+        >
+          <ambientLight intensity={0.72} color="#ffffff" />
+          <hemisphereLight args={['#ffffff', '#dadada', 1.05]} />
+          <directionalLight
+            position={[5.5, 7.5, 4.5]}
+            intensity={2.65}
+            color="#fffdf8"
+            castShadow
+            shadow-mapSize-width={2048}
+            shadow-mapSize-height={2048}
+            shadow-camera-near={0.5}
+            shadow-camera-far={20}
+            shadow-camera-left={-4}
+            shadow-camera-right={4}
+            shadow-camera-top={4}
+            shadow-camera-bottom={-4}
+          />
+          <directionalLight position={[-4, 2, -3]} intensity={0.72} color="#dedede" />
+          <directionalLight position={[0, -2, 4]} intensity={0.4} color="#f7f7f7" />
+          <Environment preset="warehouse" intensity={0.85} />
           <Suspense fallback={<ModelLoading />}>
             <ModelLoadBoundary key={selectedComponentId} fallback={<MissingModel selectedLabel={selectedLabel} />}>
               <SelectedComponentModel selectedComponentId={selectedComponentId} />
             </ModelLoadBoundary>
           </Suspense>
-          <gridHelper args={[4, 16, '#1f6feb', '#30363d']} position={[0, MODEL_GROUND_Y - 0.02, 0]} />
+          <ContactShadows
+            position={[0, -0.98, 0]}
+            opacity={0.38}
+            scale={8}
+            blur={2.8}
+            far={3.2}
+            resolution={1024}
+            color="#000000"
+          />
           <CameraLookAt />
           <OrbitControls makeDefault enablePan={false} minDistance={0.4} maxDistance={12} target={[0, 0, 0]} />
         </Canvas>
@@ -85,12 +111,15 @@ function CameraLookAt() {
 function SelectedComponentModel({ selectedComponentId }) {
   const modelUrl = MODEL_ASSETS[selectedComponentId] || MODEL_ASSETS.heating_elements;
   const { scene } = useGLTF(modelUrl);
-  const normalizedScene = useMemo(() => normalizeModelScene(scene), [scene]);
+  const normalizedScene = useMemo(
+    () => normalizeModelScene(scene, selectedComponentId),
+    [scene, selectedComponentId]
+  );
 
   return <primitive object={normalizedScene} />;
 }
 
-function normalizeModelScene(scene) {
+function normalizeModelScene(scene, selectedComponentId) {
   const clone = scene.clone(true);
   const bounds = new Box3().setFromObject(clone);
   const size = bounds.getSize(new Vector3());
@@ -103,16 +132,29 @@ function normalizeModelScene(scene) {
   }
 
   clone.scale.setScalar(scale);
-  clone.position.set(
-    -center.x * scale,
-    MODEL_GROUND_Y - bounds.min.y * scale,
-    -center.z * scale
-  );
+  clone.position.set(-center.x * scale, -center.y * scale, -center.z * scale);
 
+  let materialIndex = 0;
   clone.traverse((child) => {
     if (child.isMesh) {
+      if (selectedComponentId === 'thermal_firing_resistors' && !child.geometry.attributes.normal) {
+        child.geometry.computeVertexNormals();
+      }
       child.castShadow = true;
       child.receiveShadow = true;
+      const paletteColor = INDUSTRIAL_PALETTE[materialIndex % INDUSTRIAL_PALETTE.length];
+      const material = new MeshStandardMaterial({
+        color: new Color(paletteColor),
+        metalness: 0.08,
+        roughness: 0.68,
+        side: 2
+      });
+      if (Array.isArray(child.material)) {
+        child.material = child.material.map(() => material.clone());
+      } else {
+        child.material = material;
+      }
+      materialIndex += 1;
     }
   });
 
@@ -135,7 +177,7 @@ function MissingModel({ selectedLabel }) {
       </Html>
       <mesh rotation={[0.45, -0.45, 0.2]}>
         <boxGeometry args={[1.5, 0.7, 0.7]} />
-        <meshStandardMaterial color="#58a6ff" metalness={0.35} roughness={0.45} />
+        <meshStandardMaterial color="#9e9686" metalness={0.14} roughness={0.76} />
       </mesh>
     </>
   );

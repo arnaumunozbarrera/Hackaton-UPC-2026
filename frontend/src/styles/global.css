@@ -336,9 +336,7 @@ label.secondary-button {
 }
 
 .model-canvas.dark {
-  background:
-    radial-gradient(circle at top, rgba(88, 166, 255, 0.12), transparent 16rem),
-    #05080d;
+  background: linear-gradient(180deg, #9bb6d1 0%, #ffffff 62%, #e1e1e1 100%);
 }
 
 .model-status {
