@@ -54,6 +54,80 @@ def _generate_drivers_for_step(initial_conditions: dict, step_index: int, rng: r
     return adjusted
 
 
+def _build_usage_counts(total_usages: float, usage_step: float) -> list[float]:
+    usage_counts = [0.0]
+    current_usage = usage_step
+    epsilon = 1e-9
+
+    while current_usage < total_usages - epsilon:
+        usage_counts.append(round(current_usage, 6))
+        current_usage += usage_step
+
+    if abs(usage_counts[-1] - total_usages) > epsilon:
+        usage_counts.append(round(total_usages, 6))
+
+    return usage_counts
+
+
+def _build_initial_phase1_output(
+    initial_conditions: dict,
+    phase1_config: dict,
+) -> tuple[dict, dict]:
+    initial_drivers = to_phase1_drivers(initial_conditions)
+    no_load_drivers = dict(initial_drivers)
+    no_load_drivers["operational_load"] = 0.0
+    return (
+        run_phase1_update(previous_state={}, drivers=no_load_drivers, config=phase1_config),
+        no_load_drivers,
+    )
+
+
+def _scale_drivers_for_usage_delta(drivers: dict, usage_delta: float) -> dict:
+    if math.isclose(usage_delta, 1.0):
+        return drivers
+
+    scaled_drivers = dict(drivers)
+    scaled_drivers["operational_load"] = max(
+        0.0,
+        scaled_drivers["operational_load"] * usage_delta,
+    )
+    return scaled_drivers
+
+
+def _advance_phase1_to_usage(
+    previous_state: dict,
+    current_usage: float,
+    target_usage: float,
+    initial_conditions: dict,
+    rng: random.Random,
+    phase1_config: dict,
+) -> tuple[dict, dict]:
+    state = previous_state
+    last_drivers = to_phase1_drivers(initial_conditions)
+    epsilon = 1e-9
+
+    while current_usage < target_usage - epsilon:
+        next_boundary = math.floor(current_usage + epsilon) + 1.0
+        usage_delta = min(next_boundary - current_usage, target_usage - current_usage)
+        driver_index = int(max(1.0, math.ceil(current_usage + epsilon)))
+        drivers = _generate_drivers_for_step(initial_conditions, driver_index, rng)
+        last_drivers = _scale_drivers_for_usage_delta(drivers, usage_delta)
+        state = run_phase1_update(previous_state=state, drivers=last_drivers, config=phase1_config)
+        current_usage = round(current_usage + usage_delta, 10)
+
+    return state, last_drivers
+
+
+def _driver_snapshot(drivers: dict) -> dict:
+    return {
+        "operational_load": round(drivers["operational_load"], 4),
+        "contamination": round(drivers["contamination"], 4),
+        "humidity": round(drivers["humidity"], 4),
+        "temperature_stress": round(drivers["temperature_stress"], 4),
+        "maintenance_level": round(drivers["maintenance_level"], 4),
+    }
+
+
 def run_simulation(config: dict) -> dict:
     config = _normalize_config(config)
     run_id = config["run_id"]
@@ -75,42 +149,50 @@ def run_simulation(config: dict) -> dict:
     )
 
     phase1_config = load_phase1_config()
-    step_count = int(round(total_usages / usage_step))
+    usage_counts = _build_usage_counts(total_usages, usage_step)
     base_timestamp = datetime.now(timezone.utc)
     rng = random.Random(config.get("seed", 1234))
-    previous_internal_output = {}
+    previous_internal_output, point_drivers = _build_initial_phase1_output(
+        config["initial_conditions"],
+        phase1_config,
+    )
+    current_usage = 0.0
     timeline = []
 
-    for step_index in range(step_count + 1):
-        usage_count = round(step_index * usage_step, 6)
-        drivers = _generate_drivers_for_step(config["initial_conditions"], step_index, rng)
-        phase1_output = run_phase1_update(previous_state=previous_internal_output, drivers=drivers, config=phase1_config)
+    for step_index, usage_count in enumerate(usage_counts):
+        if step_index == 0:
+            phase1_output = previous_internal_output
+        else:
+            phase1_output, point_drivers = _advance_phase1_to_usage(
+                previous_state=previous_internal_output,
+                current_usage=current_usage,
+                target_usage=usage_count,
+                initial_conditions=config["initial_conditions"],
+                rng=rng,
+                phase1_config=phase1_config,
+            )
         adapted_output = adapt_phase1_output(phase1_output)
         point = {
             "run_id": run_id,
             "scenario_id": scenario_id,
             "step_index": step_index,
             "usage_count": usage_count,
-            "timestamp": _to_iso8601(base_timestamp + timedelta(minutes=step_index)),
-            "drivers": {
-                "operational_load": round(drivers["operational_load"], 4),
-                "contamination": round(drivers["contamination"], 4),
-                "humidity": round(drivers["humidity"], 4),
-                "temperature_stress": round(drivers["temperature_stress"], 4),
-                "maintenance_level": round(drivers["maintenance_level"], 4),
-            },
+            "timestamp": _to_iso8601(base_timestamp + timedelta(minutes=usage_count)),
+            "drivers": _driver_snapshot(point_drivers),
             "model_output": adapted_output,
         }
         historian.save_simulation_step(
             run_id=run_id,
             scenario_id=scenario_id,
             step_index=step_index,
+            usage_count=usage_count,
             timestamp=point["timestamp"],
             drivers=point["drivers"],
             phase1_output=phase1_output,
         )
         timeline.append(point)
         previous_internal_output = phase1_output
+        current_usage = usage_count
 
     prediction = predict_component_failure(run_id, selected_component)
     historian.save_prediction(run_id, selected_component, created_at, prediction)

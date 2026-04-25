@@ -493,30 +493,6 @@ label.secondary-button {
   font-size: 13px;
 }
 
-.measure-list {
-  margin: 0 0 14px;
-  padding-left: 18px;
-  color: #d0d7de;
-  line-height: 1.5;
-  font-size: 12px;
-}
-
-.dependency-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
-  margin-bottom: 14px;
-}
-
-.dependency-tags span {
-  padding: 6px 9px;
-  border: 1px solid var(--border-strong);
-  border-radius: 999px;
-  color: var(--blue-soft);
-  font-size: 11px;
-  font-weight: 700;
-}
-
 .evidence-box {
   padding: 10px;
   color: var(--muted);

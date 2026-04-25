@@ -29,6 +29,7 @@ CREATE_STATEMENTS = [
         run_id TEXT NOT NULL,
         scenario_id TEXT NOT NULL,
         step_index INTEGER NOT NULL,
+        usage_count REAL,
         timestamp TEXT NOT NULL,
         raw_phase1_output TEXT NOT NULL,
         FOREIGN KEY (run_id) REFERENCES runs(run_id)
@@ -154,6 +155,31 @@ def _migrate_legacy_schema(connection: sqlite3.Connection) -> None:
         connection.execute("DROP TABLE IF EXISTS simulation_points")
         connection.execute("DROP TABLE IF EXISTS simulation_runs")
 
+    if "telemetry_records" in existing_tables:
+        columns = {
+            row["name"]
+            for row in connection.execute(
+                "PRAGMA table_info(telemetry_records)"
+            ).fetchall()
+        }
+        if "usage_count" not in columns:
+            connection.execute(
+                "ALTER TABLE telemetry_records ADD COLUMN usage_count REAL"
+            )
+            connection.execute(
+                """
+                UPDATE telemetry_records
+                SET usage_count = step_index * COALESCE(
+                    (
+                        SELECT usage_step
+                        FROM runs
+                        WHERE runs.run_id = telemetry_records.run_id
+                    ),
+                    1.0
+                )
+                """
+            )
+
 
 def create_run(
     run_id: str,
@@ -219,6 +245,7 @@ def save_simulation_step(
     run_id: str,
     scenario_id: str,
     step_index: int,
+    usage_count: float,
     timestamp: str,
     drivers: dict,
     phase1_output: dict,
@@ -229,6 +256,7 @@ def save_simulation_step(
             run_id=run_id,
             scenario_id=scenario_id,
             step_index=step_index,
+            usage_count=usage_count,
             timestamp=timestamp,
             drivers=drivers,
             phase1_output=phase1_output,
@@ -242,6 +270,7 @@ def _insert_simulation_step(
     run_id: str,
     scenario_id: str,
     step_index: int,
+    usage_count: float,
     timestamp: str,
     drivers: dict,
     phase1_output: dict,
@@ -253,15 +282,17 @@ def _insert_simulation_step(
             run_id,
             scenario_id,
             step_index,
+            usage_count,
             timestamp,
             raw_phase1_output
         )
-        VALUES (?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?)
         """,
         (
             run_id,
             scenario_id,
             step_index,
+            float(usage_count),
             timestamp,
             json.dumps(phase1_output),
         ),
@@ -538,7 +569,7 @@ def get_run_timeline(run_id: str) -> list[dict]:
 
         rows = connection.execute(
             """
-            SELECT record_id, run_id, scenario_id, step_index, timestamp
+            SELECT record_id, run_id, scenario_id, step_index, usage_count, timestamp
             FROM telemetry_records
             WHERE run_id = ?
             ORDER BY step_index ASC
@@ -565,7 +596,12 @@ def get_run_timeline(run_id: str) -> list[dict]:
                     "run_id": row["run_id"],
                     "scenario_id": row["scenario_id"],
                     "step_index": row["step_index"],
-                    "usage_count": round(float(row["step_index"]) * usage_step, 6),
+                    "usage_count": round(
+                        float(row["usage_count"])
+                        if row["usage_count"] is not None
+                        else float(row["step_index"]) * usage_step,
+                        6,
+                    ),
                     "timestamp": row["timestamp"],
                     "drivers": {
                         "operational_load": float(driver_row["operational_load"]),
@@ -593,10 +629,18 @@ def get_recent_history(scenario_name: str, window_steps: int) -> list[dict]:
     with _connect() as connection:
         rows = connection.execute(
             """
-            SELECT record_id, run_id, scenario_id, timestamp
+            SELECT
+                telemetry_records.record_id,
+                telemetry_records.run_id,
+                telemetry_records.scenario_id,
+                telemetry_records.step_index,
+                telemetry_records.usage_count,
+                telemetry_records.timestamp,
+                runs.usage_step
             FROM telemetry_records
-            WHERE scenario_id = ?
-            ORDER BY timestamp DESC, step_index DESC
+            JOIN runs ON runs.run_id = telemetry_records.run_id
+            WHERE telemetry_records.scenario_id = ?
+            ORDER BY telemetry_records.timestamp DESC, telemetry_records.step_index DESC
             LIMIT ?
             """,
             (scenario_name, window_steps),
@@ -619,6 +663,13 @@ def get_recent_history(scenario_name: str, window_steps: int) -> list[dict]:
                 {
                     "run_id": row["run_id"],
                     "scenario_id": row["scenario_id"],
+                    "usage_count": round(
+                        float(row["usage_count"])
+                        if row["usage_count"] is not None
+                        else float(row["step_index"])
+                        * float(row["usage_step"] or 1.0),
+                        6,
+                    ),
                     "timestamp": row["timestamp"],
                     "drivers": {
                         "operational_load": float(driver_row["operational_load"]),
