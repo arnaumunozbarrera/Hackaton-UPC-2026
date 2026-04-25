@@ -7,6 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.adapters.phase1_adapter import adapt_phase1_output
 from app.core.phase1 import get_default_simulation_config, load_phase1_config, run_phase1_update, to_phase1_drivers
+from app.prediction.recoater_blade_ai import predict_recoater_blade_ai_from_timeline
+from app.prediction.recoater_drive_motor_ai import predict_recoater_drive_motor_ai_from_timeline
 from app.prediction.predictor import predict_component_failure
 from app.schemas import PredictionRequest, SimulationRunRequest, SimulationStepRequest
 from app.simulation.simulation_runner import run_simulation, run_single_step
@@ -70,6 +72,34 @@ def predict_failure(request: PredictionRequest) -> dict:
         return predict_component_failure(request.run_id, request.component_id)
     except Exception as error:  # pragma: no cover
         raise _structured_error(500, "prediction_failed", str(error)) from error
+
+
+@app.post("/api/prediction/ai/component")
+def predict_ai_curve(request: PredictionRequest) -> dict:
+    predictors = {
+        "recoater_blade": predict_recoater_blade_ai_from_timeline,
+        "recoater_drive_motor": predict_recoater_drive_motor_ai_from_timeline,
+    }
+    predictor = predictors.get(request.component_id)
+    if predictor is None:
+        raise _structured_error(
+            400,
+            "ai_model_not_available",
+            f"No AI model is available yet for component_id={request.component_id}.",
+        )
+
+    timeline = historian.get_component_history(request.run_id, request.component_id)
+    if not timeline:
+        raise _structured_error(
+            404,
+            "run_not_found",
+            f"No timeline found for run_id={request.run_id}.",
+        )
+
+    try:
+        return predictor(request.run_id, timeline)
+    except Exception as error:  # pragma: no cover
+        raise _structured_error(500, "ai_prediction_failed", str(error)) from error
 
 
 @app.get("/api/messages/{run_id}")

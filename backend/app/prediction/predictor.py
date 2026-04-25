@@ -27,8 +27,48 @@ def _not_enough_data(run_id: str, component_id: str) -> dict:
     }
 
 
-def predict_component_failure(run_id: str, component_id: str) -> dict:
-    timeline = historian.get_component_history(run_id, component_id)
+def _normalize_timeline_for_prediction(timeline: list[dict]) -> list[dict]:
+    normalized = []
+    for point in timeline:
+        if "components" in point:
+            normalized.append(point)
+            continue
+
+        components = {}
+        for component_id, component in point.get("model_output", {}).get("components", {}).items():
+            components[component_id] = {
+                "health_index": component.get("health", component.get("health_index")),
+                "status": component["status"],
+                "metrics": component.get("metrics", {}),
+                "damage": component.get("damage", {}),
+                "alerts": component.get("alerts", []),
+            }
+
+        normalized.append(
+            {
+                "run_id": point.get("run_id"),
+                "scenario_id": point.get("scenario_id"),
+                "usage_count": point["usage_count"],
+                "timestamp": point["timestamp"],
+                "drivers": point.get("drivers", {}),
+                "components": components,
+            }
+        )
+
+    return normalized
+
+
+def predict_component_failure_from_timeline(
+    run_id: str,
+    component_id: str,
+    timeline: list[dict],
+) -> dict:
+    timeline = [
+        point
+        for point in _normalize_timeline_for_prediction(timeline)
+        if component_id in point.get("components", {})
+    ]
+
     if len(timeline) < 2:
         return _not_enough_data(run_id, component_id)
 
@@ -81,3 +121,11 @@ def predict_component_failure(run_id: str, component_id: str) -> dict:
             "status": last_point["status"],
         },
     }
+
+
+def predict_component_failure(run_id: str, component_id: str) -> dict:
+    return predict_component_failure_from_timeline(
+        run_id,
+        component_id,
+        historian.get_component_history(run_id, component_id),
+    )

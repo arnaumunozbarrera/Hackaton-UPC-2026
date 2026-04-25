@@ -12,6 +12,10 @@ export default function PredictionPanel({ prediction }) {
     );
   }
   const componentLabel = COMPONENT_LABELS[prediction.component_id] ?? formatLabel(prediction.component_id);
+  const modelLabel = prediction.model_family
+    ? prediction.model_family.replaceAll('_', ' ')
+    : 'linear trend';
+  const topFactors = prediction.explanation?.top_factors ?? [];
 
   return (
     <section className="panel prediction-panel">
@@ -39,6 +43,15 @@ export default function PredictionPanel({ prediction }) {
         {prediction.evidence
           ? `${prediction.evidence.timestamp}, usage ${prediction.evidence.usage_count ?? 'N/A'}, health ${prediction.evidence.health.toFixed(3)}, status ${prediction.evidence.status}`
           : prediction.reason || 'Not enough historical evidence.'}
+        <br />
+        <strong>Method:</strong> {modelLabel}
+        {topFactors.length > 0 ? (
+          <>
+            <br />
+            <strong>Top factors:</strong>{' '}
+            {topFactors.map((factor) => formatLabel(factor.name)).join(', ')}
+          </>
+        ) : null}
       </div>
     </section>
   );

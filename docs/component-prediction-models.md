@@ -118,6 +118,126 @@ Limitacion:
   degradacion acelerada, como el motor con Weibull, una mejora futura seria
   usar la pendiente de los ultimos puntos o proyectar el propio modelo fisico.
 
+## Prototipo IA: Recoater Blade
+
+Archivo: `backend/app/prediction/recoater_blade_ai.py`
+
+Para validar la capa de IA sin reescribir todo el sistema, el primer modelo
+data-driven se aplica solo a `recoater_blade`. El resto de componentes siguen
+usando la prediccion lineal base.
+
+La curva matematica y la curva IA se calculan por separado:
+
+- `/api/simulation/run` devuelve la timeline matematica rapidamente.
+- `/api/prediction/ai/component` entrena el modelo IA desde cero y devuelve la
+  segunda linea `ai_prediction_curve`.
+- El frontend muestra `Loading AI prediction...` mientras llega esa segunda
+  linea.
+
+El enfoque es hibrido:
+
+1. El modelo fisico de Phase 1 sigue siendo la fuente de verdad.
+2. Se genera un dataset sintetico determinista variando salud actual, carga,
+   contaminacion, humedad y mantenimiento.
+3. Cada muestra se etiqueta con el uso restante hasta el umbral preventivo de
+   fallo `health = 0.15`.
+4. En runtime, el predictor extrae features del historico real de la simulacion.
+5. Se entrena desde cero un `HistGradientBoostingRegressor` de scikit-learn.
+6. El modelo aprende a predecir `damage_per_usage`.
+7. En runtime se genera `ai_prediction_curve` sobre los mismos `usage_count` que
+   la curva matematica, para pintar ambas lineas en el mismo grafico sin mezclar
+   componentes.
+
+Features usadas:
+
+```text
+previous_health
+operational_load
+contamination
+humidity
+maintenance_level
+thickness_mm
+roughness_index
+previous_wear_rate
+usage_count
+```
+
+Por que empezar asi:
+
+- Usa un modelo entrenado real, no una formula alternativa pintada como IA.
+- Es determinista y repetible, por lo que respeta el contrato del brief.
+- Permite explicar la IA como aprendizaje supervisado sobre datos generados por
+  el propio digital twin.
+- Mantiene una comparacion visual directa con la curva matematica.
+- Sirve como plantilla para decidir si despues conviene entrenar modelos
+  equivalentes por componente.
+
+Salida adicional:
+
+```text
+model_family: recoater_blade_sklearn_gradient_boosting
+prediction_method: supervised_synthetic_gradient_boosting
+horizon.threshold: 0.15
+explanation.top_factors
+training.training_samples
+training.trained_from_scratch
+ai_prediction_curve: puntos { usage_count, health } alineados con la linea matematica
+```
+
+## Prototipo IA: Recoater Drive Motor
+
+Archivo: `backend/app/prediction/recoater_drive_motor_ai.py`
+
+El segundo modelo IA sigue el mismo contrato visual que `recoater_blade`: la
+simulacion matematica devuelve la curva base y el endpoint IA genera una segunda
+linea `ai_prediction_curve` con los mismos `usage_count`.
+
+La diferencia es que el motor no se degrada como desgaste lineal. Su modelo
+matematico usa Weibull, por lo que la IA aprende un target de `damage_per_usage`
+condicionado por edad efectiva y fatiga acumulada.
+
+Modelo usado:
+
+```text
+HistGradientBoostingRegressor
+```
+
+Features usadas:
+
+```text
+previous_health
+effective_age_cycles
+operational_load
+contamination
+humidity
+temperature_stress
+maintenance_level
+linear_guide_health
+torque_margin
+current_draw_factor
+vibration_index
+previous_damage_per_usage
+usage_count
+```
+
+Por que estas variables:
+
+- `effective_age_cycles` captura el envejecimiento Weibull.
+- `linear_guide_health` modela el arrastre que fuerza al motor.
+- `temperature_stress` representa fatiga termica y calentamiento de bobinados.
+- `contamination` y `humidity` representan ingreso de particulas y corrosion.
+- `torque_margin`, `current_draw_factor` y `vibration_index` son sintomas
+  mecanicos/electricos derivados del estado del motor.
+
+Salida adicional:
+
+```text
+model_family: recoater_drive_motor_sklearn_gradient_boosting
+prediction_method: supervised_synthetic_gradient_boosting
+training.trained_from_scratch
+ai_prediction_curve: puntos { usage_count, health } alineados con la linea matematica
+```
+
 ## Formula Base 1: Dano Lineal Acumulativo
 
 Usada en componentes donde el dano por ciclo es aproximadamente proporcional al
@@ -613,4 +733,3 @@ Puntos fuertes:
   con una semilla reproducible.
 - El mantenimiento reduce dano futuro, pero no recupera salud perdida salvo que
   se modele una accion de mantenimiento adicional en Phase 2.
-
