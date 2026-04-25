@@ -74,6 +74,19 @@ def test_simulation_starts_with_undegraded_initial_snapshot():
     )
 
 
+def test_simulation_persists_all_phase1_components():
+    result = run_simulation(_config("all_components", total_usages=8, usage_step=4))
+
+    expected_components = set(
+        result["timeline"][-1]["model_output"]["components"]
+    )
+    persisted_timeline = historian.get_run_timeline("all_components")
+    persisted_components = set(persisted_timeline[-1]["components"])
+
+    assert len(expected_components) == 9
+    assert persisted_components == expected_components
+
+
 def test_simulation_degradation_is_independent_of_chart_resolution():
     fine_result = run_simulation(
         _config(

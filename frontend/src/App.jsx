@@ -3,6 +3,7 @@ import './styles/App.css';
 import ChatbotPanel from './components/ChatbotPanel';
 import HealthSummary from './components/HealthSummary';
 import HumanDependencyMap from './components/HumanDependencyMap';
+import LlmOutputPanel from './components/LlmOutputPanel';
 import MessagesPanel from './components/MessagesPanel';
 import PredictionPanel from './components/PredictionPanel';
 import Printer3DModel from './components/Printer3DModel';
@@ -10,6 +11,7 @@ import SimulationControls from './components/SimulationControls';
 import TimelineChart from './components/TimelineChart';
 import { HUMAN_DEPENDENCIES } from './data/dependencies';
 import { DEFAULT_SIMULATION_CONFIG } from './data/defaultConfig';
+import { fetchAgentLlmAnswer } from './services/agentApi';
 import { getRunTimeline, listRuns } from './services/historianApi';
 import { fetchRunMessages } from './services/messagesApi';
 import { fetchCurrentModel, fetchPrediction } from './services/modelApi';
@@ -22,6 +24,9 @@ export default function App() {
   const [timeline, setTimeline] = useState([]);
   const [prediction, setPrediction] = useState(null);
   const [messages, setMessages] = useState([]);
+  const [llmOutput, setLlmOutput] = useState(null);
+  const [llmLoading, setLlmLoading] = useState(false);
+  const [llmError, setLlmError] = useState('');
   const [dependencies, setDependencies] = useState([]);
   const [historianState, setHistorianState] = useState({ runs: [], latestRun: null });
   const [loading, setLoading] = useState(false);
@@ -62,6 +67,42 @@ export default function App() {
       active = false;
     };
   }, [selectedComponentId, timeline, historianState.latestRun?.run_id]);
+
+  useEffect(() => {
+    let active = true;
+    const activeRunId = historianState.latestRun?.run_id;
+
+    async function loadLlmOutput() {
+      if (!activeRunId) {
+        setLlmOutput(null);
+        setLlmError('');
+        setLlmLoading(false);
+        return;
+      }
+
+      setLlmLoading(true);
+      setLlmError('');
+
+      try {
+        const answer = await fetchAgentLlmAnswer(activeRunId);
+        if (!active) return;
+        setLlmOutput(answer);
+      } catch (answerError) {
+        if (!active) return;
+        setLlmOutput(null);
+        setLlmError(answerError.message || 'Failed to generate the LLM output.');
+      } finally {
+        if (active) {
+          setLlmLoading(false);
+        }
+      }
+    }
+
+    loadLlmOutput();
+    return () => {
+      active = false;
+    };
+  }, [historianState.latestRun?.run_id]);
 
   useEffect(() => {
     let active = true;
@@ -159,6 +200,8 @@ export default function App() {
     setError('');
     setPrediction(null);
     setMessages([]);
+    setLlmOutput(null);
+    setLlmError('');
     setDependencies([]);
     setTimeline([]);
 
@@ -349,6 +392,13 @@ export default function App() {
           className={`tile-fill tile-dependency tile-span-3  ${hasSimulationRun ? '' : 'no-run-top'}`.trim()}
           selectedComponentId={selectedComponentId}
           dependencies={dependencies}
+        />
+
+        <LlmOutputPanel
+          className="tile-fill tile-span-5"
+          output={llmOutput}
+          loading={llmLoading}
+          error={llmError}
         />
 
       </div>

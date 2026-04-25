@@ -117,7 +117,11 @@ class OllamaLLMClient:
                         "Rewrite the provided maintenance summary to make it clearer and more readable. "
                         "Do not add, remove, or change any technical facts, numbers, actions, statuses, timestamps, priorities, or component names. "
                         "Do not introduce new causes, downtime, cost, urgency, or production impact. "
-                        "Keep all recommendations and evidence."
+                        "Keep all recommendations and evidence. "
+                        "Return plain text only. Do not use Markdown. "
+                        "Your response must contain zero asterisk characters. "
+                        "Do not use bold, italics, code blocks, headings, tables, or bullet markers. "
+                        "Use short plain paragraphs or simple plain lines only."
                     ),
                 },
                 {

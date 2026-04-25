@@ -1,3 +1,4 @@
+import re
 from typing import Any
 
 from agent.src.llm_client import LLMClient, build_llm_client
@@ -19,7 +20,7 @@ def generate_llm_answer(
 
     if mode == "rewrite":
         source_summary = build_safe_summary(analysis)
-        answer = rewrite_or_return_source(llm_client, source_summary)
+        answer = to_plain_text(rewrite_or_return_source(llm_client, source_summary))
 
         return {
             "run_id": run_id,
@@ -41,7 +42,7 @@ def generate_llm_answer(
     )
 
     messages = build_llm_messages(context)
-    answer = llm_client.generate(messages)
+    answer = to_plain_text(llm_client.generate(messages))
 
     return {
         "run_id": run_id,
@@ -69,7 +70,7 @@ def generate_llm_answer_with_context(
 
     if mode == "rewrite":
         source_summary = build_safe_summary(analysis)
-        answer = rewrite_or_return_source(llm_client, source_summary)
+        answer = to_plain_text(rewrite_or_return_source(llm_client, source_summary))
 
         return {
             "run_id": run_id,
@@ -91,7 +92,7 @@ def generate_llm_answer_with_context(
     )
 
     messages = build_llm_messages(context)
-    answer = llm_client.generate(messages)
+    answer = to_plain_text(llm_client.generate(messages))
 
     return {
         "run_id": run_id,
@@ -114,3 +115,21 @@ def rewrite_or_return_source(llm_client: LLMClient, source_summary: str) -> str:
         return source_summary
 
     return rewrite(source_summary)
+
+
+def to_plain_text(value: str) -> str:
+    text = str(value or "")
+    text = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", text)
+    text = text.replace("```", "")
+    text = text.replace("__", "")
+    text = re.sub(r"[*`#>]", "", text)
+
+    lines = []
+    for line in text.splitlines():
+        cleaned = line.strip()
+        cleaned = re.sub(r"^[-+]\s+", "", cleaned)
+        cleaned = re.sub(r"^\d+[.)]\s+", "", cleaned)
+        cleaned = re.sub(r"\s{2,}", " ", cleaned)
+        lines.append(cleaned)
+
+    return "\n".join(lines).strip()

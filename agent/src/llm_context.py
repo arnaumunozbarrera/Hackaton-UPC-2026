@@ -73,7 +73,10 @@ def build_llm_messages(context: dict[str, Any]) -> list[dict[str, str]]:
         "You are a grounded predictive maintenance copilot. "
         "You must only explain the provided agent analysis. "
         "You must not invent information. "
-        "You must explain every required component."
+        "You must explain every required component. "
+        "Return plain text only. "
+        "Your response must contain zero asterisk characters. "
+        "Do not use Markdown, bold, italics, code blocks, headings, tables, or bullet markers."
     )
 
     user_message = build_strict_user_prompt(context)
@@ -103,11 +106,14 @@ def build_strict_user_prompt(context: dict[str, Any]) -> str:
         f"Required components to cover: {', '.join(required_components)}",
         "",
         "Hard rules:",
-        "- Explain every required component exactly once.",
-        "- Do not say there is a single highest priority issue unless only one decision exists.",
-        "- Do not invent downtime, cost, production impact, root causes, or maintenance frequency.",
-        "- Use exact action names from the selected plans.",
-        "- Use exact evidence values and timestamps.",
+        "Return plain text only.",
+        "Your response must contain zero asterisk characters.",
+        "Do not use Markdown, bold, italics, code blocks, headings, tables, or bullet markers.",
+        "Explain every required component exactly once.",
+        "Do not say there is a single highest priority issue unless only one decision exists.",
+        "Do not invent downtime, cost, production impact, root causes, or maintenance frequency.",
+        "Use exact action names from the selected plans.",
+        "Use exact evidence values and timestamps.",
         "",
         "Required output format:",
         "Overall summary:",

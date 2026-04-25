@@ -6,7 +6,13 @@ from agent.src.schemas import Forecast
 
 
 def forecast_from_health_trend(history: list[dict], component_id: str, horizon_steps: int) -> Forecast:
-    if len(history) < 2:
+    component_history = [
+        record
+        for record in history
+        if component_id in record.get("components", {})
+    ]
+
+    if len(component_history) < 2:
         return Forecast(
             horizon_steps=horizon_steps,
             predicted_status="UNKNOWN",
@@ -15,9 +21,9 @@ def forecast_from_health_trend(history: list[dict], component_id: str, horizon_s
             risk_score=0.0,
         )
 
-    first = history[0]["components"][component_id]["health_index"]
-    last = history[-1]["components"][component_id]["health_index"]
-    steps = len(history) - 1
+    first = component_history[0]["components"][component_id]["health_index"]
+    last = component_history[-1]["components"][component_id]["health_index"]
+    steps = len(component_history) - 1
     degradation_rate = max((first - last) / steps, 0.0)
 
     if degradation_rate == 0.0:

@@ -152,6 +152,6 @@ class AgentLLMAnswerRequest(BaseModel):
     history_window_steps: int | None = None
     max_alternatives_per_decision: int = Field(default=5, ge=1, le=10)
     include_context: bool = False
-    provider: str = "mock"
+    provider: str = "ollama"
     model: str | None = None
     mode: str = "rewrite"

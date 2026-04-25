@@ -1,9 +1,10 @@
 from functools import reduce
 from operator import mul
 
-from agent.src.schemas import ActionPlanEvaluation, ActionType, Diagnosis
-from agent.src.risk import compute_risk_score
 from agent.src.health import status_from_health
+from agent.src.risk import compute_risk_score
+from agent.src.schemas import ActionPlanEvaluation, ActionType, Diagnosis
+
 
 def evaluate_candidate_action_plans(
     diagnosis: Diagnosis,
@@ -29,18 +30,24 @@ def evaluate_candidate_action_plans(
 
 
 def candidate_action_plans_for_issue(issue: str) -> list[tuple[ActionType, ...]]:
-    if issue == "thermal_instability":
+    if issue in {"thermal_instability", "firing_resistor_instability"}:
         return [
             (ActionType.CONTINUE_OPERATION,),
             (ActionType.TRIGGER_COOLDOWN,),
             (ActionType.REDUCE_LOAD,),
             (ActionType.TRIGGER_COOLDOWN, ActionType.REDUCE_LOAD),
-            (ActionType.TRIGGER_COOLDOWN, ActionType.REDUCE_LOAD, ActionType.SCHEDULE_MAINTENANCE),
+            (
+                ActionType.TRIGGER_COOLDOWN,
+                ActionType.REDUCE_LOAD,
+                ActionType.SCHEDULE_MAINTENANCE,
+            ),
+            (ActionType.SCHEDULE_MAINTENANCE,),
+            (ActionType.REPLACE_COMPONENT,),
             (ActionType.STOP_MACHINE,),
             (ActionType.STOP_MACHINE, ActionType.SCHEDULE_MAINTENANCE),
         ]
 
-    if issue == "nozzle_clogging":
+    if issue in {"nozzle_clogging", "cleaning_interface_degradation"}:
         return [
             (ActionType.CONTINUE_OPERATION,),
             (ActionType.RUN_CLEANING_CYCLE,),
@@ -48,10 +55,15 @@ def candidate_action_plans_for_issue(issue: str) -> list[tuple[ActionType, ...]]
             (ActionType.RUN_CLEANING_CYCLE, ActionType.REDUCE_LOAD),
             (ActionType.RUN_CLEANING_CYCLE, ActionType.SCHEDULE_MAINTENANCE),
             (ActionType.SCHEDULE_MAINTENANCE,),
+            (ActionType.REPLACE_COMPONENT,),
             (ActionType.STOP_MACHINE,),
         ]
 
-    if issue == "recoater_wear":
+    if issue in {
+        "recoater_wear",
+        "linear_guide_friction",
+        "recoater_drive_motor_fatigue",
+    }:
         return [
             (ActionType.CONTINUE_OPERATION,),
             (ActionType.REDUCE_LOAD,),
@@ -61,9 +73,23 @@ def candidate_action_plans_for_issue(issue: str) -> list[tuple[ActionType, ...]]
             (ActionType.STOP_MACHINE,),
         ]
 
+    if issue in {"sensor_drift", "insulation_loss"}:
+        return [
+            (ActionType.CONTINUE_OPERATION,),
+            (ActionType.IMPROVE_ENVIRONMENT,),
+            (ActionType.REDUCE_LOAD,),
+            (ActionType.SCHEDULE_MAINTENANCE,),
+            (ActionType.IMPROVE_ENVIRONMENT, ActionType.SCHEDULE_MAINTENANCE),
+            (ActionType.REDUCE_LOAD, ActionType.SCHEDULE_MAINTENANCE),
+            (ActionType.REPLACE_COMPONENT,),
+            (ActionType.STOP_MACHINE,),
+        ]
+
     return [
         (ActionType.CONTINUE_OPERATION,),
+        (ActionType.REDUCE_LOAD,),
         (ActionType.SCHEDULE_MAINTENANCE,),
+        (ActionType.REPLACE_COMPONENT,),
         (ActionType.STOP_MACHINE,),
     ]
 
@@ -83,7 +109,11 @@ def evaluate_action_plan(
     recovery = combined_immediate_recovery(actions, diagnosis.issue)
     cost = combined_action_cost(actions)
 
-    projected_health = current_health + recovery - degradation_rate * multiplier * horizon_steps
+    projected_health = (
+        current_health
+        + recovery
+        - degradation_rate * multiplier * horizon_steps
+    )
     projected_health = min(1.0, max(0.0, projected_health))
 
     predicted_status = status_from_health(projected_health)
@@ -94,17 +124,28 @@ def evaluate_action_plan(
         projected_health_index=round(projected_health, 4),
         predicted_status=predicted_status,
         risk_score=round(risk_score, 4),
-        expected_effect=build_expected_effect(actions, diagnosis.issue, predicted_status, projected_health),
+        expected_effect=build_expected_effect(
+            actions,
+            diagnosis.issue,
+            predicted_status,
+            projected_health,
+        ),
     )
 
 
 def estimate_degradation_rate(history: list[dict], component_id: str) -> float:
-    if len(history) < 2:
+    component_history = [
+        record
+        for record in history
+        if component_id in record.get("components", {})
+    ]
+
+    if len(component_history) < 2:
         return 0.0
 
-    first = history[0]["components"][component_id]["health_index"]
-    last = history[-1]["components"][component_id]["health_index"]
-    steps = len(history) - 1
+    first = component_history[0]["components"][component_id]["health_index"]
+    last = component_history[-1]["components"][component_id]["health_index"]
+    steps = len(component_history) - 1
 
     return max((first - last) / steps, 0.0)
 
@@ -125,12 +166,12 @@ def degradation_multiplier(action: ActionType, issue: str) -> float:
         return 0.55
 
     if action == ActionType.TRIGGER_COOLDOWN:
-        if issue == "thermal_instability":
+        if issue in {"thermal_instability", "firing_resistor_instability"}:
             return 0.35
         return 0.80
 
     if action == ActionType.RUN_CLEANING_CYCLE:
-        if issue == "nozzle_clogging":
+        if issue in {"nozzle_clogging", "cleaning_interface_degradation"}:
             return 0.45
         return 0.90
 
@@ -151,7 +192,10 @@ def combined_immediate_recovery(actions: tuple[ActionType, ...], issue: str) -> 
 
 
 def immediate_recovery(action: ActionType, issue: str) -> float:
-    if action == ActionType.RUN_CLEANING_CYCLE and issue == "nozzle_clogging":
+    if action == ActionType.RUN_CLEANING_CYCLE and issue in {
+        "nozzle_clogging",
+        "cleaning_interface_degradation",
+    }:
         return 0.12
 
     if action == ActionType.SCHEDULE_MAINTENANCE:
@@ -160,8 +204,17 @@ def immediate_recovery(action: ActionType, issue: str) -> float:
     if action == ActionType.REPLACE_COMPONENT:
         return 0.65
 
-    if action == ActionType.TRIGGER_COOLDOWN and issue == "thermal_instability":
+    if action == ActionType.TRIGGER_COOLDOWN and issue in {
+        "thermal_instability",
+        "firing_resistor_instability",
+    }:
         return 0.06
+
+    if action == ActionType.IMPROVE_ENVIRONMENT and issue in {
+        "sensor_drift",
+        "insulation_loss",
+    }:
+        return 0.08
 
     return 0.0
 
@@ -184,6 +237,7 @@ def action_cost(action: ActionType) -> float:
 
     return costs[action]
 
+
 def build_expected_effect(
     actions: tuple[ActionType, ...],
     issue: str,
@@ -193,24 +247,105 @@ def build_expected_effect(
     action_names = format_actions(actions)
 
     if actions == (ActionType.CONTINUE_OPERATION,):
-        return f"No intervention applied. Projected status remains {predicted_status} with health index {projected_health:.3f}"
+        return (
+            "No intervention applied. "
+            f"Projected status remains {predicted_status} "
+            f"with health index {projected_health:.3f}"
+        )
 
     if ActionType.STOP_MACHINE in actions:
-        return f"Apply {action_names}. This minimizes further degradation with downtime cost. Projected status becomes {predicted_status} with health index {projected_health:.3f}"
+        return (
+            f"Apply {action_names}. "
+            "This minimizes further degradation with downtime cost. "
+            f"Projected status becomes {predicted_status} "
+            f"with health index {projected_health:.3f}"
+        )
 
     if ActionType.REPLACE_COMPONENT in actions:
-        return f"Apply {action_names}. This restores component condition at higher operational cost. Projected status becomes {predicted_status} with health index {projected_health:.3f}"
+        return (
+            f"Apply {action_names}. "
+            "This restores component condition at higher operational cost. "
+            f"Projected status becomes {predicted_status} "
+            f"with health index {projected_health:.3f}"
+        )
 
     if issue == "thermal_instability":
-        return f"Apply {action_names}. This reduces thermal stress and slows heat-driven degradation. Projected status becomes {predicted_status} with health index {projected_health:.3f}"
+        return (
+            f"Apply {action_names}. "
+            "This reduces thermal stress and slows heat-driven degradation. "
+            f"Projected status becomes {predicted_status} "
+            f"with health index {projected_health:.3f}"
+        )
+
+    if issue == "firing_resistor_instability":
+        return (
+            f"Apply {action_names}. "
+            "This reduces heat-driven electrical fatigue and misfire risk. "
+            f"Projected status becomes {predicted_status} "
+            f"with health index {projected_health:.3f}"
+        )
 
     if issue == "nozzle_clogging":
-        return f"Apply {action_names}. This reduces clogging and recovers printhead efficiency. Projected status becomes {predicted_status} with health index {projected_health:.3f}"
+        return (
+            f"Apply {action_names}. "
+            "This reduces clogging and recovers printhead efficiency. "
+            f"Projected status becomes {predicted_status} "
+            f"with health index {projected_health:.3f}"
+        )
+
+    if issue == "cleaning_interface_degradation":
+        return (
+            f"Apply {action_names}. "
+            "This improves cleaning effectiveness and slows residue-related degradation. "
+            f"Projected status becomes {predicted_status} "
+            f"with health index {projected_health:.3f}"
+        )
 
     if issue == "recoater_wear":
-        return f"Apply {action_names}. This reduces wear propagation and downstream contamination risk. Projected status becomes {predicted_status} with health index {projected_health:.3f}"
+        return (
+            f"Apply {action_names}. "
+            "This reduces wear propagation and downstream contamination risk. "
+            f"Projected status becomes {predicted_status} "
+            f"with health index {projected_health:.3f}"
+        )
 
-    return f"Apply {action_names}. Projected status becomes {predicted_status} with health index {projected_health:.3f}"
+    if issue == "linear_guide_friction":
+        return (
+            f"Apply {action_names}. "
+            "This reduces guide load, friction growth, and carriage drag risk. "
+            f"Projected status becomes {predicted_status} "
+            f"with health index {projected_health:.3f}"
+        )
+
+    if issue == "recoater_drive_motor_fatigue":
+        return (
+            f"Apply {action_names}. "
+            "This reduces motor load, thermal stress, and fatigue accumulation. "
+            f"Projected status becomes {predicted_status} "
+            f"with health index {projected_health:.3f}"
+        )
+
+    if issue == "sensor_drift":
+        return (
+            f"Apply {action_names}. "
+            "This reduces environmental stress and restores measurement confidence. "
+            f"Projected status becomes {predicted_status} "
+            f"with health index {projected_health:.3f}"
+        )
+
+    if issue == "insulation_loss":
+        return (
+            f"Apply {action_names}. "
+            "This reduces thermal cycling stress and heat-loss propagation. "
+            f"Projected status becomes {predicted_status} "
+            f"with health index {projected_health:.3f}"
+        )
+
+    return (
+        f"Apply {action_names}. "
+        f"Projected status becomes {predicted_status} "
+        f"with health index {projected_health:.3f}"
+    )
 
 
 def format_actions(actions: tuple[ActionType, ...]) -> str:
