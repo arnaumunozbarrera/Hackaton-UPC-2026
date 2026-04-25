@@ -1,0 +1,112 @@
+"""Prediction helpers based on historian timelines."""
+
+from __future__ import annotations
+
+from datetime import datetime, timedelta, timezone
+
+from app.adapters.phase1_adapter import get_dependencies_for_component
+from app.storage import historian
+
+
+FAILED_THRESHOLD = 0.15
+
+
+def _parse_timestamp(value: str) -> datetime:
+    return datetime.fromisoformat(value.replace("Z", "+00:00"))
+
+
+def _to_iso8601(value: datetime) -> str:
+    return value.astimezone(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def _not_enough_data(run_id: str, component_id: str) -> dict:
+    return {
+        "run_id": run_id,
+        "component_id": component_id,
+        "confidence": 0.2,
+        "reason": "Not enough historical points to estimate a reliable trend.",
+    }
+
+
+def predict_component_failure(run_id: str, component_id: str) -> dict:
+    timeline = historian.get_component_history(run_id, component_id)
+    if len(timeline) < 2:
+        return _not_enough_data(run_id, component_id)
+
+    points = []
+    for point in timeline:
+        component = point["components"].get(component_id)
+        if component is None:
+            continue
+        points.append(
+            {
+                "usage_count": float(point["usage_count"]),
+                "timestamp": point["timestamp"],
+                "health_index": float(component["health_index"]),
+                "status": component["status"],
+            }
+        )
+
+    if len(points) < 2:
+        return _not_enough_data(run_id, component_id)
+
+    first_point = points[0]
+    last_point = points[-1]
+    delta_usage = last_point["usage_count"] - first_point["usage_count"]
+    delta_health = first_point["health_index"] - last_point["health_index"]
+
+    if delta_usage <= 0 or delta_health <= 0:
+        return _not_enough_data(run_id, component_id)
+
+    slope = delta_health / delta_usage
+    current_health = last_point["health_index"]
+    current_usage = last_point["usage_count"]
+    usages_until_failure = max((current_health - FAILED_THRESHOLD) / slope, 0.0)
+    predicted_failure_usage = round(current_usage + usages_until_failure, 2)
+    last_timestamp = _parse_timestamp(last_point["timestamp"])
+    predicted_failure_timestamp = _to_iso8601(last_timestamp + timedelta(minutes=usages_until_failure))
+
+    dependencies = get_dependencies_for_component(component_id)
+    recommended_measures = {
+        "recoater_blade": [
+            "Inspect blade edge wear before the next production campaign.",
+            "Reduce powder contamination and verify recoating quality.",
+            "Prepare blade replacement if the wear trend continues.",
+        ],
+        "nozzle_plate": [
+            "Trigger cleaning cycle before the next production batch.",
+            "Inspect binder flow uniformity.",
+            "Review thermal stress history.",
+        ],
+        "heating_elements": [
+            "Inspect resistance drift and thermal stability.",
+            "Avoid aggressive temperature profiles until the trend stabilizes.",
+            "Plan preventive maintenance on the thermal control subsystem.",
+        ],
+    }.get(component_id, [])
+
+    confidence = max(0.2, min(0.92, 0.45 + min(delta_usage / 96.0, 0.3) + min(delta_health * 0.8, 0.17)))
+
+    return {
+        "run_id": run_id,
+        "component_id": component_id,
+        "predicted_failure_timestamp": predicted_failure_timestamp,
+        "predicted_failure_usage": predicted_failure_usage,
+        "confidence": round(confidence, 2),
+        "recommended_measures": recommended_measures,
+        "affected_dependencies": [
+            {
+                "component_id": dependency["target"] if dependency["source"] == component_id else dependency["source"],
+                "relationship": dependency["description"],
+                "impact": dependency["impact"],
+            }
+            for dependency in dependencies
+        ],
+        "evidence": {
+            "run_id": run_id,
+            "timestamp": last_point["timestamp"],
+            "usage_count": current_usage,
+            "health": current_health,
+            "status": last_point["status"],
+        },
+    }

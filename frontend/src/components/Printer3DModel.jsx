@@ -1,62 +1,36 @@
-import { useEffect } from 'react';
+import { Canvas } from '@react-three/fiber';
+import { OrbitControls } from '@react-three/drei';
 import { COMPONENT_LABELS } from '../data/modelState';
 
-const MODEL_VIEWER_SCRIPT_ID = 'model-viewer-web-component';
-const MODEL_VIEWER_SCRIPT_SRC = 'https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js';
-
-const MODEL_PATHS = {
-  recoater_blade: '/Blade.glb',
-  nozzle_plate: '/Blade.glb',
-  heating_elements: '/Blade.glb'
+const COLORS = {
+  recoater_blade: '#58a6ff',
+  nozzle_plate: '#f59e0b',
+  heating_elements: '#ef4444'
 };
 
-function ensureModelViewerScript() {
-  if (typeof window === 'undefined' || customElements.get('model-viewer')) {
-    return;
-  }
-
-  const existingScript = document.getElementById(MODEL_VIEWER_SCRIPT_ID);
-  if (existingScript) {
-    return;
-  }
-
-  const script = document.createElement('script');
-  script.id = MODEL_VIEWER_SCRIPT_ID;
-  script.type = 'module';
-  script.src = MODEL_VIEWER_SCRIPT_SRC;
-  document.head.appendChild(script);
-}
-
 export default function Printer3DModel({ selectedComponentId, onSelect }) {
-  useEffect(() => {
-    ensureModelViewerScript();
-  }, []);
-
-  const selectedLabel = COMPONENT_LABELS[selectedComponentId] ?? 'Recoater Blade';
-  const modelUrl = MODEL_PATHS[selectedComponentId] ?? MODEL_PATHS.recoater_blade;
-  const componentEntries = Object.entries(COMPONENT_LABELS).filter(([componentId]) => MODEL_PATHS[componentId]);
+  const selectedLabel = COMPONENT_LABELS[selectedComponentId] ?? 'Component';
+  const componentEntries = Object.entries(COMPONENT_LABELS);
 
   return (
     <section className="panel model-panel">
       <div className="section-title-row compact">
         <div>
           <p className="eyebrow">3D view</p>
-          <h2>HP Metal Jet S100: {selectedLabel}</h2>
+          <h2>Isolated selected component</h2>
         </div>
-        <span className="axis-chip">Selected: {selectedLabel}</span>
+        <span className="axis-chip">{selectedLabel}</span>
       </div>
 
-      <div className="model-canvas">
-        <model-viewer
-          id="component-viewer"
-          src={modelUrl}
-          alt={`3D model of ${selectedLabel}`}
-          auto-rotate
-          camera-controls
-          shadow-intensity="1"
-          exposure="1"
-          environment-image="neutral"
-        />
+      <div className="model-canvas dark">
+        <Canvas camera={{ position: [0, 0, 4.8], fov: 42 }}>
+          <color attach="background" args={['#05080d']} />
+          <ambientLight intensity={0.75} />
+          <directionalLight position={[4, 6, 5]} intensity={1.2} />
+          <directionalLight position={[-4, -2, 3]} intensity={0.35} />
+          <SelectedComponentMesh selectedComponentId={selectedComponentId} />
+          <OrbitControls enablePan={false} />
+        </Canvas>
       </div>
 
       <div className="controls">
@@ -72,5 +46,34 @@ export default function Printer3DModel({ selectedComponentId, onSelect }) {
         ))}
       </div>
     </section>
+  );
+}
+
+function SelectedComponentMesh({ selectedComponentId }) {
+  const color = COLORS[selectedComponentId] || '#58a6ff';
+
+  if (selectedComponentId === 'recoater_blade') {
+    return (
+      <mesh rotation={[0.3, 0.5, -0.1]}>
+        <boxGeometry args={[3.2, 0.24, 0.7]} />
+        <meshStandardMaterial color={color} metalness={0.4} roughness={0.35} />
+      </mesh>
+    );
+  }
+
+  if (selectedComponentId === 'nozzle_plate') {
+    return (
+      <mesh rotation={[0.4, 0.55, 0]}>
+        <boxGeometry args={[2.1, 1.2, 0.28]} />
+        <meshStandardMaterial color={color} metalness={0.3} roughness={0.45} />
+      </mesh>
+    );
+  }
+
+  return (
+    <mesh rotation={[0.5, -0.4, 0.3]}>
+      <cylinderGeometry args={[0.8, 0.8, 2.4, 32]} />
+      <meshStandardMaterial color={color} metalness={0.35} roughness={0.4} />
+    </mesh>
   );
 }
