@@ -9,15 +9,7 @@ import TimelineChart from './components/TimelineChart';
 import { DEFAULT_SIMULATION_CONFIG } from './data/defaultConfig';
 import { fetchLatestModelState, fetchPrediction, saveLatestModelState } from './services/modelApi';
 import { buildEmptyAxis, simulateNextPoint } from './services/simulationApi';
-import {
-  createRun,
-  getHistorianSummary,
-  resetHistorian,
-  saveModelSnapshot,
-  saveTimelinePoint
-} from './services/historianApi';
-
-const PRINTER_MODEL_URL = import.meta.env.VITE_PRINTER_MODEL_URL ?? null;
+import { createRun, getHistorianSummary, resetHistorian, saveModelSnapshot, saveTimelinePoint } from './services/historianApi';
 
 export default function App() {
   const [modelState, setModelState] = useState(null);
@@ -35,8 +27,8 @@ export default function App() {
 
     async function load() {
       const latest = await fetchLatestModelState();
-      await saveModelSnapshot(latest);
-      const summary = await getHistorianSummary();
+      await saveModelSnapshotSafely(latest);
+      const summary = await getHistorianSummarySafely();
 
       if (mounted) {
         setModelState(latest);
@@ -87,58 +79,77 @@ export default function App() {
     if (!modelState || running) return;
 
     cancelTimelineRun();
-
-    const runId = await createRun({ componentId: selectedComponentId, config });
+    const normalizedConfig = sanitizeSimulationConfig(config);
     const component = modelState.components[selectedComponentId];
-    let currentHealth = latestPoint?.health ?? component.health;
-    const maxSteps = Math.max(1, Math.floor(config.durationHours / config.stepHours));
-    const runToken = ++runTokenRef.current;
+
+    if (!component || !normalizedConfig) {
+      setRunning(false);
+      setPrediction(null);
+      setAxisData(buildEmptyAxis(DEFAULT_SIMULATION_CONFIG.durationHours, DEFAULT_SIMULATION_CONFIG.stepHours));
+      return;
+    }
 
     setRunning(true);
     setPrediction(null);
-    setAxisData(buildEmptyAxis(config.durationHours, config.stepHours));
+    setAxisData(buildEmptyAxis(normalizedConfig.durationHours, normalizedConfig.stepHours));
 
-    for (let stepIndex = 0; stepIndex <= maxSteps; stepIndex += 1) {
-      if (runTokenRef.current !== runToken) return;
+    const fallbackRunId = `run_local_${Date.now()}`;
+    const runToken = ++runTokenRef.current;
+    const runId = await createRunSafely({
+      componentId: selectedComponentId,
+      config: normalizedConfig,
+      fallbackRunId
+    });
+    let currentHealth = latestPoint?.health ?? component.health;
+    const maxSteps = Math.max(1, Math.floor(normalizedConfig.durationHours / normalizedConfig.stepHours));
 
-      const point = simulateNextPoint({
-        componentId: selectedComponentId,
-        previousHealth: currentHealth,
-        config,
-        stepIndex,
-        runId
-      });
+    try {
+      for (let stepIndex = 0; stepIndex <= maxSteps; stepIndex += 1) {
+        if (runTokenRef.current !== runToken) return;
 
-      currentHealth = point.health;
-      await saveTimelinePoint(point);
-      if (runTokenRef.current !== runToken) return;
+        const point = simulateNextPoint({
+          componentId: selectedComponentId,
+          previousHealth: currentHealth,
+          config: normalizedConfig,
+          stepIndex,
+          runId
+        });
 
-      setAxisData((previous) => {
-        const next = [...previous];
-        next[stepIndex] = point;
-        return next;
-      });
+        currentHealth = point.health;
+        setAxisData((previous) => {
+          const next = previous.length ? [...previous] : buildEmptyAxis(normalizedConfig.durationHours, normalizedConfig.stepHours);
+          next[stepIndex] = { ...next[stepIndex], ...point };
+          return next;
+        });
+        await saveTimelinePointSafely(point);
+        if (runTokenRef.current !== runToken) return;
 
-      const stop = point.status === 'FAILED' || stepIndex === maxSteps;
+        const stop = point.status === 'FAILED' || stepIndex === maxSteps;
 
-      if (stop) {
-        runTokenRef.current = 0;
-        setRunning(false);
+        if (stop) {
+          runTokenRef.current = 0;
 
-        const updatedState = patchModelStateWithLatestPoint(modelState, selectedComponentId, point);
-        await saveLatestModelState(updatedState);
-        await saveModelSnapshot(updatedState);
-        setModelState(updatedState);
+          const updatedState = patchModelStateWithLatestPoint(modelState, selectedComponentId, point);
+          await saveLatestModelState(updatedState);
+          await saveModelSnapshotSafely(updatedState);
+          setModelState(updatedState);
 
-        const predictionResult = await fetchPrediction(selectedComponentId, updatedState, point);
-        setPrediction(predictionResult);
+          const predictionResult = await fetchPrediction(selectedComponentId, updatedState, point);
+          setPrediction(predictionResult);
 
-        const summary = await getHistorianSummary();
-        setHistorianSummary(summary);
-        return;
+          const summary = await getHistorianSummarySafely();
+          setHistorianSummary(summary);
+          return;
+        }
+
+        await waitForTimelineStep();
       }
-
-      await waitForTimelineStep();
+    } catch (error) {
+      console.error('Failed to generate timeline.', error);
+    } finally {
+      if (runTokenRef.current === 0 || runTokenRef.current === runToken) {
+        setRunning(false);
+      }
     }
   }
 
@@ -155,9 +166,10 @@ export default function App() {
     setPrediction(null);
     await resetHistorian();
     const latest = await fetchLatestModelState();
-    await saveModelSnapshot(latest);
+    await saveModelSnapshotSafely(latest);
+    setModelState(latest);
     setAxisData(buildEmptyAxis(config.durationHours, config.stepHours));
-    setHistorianSummary(await getHistorianSummary());
+    setHistorianSummary(await getHistorianSummarySafely());
   }
 
   if (!modelState) {
@@ -216,7 +228,6 @@ export default function App() {
       <Printer3DModel
         selectedComponentId={selectedComponentId}
         onSelect={setSelectedComponentId}
-        modelUrl={PRINTER_MODEL_URL}
       />
 
       <section className="bottom-grid">
@@ -227,6 +238,40 @@ export default function App() {
       <HumanDependencyMap selectedComponentId={selectedComponentId} />
     </main>
   );
+}
+
+async function createRunSafely({ componentId, config, fallbackRunId }) {
+  try {
+    return await createRun({ componentId, config });
+  } catch (error) {
+    console.error('Failed to persist simulation run metadata.', error);
+    return fallbackRunId;
+  }
+}
+
+async function saveTimelinePointSafely(point) {
+  try {
+    await saveTimelinePoint(point);
+  } catch (error) {
+    console.error('Failed to persist timeline point.', error);
+  }
+}
+
+async function saveModelSnapshotSafely(modelState) {
+  try {
+    await saveModelSnapshot(modelState);
+  } catch (error) {
+    console.error('Failed to persist model snapshot.', error);
+  }
+}
+
+async function getHistorianSummarySafely() {
+  try {
+    return await getHistorianSummary();
+  } catch (error) {
+    console.error('Failed to load historian summary.', error);
+    return { runs: 0, points: 0, lastRun: null };
+  }
 }
 
 function patchModelStateWithLatestPoint(modelState, componentId, point) {
@@ -263,4 +308,31 @@ function patchModelStateWithLatestPoint(modelState, componentId, point) {
   }
 
   return updated;
+}
+
+function sanitizeSimulationConfig(config) {
+  const durationHours = Number(config.durationHours);
+  const stepHours = Number(config.stepHours);
+
+  if (!Number.isFinite(durationHours) || !Number.isFinite(stepHours) || durationHours <= 0 || stepHours <= 0) {
+    console.error('Invalid simulation configuration.', config);
+    return null;
+  }
+
+  return {
+    ...config,
+    durationHours,
+    stepHours,
+    temperatureStressC: finiteOrDefault(config.temperatureStressC, DEFAULT_SIMULATION_CONFIG.temperatureStressC),
+    humidity: finiteOrDefault(config.humidity, DEFAULT_SIMULATION_CONFIG.humidity),
+    contamination: finiteOrDefault(config.contamination, DEFAULT_SIMULATION_CONFIG.contamination),
+    operationalLoad: finiteOrDefault(config.operationalLoad, DEFAULT_SIMULATION_CONFIG.operationalLoad),
+    maintenanceLevel: finiteOrDefault(config.maintenanceLevel, DEFAULT_SIMULATION_CONFIG.maintenanceLevel),
+    stochasticity: finiteOrDefault(config.stochasticity, DEFAULT_SIMULATION_CONFIG.stochasticity)
+  };
+}
+
+function finiteOrDefault(value, defaultValue) {
+  const numericValue = Number(value);
+  return Number.isFinite(numericValue) ? numericValue : defaultValue;
 }

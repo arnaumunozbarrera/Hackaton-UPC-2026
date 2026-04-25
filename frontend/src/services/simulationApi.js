@@ -24,6 +24,28 @@ export function simulateNextPoint({ componentId, previousHealth, config, stepInd
   // Python should return the same shape produced here.
 
   const t = stepIndex * config.stepHours;
+  const baselineHealth = clamp(previousHealth, 0, 1);
+
+  if (stepIndex === 0) {
+    return {
+      run_id: runId,
+      t,
+      timestamp: new Date().toISOString(),
+      component_id: componentId,
+      health: baselineHealth,
+      damage: clamp(1 - baselineHealth, 0, 1),
+      status: getStatusFromHealth(baselineHealth),
+      drivers: {
+        temperature_stress_c: config.temperatureStressC,
+        humidity: config.humidity,
+        contamination: config.contamination,
+        operational_load: config.operationalLoad,
+        maintenance_level: config.maintenanceLevel,
+        stochasticity: config.stochasticity
+      }
+    };
+  }
+
   const temperaturePenalty = Math.abs(config.temperatureStressC - 35) * 0.00065;
   const humidityPenalty = config.humidity * 0.003;
   const contaminationPenalty = config.contamination * 0.010;
@@ -42,7 +64,7 @@ export function simulateNextPoint({ componentId, previousHealth, config, stepInd
       stochasticShock
   );
 
-  const health = clamp(previousHealth - degradation, 0, 1);
+  const health = clamp(baselineHealth - degradation, 0, 1);
   const status = getStatusFromHealth(health);
   const timestamp = new Date(Date.now() + t * 60 * 60 * 1000).toISOString();
 
