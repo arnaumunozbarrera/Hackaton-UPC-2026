@@ -1,16 +1,26 @@
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { COMPONENT_LABELS } from '../data/modelState';
+import { formatLabel } from '../services/formatters';
 
 const COLORS = {
   recoater_blade: '#58a6ff',
+  linear_guide: '#7dd3fc',
+  recoater_drive_motor: '#34d399',
   nozzle_plate: '#f59e0b',
-  heating_elements: '#ef4444'
+  thermal_firing_resistors: '#f97316',
+  cleaning_interface: '#a78bfa',
+  heating_elements: '#ef4444',
+  temperature_sensors: '#f472b6',
+  insulation_panels: '#22c55e'
 };
 
-export default function Printer3DModel({ selectedComponentId, onSelect }) {
-  const selectedLabel = COMPONENT_LABELS[selectedComponentId] ?? 'Component';
-  const componentEntries = Object.entries(COMPONENT_LABELS);
+export default function Printer3DModel({ modelState, selectedComponentId, onSelect }) {
+  const selectedLabel = COMPONENT_LABELS[selectedComponentId] ?? formatLabel(selectedComponentId);
+  const componentEntries = Object.keys(modelState?.components || COMPONENT_LABELS).map((componentId) => [
+    componentId,
+    COMPONENT_LABELS[componentId] ?? formatLabel(componentId)
+  ]);
 
   return (
     <section className="panel model-panel">

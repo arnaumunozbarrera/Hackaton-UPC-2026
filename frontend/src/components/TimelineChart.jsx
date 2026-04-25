@@ -9,17 +9,19 @@ import {
   YAxis
 } from 'recharts';
 import { COMPONENT_LABELS } from '../data/modelState';
+import { formatLabel } from '../services/formatters';
 
 export default function TimelineChart({ chartData, axisTemplate, totalUsages, selectedComponentId, loading, error }) {
   const ticks = buildTicks(totalUsages);
   const data = chartData.length ? chartData : axisTemplate;
+  const componentLabel = COMPONENT_LABELS[selectedComponentId] ?? formatLabel(selectedComponentId);
 
   return (
     <section className="panel chart-panel">
       <div className="section-title-row compact">
         <div>
           <p className="eyebrow">Runtime timeline</p>
-          <h2>{COMPONENT_LABELS[selectedComponentId]} health</h2>
+          <h2>{componentLabel} health</h2>
         </div>
         <span className="axis-chip">Normalized axis</span>
       </div>

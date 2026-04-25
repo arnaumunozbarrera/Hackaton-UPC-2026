@@ -106,6 +106,10 @@ export default function App() {
   }, []);
 
   const latestOutput = timeline.length > 0 ? timeline[timeline.length - 1].model_output : modelState;
+  const displayModelState = useMemo(
+    () => mergeModelStates(modelState, latestOutput),
+    [modelState, latestOutput]
+  );
 
   const chartData = useMemo(() => {
     if (!timeline.length) return [];
@@ -226,7 +230,7 @@ export default function App() {
           <h1>Component health index estimation</h1>
         </div>
         <ComponentSelector
-          modelState={latestOutput || modelState}
+          modelState={displayModelState}
           selectedComponentId={selectedComponentId}
           onChange={setSelectedComponentId}
         />
@@ -235,15 +239,15 @@ export default function App() {
       <section className="summary-strip">
         <div>
           <span>Overall machine health</span>
-          <strong>{Math.round((latestOutput?.machine_state?.overall_health || 0) * 100)}%</strong>
+          <strong>{Math.round((displayModelState?.machine_state?.overall_health || 0) * 100)}%</strong>
         </div>
         <div>
           <span>Overall status</span>
-          <strong>{latestOutput?.machine_state?.overall_status || 'UNKNOWN'}</strong>
+          <strong>{displayModelState?.machine_state?.overall_status || 'UNKNOWN'}</strong>
         </div>
         <div>
           <span>Critical components</span>
-          <strong>{latestOutput?.machine_state?.critical_components?.length || 0}</strong>
+          <strong>{displayModelState?.machine_state?.critical_components?.length || 0}</strong>
         </div>
         <div>
           <span>Latest scenario</span>
@@ -276,10 +280,14 @@ export default function App() {
         />
       </section>
 
-      <Printer3DModel selectedComponentId={selectedComponentId} onSelect={setSelectedComponentId} />
+      <Printer3DModel
+        modelState={displayModelState}
+        selectedComponentId={selectedComponentId}
+        onSelect={setSelectedComponentId}
+      />
 
       <section className="bottom-grid">
-        <HealthSummary modelState={latestOutput || modelState} selectedComponentId={selectedComponentId} />
+        <HealthSummary modelState={displayModelState} selectedComponentId={selectedComponentId} />
         <PredictionPanel prediction={prediction} />
       </section>
 
@@ -369,6 +377,18 @@ function normalizeTimelineForUi(timeline) {
       }
     };
   });
+}
+
+function mergeModelStates(baseModelState, latestModelState) {
+  const components = {
+    ...(baseModelState?.components || {}),
+    ...(latestModelState?.components || {})
+  };
+
+  return {
+    machine_state: buildMachineStateFromComponents(components),
+    components
+  };
 }
 
 function buildMachineStateFromComponents(components) {

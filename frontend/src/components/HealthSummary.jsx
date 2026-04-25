@@ -7,14 +7,16 @@ export default function HealthSummary({ modelState, selectedComponentId, latestP
   const health = latestPoint?.health ?? component.health;
   const status = latestPoint?.status ?? component.status;
   const damage = component.damage.total;
+  const componentLabel = COMPONENT_LABELS[selectedComponentId] ?? formatLabel(selectedComponentId);
+  const subsystemLabel = SUBSYSTEM_LABELS[component.subsystem] ?? formatLabel(component.subsystem);
 
   return (
     <section className="panel component-summary">
       <div className="section-title-row">
         <div>
           <p className="eyebrow">Selected subsystem</p>
-          <h2>{COMPONENT_LABELS[selectedComponentId]}</h2>
-          <p className="muted">{SUBSYSTEM_LABELS[component.subsystem]}</p>
+          <h2>{componentLabel}</h2>
+          <p className="muted">{subsystemLabel}</p>
         </div>
         <span className={`status-pill ${status.toLowerCase()}`}>{status}</span>
       </div>

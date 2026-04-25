@@ -59,8 +59,14 @@ export const INITIAL_MODEL_STATE = {
 
 export const COMPONENT_LABELS = {
   recoater_blade: 'Recoater blade',
+  linear_guide: 'Linear guide',
+  recoater_drive_motor: 'Recoater drive motor',
   nozzle_plate: 'Nozzle plate',
-  heating_elements: 'Heating elements'
+  thermal_firing_resistors: 'Thermal firing resistors',
+  cleaning_interface: 'Cleaning interface',
+  heating_elements: 'Heating elements',
+  temperature_sensors: 'Temperature sensors',
+  insulation_panels: 'Insulation panels'
 };
 
 export const SUBSYSTEM_LABELS = {
