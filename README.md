@@ -15,6 +15,121 @@ The solution is organized as a modular system with a clear separation between si
 
 At a high level, the mathematical models generate the health and degradation behavior of each subsystem, the backend coordinates predictions and storage, and the frontend presents the results through dashboards and timelines.
 
+## Prerequisites
+
+Install the following tools before running the project:
+
+- Python 3.10 or newer.
+- Node.js 18 or newer, with npm.
+- Git, if you are cloning the repository.
+- Optional: Ollama, if you want to use the local LLM explanation flow instead of the mock LLM provider.
+
+The backend reads environment variables from the repository root `.env` file. The current local LLM configuration uses:
+
+```env
+OLLAMA_BASE_URL=http://localhost:11434
+AGENT_LLM_PROVIDER=ollama
+AGENT_LLM_MODEL=llama3.2:3b
+```
+
+If Ollama is not installed or running, use the mock provider for the frontend agent panel by creating `frontend/.env.local` with:
+
+```env
+VITE_AGENT_LLM_PROVIDER=mock
+```
+
+## Installation
+
+Clone the repository and enter the project directory:
+
+```bash
+git clone https://github.com/arnaumunozbarrera/Hackaton-UPC-2026.git
+cd Hackaton-UPC-2026
+```
+
+Create and activate a Python virtual environment for the backend:
+
+```bash
+cd backend
+python -m venv .venv
+```
+
+On Windows PowerShell:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
+
+On macOS or Linux:
+
+```bash
+source .venv/bin/activate
+```
+
+Install the backend dependencies:
+
+```bash
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
+
+Install the frontend dependencies from a second terminal:
+
+```bash
+cd frontend
+npm install
+```
+
+## Usage
+
+Start the backend API:
+
+```bash
+cd backend
+python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+The backend will be available at:
+
+- API health check: `http://localhost:8000/api/health`
+- Interactive API documentation: `http://localhost:8000/docs`
+
+Start the frontend dashboard from another terminal:
+
+```bash
+cd frontend
+npm run dev
+```
+
+Open the dashboard at `http://localhost:5173`.
+
+By default, the frontend calls the backend at `http://localhost:8000`. To use a different backend URL, create `frontend/.env.local` and set:
+
+```env
+VITE_API_BASE_URL=http://localhost:8000
+```
+
+To use the Ollama-backed agent explanation flow, make sure Ollama is running and that the configured model is available. If you are not using the Ollama desktop application, start the Ollama server first:
+
+```bash
+ollama serve
+```
+
+Then pull the configured model from another terminal:
+
+```bash
+ollama pull llama3.2:3b
+```
+
+Run the automated tests from the repository root:
+
+```bash
+python -m pip install pytest
+python -m pytest
+```
+
+The backend creates its local SQLite historian database automatically under `backend/storage/` when the API starts.
+
 ## Elements
 
 The main implemented elements of the project are:
@@ -63,7 +178,6 @@ Two complementary improvement approaches are considered:
    This includes incorporating more constant and component-specific parameters such as humidity, degradation rate, temperature exposure, contamination patterns, maintenance history, and other operational variables that affect wear and failure behavior.
 
    The utility of this improvement is that the model would stop relying on a relatively compact synthetic description of machine usage and would start representing a richer operational context. In practice, this would allow the digital twin to:
-
    - Distinguish better between components that fail for similar reasons but under different operating regimes.
    - Capture slower effects such as cumulative environmental exposure, seasonal conditions, or long-term maintenance quality.
    - Reduce oversimplified assumptions in the degradation curves by conditioning them on more realistic combinations of stress factors.
@@ -75,7 +189,6 @@ Two complementary improvement approaches are considered:
    The goal is to implement a system more centered on early warnings and on estimating the date when maintenance should be performed.
 
    The utility of this improvement is mainly operational. Instead of using the model only to observe degradation, the platform would become a more actionable decision-support tool. This would make it possible to:
-
    - Trigger interpretable alerts before a component reaches a critical state, giving operators time to react.
    - Estimate when a maintenance intervention should ideally be scheduled, balancing failure risk against unnecessary early replacement.
    - Coordinate maintenance windows with production demand, reducing disruption to machine availability.
