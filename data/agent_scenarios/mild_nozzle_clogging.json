@@ -1,0 +1,1466 @@
+[
+  {
+    "run_id": "synthetic_mild_nozzle_clogging_01",
+    "timestamp": "2026-04-25T00:00:00",
+    "drivers": {
+      "temperature_stress": 1.04,
+      "humidity": 0.48,
+      "contamination": 0.2,
+      "operational_load": 0.62,
+      "maintenance_level": 0.88
+    },
+    "components": {
+      "recoater_blade": {
+        "subsystem": "recoating_system",
+        "health_index": 0.92,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.08,
+          "abrasive_wear": 0.0624,
+          "contamination_damage": 0.0176
+        },
+        "metrics": {
+          "thickness_mm": 1.8,
+          "roughness_index": 0.2,
+          "wear_rate": 0.001
+        },
+        "alerts": []
+      },
+      "nozzle_plate": {
+        "subsystem": "printhead_array",
+        "health_index": 0.98,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.02,
+          "clogging": 0.0136,
+          "thermal_fatigue": 0.0064
+        },
+        "metrics": {
+          "clogging_ratio": 0.16,
+          "blocked_nozzles_pct": 7.44,
+          "jetting_efficiency": 0.8448
+        },
+        "alerts": []
+      },
+      "heating_elements": {
+        "subsystem": "thermal_control",
+        "health_index": 0.95,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.05,
+          "electrical_degradation": 0.037,
+          "thermal_overload": 0.013
+        },
+        "metrics": {
+          "resistance_ohm": 10.0,
+          "energy_factor": 1.0,
+          "thermal_stability": 0.94
+        },
+        "alerts": []
+      }
+    }
+  },
+  {
+    "run_id": "synthetic_mild_nozzle_clogging_01",
+    "timestamp": "2026-04-25T01:00:00",
+    "drivers": {
+      "temperature_stress": 1.044,
+      "humidity": 0.483,
+      "contamination": 0.209,
+      "operational_load": 0.623,
+      "maintenance_level": 0.874
+    },
+    "components": {
+      "recoater_blade": {
+        "subsystem": "recoating_system",
+        "health_index": 0.915,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.085,
+          "abrasive_wear": 0.0663,
+          "contamination_damage": 0.0187
+        },
+        "metrics": {
+          "thickness_mm": 1.7973,
+          "roughness_index": 0.208,
+          "wear_rate": 0.001045
+        },
+        "alerts": []
+      },
+      "nozzle_plate": {
+        "subsystem": "printhead_array",
+        "health_index": 0.968,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.032,
+          "clogging": 0.0218,
+          "thermal_fatigue": 0.0102
+        },
+        "metrics": {
+          "clogging_ratio": 0.178,
+          "blocked_nozzles_pct": 8.052,
+          "jetting_efficiency": 0.8318
+        },
+        "alerts": []
+      },
+      "heating_elements": {
+        "subsystem": "thermal_control",
+        "health_index": 0.944,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.056,
+          "electrical_degradation": 0.0414,
+          "thermal_overload": 0.0146
+        },
+        "metrics": {
+          "resistance_ohm": 10.0144,
+          "energy_factor": 1.003,
+          "thermal_stability": 0.934
+        },
+        "alerts": []
+      }
+    }
+  },
+  {
+    "run_id": "synthetic_mild_nozzle_clogging_01",
+    "timestamp": "2026-04-25T02:00:00",
+    "drivers": {
+      "temperature_stress": 1.048,
+      "humidity": 0.486,
+      "contamination": 0.218,
+      "operational_load": 0.626,
+      "maintenance_level": 0.868
+    },
+    "components": {
+      "recoater_blade": {
+        "subsystem": "recoating_system",
+        "health_index": 0.91,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.09,
+          "abrasive_wear": 0.0702,
+          "contamination_damage": 0.0198
+        },
+        "metrics": {
+          "thickness_mm": 1.7945,
+          "roughness_index": 0.216,
+          "wear_rate": 0.00109
+        },
+        "alerts": []
+      },
+      "nozzle_plate": {
+        "subsystem": "printhead_array",
+        "health_index": 0.956,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.044,
+          "clogging": 0.0299,
+          "thermal_fatigue": 0.0141
+        },
+        "metrics": {
+          "clogging_ratio": 0.196,
+          "blocked_nozzles_pct": 8.664,
+          "jetting_efficiency": 0.8189
+        },
+        "alerts": []
+      },
+      "heating_elements": {
+        "subsystem": "thermal_control",
+        "health_index": 0.938,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.062,
+          "electrical_degradation": 0.0459,
+          "thermal_overload": 0.0161
+        },
+        "metrics": {
+          "resistance_ohm": 10.0288,
+          "energy_factor": 1.006,
+          "thermal_stability": 0.928
+        },
+        "alerts": []
+      }
+    }
+  },
+  {
+    "run_id": "synthetic_mild_nozzle_clogging_01",
+    "timestamp": "2026-04-25T03:00:00",
+    "drivers": {
+      "temperature_stress": 1.052,
+      "humidity": 0.489,
+      "contamination": 0.227,
+      "operational_load": 0.629,
+      "maintenance_level": 0.862
+    },
+    "components": {
+      "recoater_blade": {
+        "subsystem": "recoating_system",
+        "health_index": 0.905,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.095,
+          "abrasive_wear": 0.0741,
+          "contamination_damage": 0.0209
+        },
+        "metrics": {
+          "thickness_mm": 1.7917,
+          "roughness_index": 0.224,
+          "wear_rate": 0.001135
+        },
+        "alerts": []
+      },
+      "nozzle_plate": {
+        "subsystem": "printhead_array",
+        "health_index": 0.944,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.056,
+          "clogging": 0.0381,
+          "thermal_fatigue": 0.0179
+        },
+        "metrics": {
+          "clogging_ratio": 0.214,
+          "blocked_nozzles_pct": 9.276,
+          "jetting_efficiency": 0.8059
+        },
+        "alerts": []
+      },
+      "heating_elements": {
+        "subsystem": "thermal_control",
+        "health_index": 0.932,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.068,
+          "electrical_degradation": 0.0503,
+          "thermal_overload": 0.0177
+        },
+        "metrics": {
+          "resistance_ohm": 10.0432,
+          "energy_factor": 1.009,
+          "thermal_stability": 0.922
+        },
+        "alerts": []
+      }
+    }
+  },
+  {
+    "run_id": "synthetic_mild_nozzle_clogging_01",
+    "timestamp": "2026-04-25T04:00:00",
+    "drivers": {
+      "temperature_stress": 1.056,
+      "humidity": 0.492,
+      "contamination": 0.236,
+      "operational_load": 0.632,
+      "maintenance_level": 0.856
+    },
+    "components": {
+      "recoater_blade": {
+        "subsystem": "recoating_system",
+        "health_index": 0.9,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.1,
+          "abrasive_wear": 0.078,
+          "contamination_damage": 0.022
+        },
+        "metrics": {
+          "thickness_mm": 1.789,
+          "roughness_index": 0.232,
+          "wear_rate": 0.00118
+        },
+        "alerts": []
+      },
+      "nozzle_plate": {
+        "subsystem": "printhead_array",
+        "health_index": 0.932,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.068,
+          "clogging": 0.0462,
+          "thermal_fatigue": 0.0218
+        },
+        "metrics": {
+          "clogging_ratio": 0.232,
+          "blocked_nozzles_pct": 9.888,
+          "jetting_efficiency": 0.793
+        },
+        "alerts": []
+      },
+      "heating_elements": {
+        "subsystem": "thermal_control",
+        "health_index": 0.926,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.074,
+          "electrical_degradation": 0.0548,
+          "thermal_overload": 0.0192
+        },
+        "metrics": {
+          "resistance_ohm": 10.0576,
+          "energy_factor": 1.012,
+          "thermal_stability": 0.916
+        },
+        "alerts": []
+      }
+    }
+  },
+  {
+    "run_id": "synthetic_mild_nozzle_clogging_01",
+    "timestamp": "2026-04-25T05:00:00",
+    "drivers": {
+      "temperature_stress": 1.06,
+      "humidity": 0.495,
+      "contamination": 0.245,
+      "operational_load": 0.635,
+      "maintenance_level": 0.85
+    },
+    "components": {
+      "recoater_blade": {
+        "subsystem": "recoating_system",
+        "health_index": 0.895,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.105,
+          "abrasive_wear": 0.0819,
+          "contamination_damage": 0.0231
+        },
+        "metrics": {
+          "thickness_mm": 1.7863,
+          "roughness_index": 0.24,
+          "wear_rate": 0.001225
+        },
+        "alerts": []
+      },
+      "nozzle_plate": {
+        "subsystem": "printhead_array",
+        "health_index": 0.92,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.08,
+          "clogging": 0.0544,
+          "thermal_fatigue": 0.0256
+        },
+        "metrics": {
+          "clogging_ratio": 0.25,
+          "blocked_nozzles_pct": 10.5,
+          "jetting_efficiency": 0.78
+        },
+        "alerts": []
+      },
+      "heating_elements": {
+        "subsystem": "thermal_control",
+        "health_index": 0.92,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.08,
+          "electrical_degradation": 0.0592,
+          "thermal_overload": 0.0208
+        },
+        "metrics": {
+          "resistance_ohm": 10.072,
+          "energy_factor": 1.015,
+          "thermal_stability": 0.91
+        },
+        "alerts": []
+      }
+    }
+  },
+  {
+    "run_id": "synthetic_mild_nozzle_clogging_01",
+    "timestamp": "2026-04-25T06:00:00",
+    "drivers": {
+      "temperature_stress": 1.064,
+      "humidity": 0.498,
+      "contamination": 0.254,
+      "operational_load": 0.638,
+      "maintenance_level": 0.844
+    },
+    "components": {
+      "recoater_blade": {
+        "subsystem": "recoating_system",
+        "health_index": 0.89,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.11,
+          "abrasive_wear": 0.0858,
+          "contamination_damage": 0.0242
+        },
+        "metrics": {
+          "thickness_mm": 1.7835,
+          "roughness_index": 0.248,
+          "wear_rate": 0.00127
+        },
+        "alerts": []
+      },
+      "nozzle_plate": {
+        "subsystem": "printhead_array",
+        "health_index": 0.908,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.092,
+          "clogging": 0.0626,
+          "thermal_fatigue": 0.0294
+        },
+        "metrics": {
+          "clogging_ratio": 0.268,
+          "blocked_nozzles_pct": 11.112,
+          "jetting_efficiency": 0.767
+        },
+        "alerts": []
+      },
+      "heating_elements": {
+        "subsystem": "thermal_control",
+        "health_index": 0.914,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.086,
+          "electrical_degradation": 0.0636,
+          "thermal_overload": 0.0224
+        },
+        "metrics": {
+          "resistance_ohm": 10.0864,
+          "energy_factor": 1.018,
+          "thermal_stability": 0.904
+        },
+        "alerts": []
+      }
+    }
+  },
+  {
+    "run_id": "synthetic_mild_nozzle_clogging_01",
+    "timestamp": "2026-04-25T07:00:00",
+    "drivers": {
+      "temperature_stress": 1.068,
+      "humidity": 0.501,
+      "contamination": 0.263,
+      "operational_load": 0.641,
+      "maintenance_level": 0.838
+    },
+    "components": {
+      "recoater_blade": {
+        "subsystem": "recoating_system",
+        "health_index": 0.885,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.115,
+          "abrasive_wear": 0.0897,
+          "contamination_damage": 0.0253
+        },
+        "metrics": {
+          "thickness_mm": 1.7808,
+          "roughness_index": 0.256,
+          "wear_rate": 0.001315
+        },
+        "alerts": []
+      },
+      "nozzle_plate": {
+        "subsystem": "printhead_array",
+        "health_index": 0.896,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.104,
+          "clogging": 0.0707,
+          "thermal_fatigue": 0.0333
+        },
+        "metrics": {
+          "clogging_ratio": 0.286,
+          "blocked_nozzles_pct": 11.724,
+          "jetting_efficiency": 0.7541
+        },
+        "alerts": []
+      },
+      "heating_elements": {
+        "subsystem": "thermal_control",
+        "health_index": 0.908,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.092,
+          "electrical_degradation": 0.0681,
+          "thermal_overload": 0.0239
+        },
+        "metrics": {
+          "resistance_ohm": 10.1008,
+          "energy_factor": 1.021,
+          "thermal_stability": 0.898
+        },
+        "alerts": []
+      }
+    }
+  },
+  {
+    "run_id": "synthetic_mild_nozzle_clogging_01",
+    "timestamp": "2026-04-25T08:00:00",
+    "drivers": {
+      "temperature_stress": 1.072,
+      "humidity": 0.504,
+      "contamination": 0.272,
+      "operational_load": 0.644,
+      "maintenance_level": 0.832
+    },
+    "components": {
+      "recoater_blade": {
+        "subsystem": "recoating_system",
+        "health_index": 0.88,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.12,
+          "abrasive_wear": 0.0936,
+          "contamination_damage": 0.0264
+        },
+        "metrics": {
+          "thickness_mm": 1.778,
+          "roughness_index": 0.264,
+          "wear_rate": 0.00136
+        },
+        "alerts": []
+      },
+      "nozzle_plate": {
+        "subsystem": "printhead_array",
+        "health_index": 0.884,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.116,
+          "clogging": 0.0789,
+          "thermal_fatigue": 0.0371
+        },
+        "metrics": {
+          "clogging_ratio": 0.304,
+          "blocked_nozzles_pct": 12.336,
+          "jetting_efficiency": 0.7411
+        },
+        "alerts": []
+      },
+      "heating_elements": {
+        "subsystem": "thermal_control",
+        "health_index": 0.902,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.098,
+          "electrical_degradation": 0.0725,
+          "thermal_overload": 0.0255
+        },
+        "metrics": {
+          "resistance_ohm": 10.1152,
+          "energy_factor": 1.024,
+          "thermal_stability": 0.892
+        },
+        "alerts": []
+      }
+    }
+  },
+  {
+    "run_id": "synthetic_mild_nozzle_clogging_01",
+    "timestamp": "2026-04-25T09:00:00",
+    "drivers": {
+      "temperature_stress": 1.076,
+      "humidity": 0.507,
+      "contamination": 0.281,
+      "operational_load": 0.647,
+      "maintenance_level": 0.826
+    },
+    "components": {
+      "recoater_blade": {
+        "subsystem": "recoating_system",
+        "health_index": 0.875,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.125,
+          "abrasive_wear": 0.0975,
+          "contamination_damage": 0.0275
+        },
+        "metrics": {
+          "thickness_mm": 1.7752,
+          "roughness_index": 0.272,
+          "wear_rate": 0.001405
+        },
+        "alerts": []
+      },
+      "nozzle_plate": {
+        "subsystem": "printhead_array",
+        "health_index": 0.872,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.128,
+          "clogging": 0.087,
+          "thermal_fatigue": 0.041
+        },
+        "metrics": {
+          "clogging_ratio": 0.322,
+          "blocked_nozzles_pct": 12.948,
+          "jetting_efficiency": 0.7282
+        },
+        "alerts": []
+      },
+      "heating_elements": {
+        "subsystem": "thermal_control",
+        "health_index": 0.896,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.104,
+          "electrical_degradation": 0.077,
+          "thermal_overload": 0.027
+        },
+        "metrics": {
+          "resistance_ohm": 10.1296,
+          "energy_factor": 1.027,
+          "thermal_stability": 0.886
+        },
+        "alerts": []
+      }
+    }
+  },
+  {
+    "run_id": "synthetic_mild_nozzle_clogging_01",
+    "timestamp": "2026-04-25T10:00:00",
+    "drivers": {
+      "temperature_stress": 1.08,
+      "humidity": 0.51,
+      "contamination": 0.29,
+      "operational_load": 0.65,
+      "maintenance_level": 0.82
+    },
+    "components": {
+      "recoater_blade": {
+        "subsystem": "recoating_system",
+        "health_index": 0.87,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.13,
+          "abrasive_wear": 0.1014,
+          "contamination_damage": 0.0286
+        },
+        "metrics": {
+          "thickness_mm": 1.7725,
+          "roughness_index": 0.28,
+          "wear_rate": 0.00145
+        },
+        "alerts": []
+      },
+      "nozzle_plate": {
+        "subsystem": "printhead_array",
+        "health_index": 0.86,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.14,
+          "clogging": 0.0952,
+          "thermal_fatigue": 0.0448
+        },
+        "metrics": {
+          "clogging_ratio": 0.34,
+          "blocked_nozzles_pct": 13.56,
+          "jetting_efficiency": 0.7152
+        },
+        "alerts": []
+      },
+      "heating_elements": {
+        "subsystem": "thermal_control",
+        "health_index": 0.89,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.11,
+          "electrical_degradation": 0.0814,
+          "thermal_overload": 0.0286
+        },
+        "metrics": {
+          "resistance_ohm": 10.144,
+          "energy_factor": 1.03,
+          "thermal_stability": 0.88
+        },
+        "alerts": []
+      }
+    }
+  },
+  {
+    "run_id": "synthetic_mild_nozzle_clogging_01",
+    "timestamp": "2026-04-25T11:00:00",
+    "drivers": {
+      "temperature_stress": 1.084,
+      "humidity": 0.513,
+      "contamination": 0.299,
+      "operational_load": 0.653,
+      "maintenance_level": 0.814
+    },
+    "components": {
+      "recoater_blade": {
+        "subsystem": "recoating_system",
+        "health_index": 0.865,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.135,
+          "abrasive_wear": 0.1053,
+          "contamination_damage": 0.0297
+        },
+        "metrics": {
+          "thickness_mm": 1.7697,
+          "roughness_index": 0.288,
+          "wear_rate": 0.001495
+        },
+        "alerts": []
+      },
+      "nozzle_plate": {
+        "subsystem": "printhead_array",
+        "health_index": 0.848,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.152,
+          "clogging": 0.1034,
+          "thermal_fatigue": 0.0486
+        },
+        "metrics": {
+          "clogging_ratio": 0.358,
+          "blocked_nozzles_pct": 14.172,
+          "jetting_efficiency": 0.7022
+        },
+        "alerts": []
+      },
+      "heating_elements": {
+        "subsystem": "thermal_control",
+        "health_index": 0.884,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.116,
+          "electrical_degradation": 0.0858,
+          "thermal_overload": 0.0302
+        },
+        "metrics": {
+          "resistance_ohm": 10.1584,
+          "energy_factor": 1.033,
+          "thermal_stability": 0.874
+        },
+        "alerts": []
+      }
+    }
+  },
+  {
+    "run_id": "synthetic_mild_nozzle_clogging_01",
+    "timestamp": "2026-04-25T12:00:00",
+    "drivers": {
+      "temperature_stress": 1.088,
+      "humidity": 0.516,
+      "contamination": 0.308,
+      "operational_load": 0.656,
+      "maintenance_level": 0.808
+    },
+    "components": {
+      "recoater_blade": {
+        "subsystem": "recoating_system",
+        "health_index": 0.86,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.14,
+          "abrasive_wear": 0.1092,
+          "contamination_damage": 0.0308
+        },
+        "metrics": {
+          "thickness_mm": 1.767,
+          "roughness_index": 0.296,
+          "wear_rate": 0.00154
+        },
+        "alerts": []
+      },
+      "nozzle_plate": {
+        "subsystem": "printhead_array",
+        "health_index": 0.836,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.164,
+          "clogging": 0.1115,
+          "thermal_fatigue": 0.0525
+        },
+        "metrics": {
+          "clogging_ratio": 0.376,
+          "blocked_nozzles_pct": 14.784,
+          "jetting_efficiency": 0.6893
+        },
+        "alerts": []
+      },
+      "heating_elements": {
+        "subsystem": "thermal_control",
+        "health_index": 0.878,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.122,
+          "electrical_degradation": 0.0903,
+          "thermal_overload": 0.0317
+        },
+        "metrics": {
+          "resistance_ohm": 10.1728,
+          "energy_factor": 1.036,
+          "thermal_stability": 0.868
+        },
+        "alerts": []
+      }
+    }
+  },
+  {
+    "run_id": "synthetic_mild_nozzle_clogging_01",
+    "timestamp": "2026-04-25T13:00:00",
+    "drivers": {
+      "temperature_stress": 1.092,
+      "humidity": 0.519,
+      "contamination": 0.317,
+      "operational_load": 0.659,
+      "maintenance_level": 0.802
+    },
+    "components": {
+      "recoater_blade": {
+        "subsystem": "recoating_system",
+        "health_index": 0.855,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.145,
+          "abrasive_wear": 0.1131,
+          "contamination_damage": 0.0319
+        },
+        "metrics": {
+          "thickness_mm": 1.7643,
+          "roughness_index": 0.304,
+          "wear_rate": 0.001585
+        },
+        "alerts": []
+      },
+      "nozzle_plate": {
+        "subsystem": "printhead_array",
+        "health_index": 0.824,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.176,
+          "clogging": 0.1197,
+          "thermal_fatigue": 0.0563
+        },
+        "metrics": {
+          "clogging_ratio": 0.394,
+          "blocked_nozzles_pct": 15.396,
+          "jetting_efficiency": 0.6763
+        },
+        "alerts": []
+      },
+      "heating_elements": {
+        "subsystem": "thermal_control",
+        "health_index": 0.872,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.128,
+          "electrical_degradation": 0.0947,
+          "thermal_overload": 0.0333
+        },
+        "metrics": {
+          "resistance_ohm": 10.1872,
+          "energy_factor": 1.039,
+          "thermal_stability": 0.862
+        },
+        "alerts": []
+      }
+    }
+  },
+  {
+    "run_id": "synthetic_mild_nozzle_clogging_01",
+    "timestamp": "2026-04-25T14:00:00",
+    "drivers": {
+      "temperature_stress": 1.096,
+      "humidity": 0.522,
+      "contamination": 0.326,
+      "operational_load": 0.662,
+      "maintenance_level": 0.796
+    },
+    "components": {
+      "recoater_blade": {
+        "subsystem": "recoating_system",
+        "health_index": 0.85,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.15,
+          "abrasive_wear": 0.117,
+          "contamination_damage": 0.033
+        },
+        "metrics": {
+          "thickness_mm": 1.7615,
+          "roughness_index": 0.312,
+          "wear_rate": 0.00163
+        },
+        "alerts": []
+      },
+      "nozzle_plate": {
+        "subsystem": "printhead_array",
+        "health_index": 0.812,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.188,
+          "clogging": 0.1278,
+          "thermal_fatigue": 0.0602
+        },
+        "metrics": {
+          "clogging_ratio": 0.412,
+          "blocked_nozzles_pct": 16.008,
+          "jetting_efficiency": 0.6634
+        },
+        "alerts": []
+      },
+      "heating_elements": {
+        "subsystem": "thermal_control",
+        "health_index": 0.866,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.134,
+          "electrical_degradation": 0.0992,
+          "thermal_overload": 0.0348
+        },
+        "metrics": {
+          "resistance_ohm": 10.2016,
+          "energy_factor": 1.042,
+          "thermal_stability": 0.856
+        },
+        "alerts": []
+      }
+    }
+  },
+  {
+    "run_id": "synthetic_mild_nozzle_clogging_01",
+    "timestamp": "2026-04-25T15:00:00",
+    "drivers": {
+      "temperature_stress": 1.1,
+      "humidity": 0.525,
+      "contamination": 0.335,
+      "operational_load": 0.665,
+      "maintenance_level": 0.79
+    },
+    "components": {
+      "recoater_blade": {
+        "subsystem": "recoating_system",
+        "health_index": 0.845,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.155,
+          "abrasive_wear": 0.1209,
+          "contamination_damage": 0.0341
+        },
+        "metrics": {
+          "thickness_mm": 1.7588,
+          "roughness_index": 0.32,
+          "wear_rate": 0.001675
+        },
+        "alerts": []
+      },
+      "nozzle_plate": {
+        "subsystem": "printhead_array",
+        "health_index": 0.8,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.2,
+          "clogging": 0.136,
+          "thermal_fatigue": 0.064
+        },
+        "metrics": {
+          "clogging_ratio": 0.43,
+          "blocked_nozzles_pct": 16.62,
+          "jetting_efficiency": 0.6504
+        },
+        "alerts": []
+      },
+      "heating_elements": {
+        "subsystem": "thermal_control",
+        "health_index": 0.86,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.14,
+          "electrical_degradation": 0.1036,
+          "thermal_overload": 0.0364
+        },
+        "metrics": {
+          "resistance_ohm": 10.216,
+          "energy_factor": 1.045,
+          "thermal_stability": 0.85
+        },
+        "alerts": []
+      }
+    }
+  },
+  {
+    "run_id": "synthetic_mild_nozzle_clogging_01",
+    "timestamp": "2026-04-25T16:00:00",
+    "drivers": {
+      "temperature_stress": 1.104,
+      "humidity": 0.528,
+      "contamination": 0.344,
+      "operational_load": 0.668,
+      "maintenance_level": 0.784
+    },
+    "components": {
+      "recoater_blade": {
+        "subsystem": "recoating_system",
+        "health_index": 0.84,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.16,
+          "abrasive_wear": 0.1248,
+          "contamination_damage": 0.0352
+        },
+        "metrics": {
+          "thickness_mm": 1.756,
+          "roughness_index": 0.328,
+          "wear_rate": 0.00172
+        },
+        "alerts": []
+      },
+      "nozzle_plate": {
+        "subsystem": "printhead_array",
+        "health_index": 0.788,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.212,
+          "clogging": 0.1442,
+          "thermal_fatigue": 0.0678
+        },
+        "metrics": {
+          "clogging_ratio": 0.448,
+          "blocked_nozzles_pct": 17.232,
+          "jetting_efficiency": 0.6374
+        },
+        "alerts": []
+      },
+      "heating_elements": {
+        "subsystem": "thermal_control",
+        "health_index": 0.854,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.146,
+          "electrical_degradation": 0.108,
+          "thermal_overload": 0.038
+        },
+        "metrics": {
+          "resistance_ohm": 10.2304,
+          "energy_factor": 1.048,
+          "thermal_stability": 0.844
+        },
+        "alerts": []
+      }
+    }
+  },
+  {
+    "run_id": "synthetic_mild_nozzle_clogging_01",
+    "timestamp": "2026-04-25T17:00:00",
+    "drivers": {
+      "temperature_stress": 1.108,
+      "humidity": 0.531,
+      "contamination": 0.353,
+      "operational_load": 0.671,
+      "maintenance_level": 0.778
+    },
+    "components": {
+      "recoater_blade": {
+        "subsystem": "recoating_system",
+        "health_index": 0.835,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.165,
+          "abrasive_wear": 0.1287,
+          "contamination_damage": 0.0363
+        },
+        "metrics": {
+          "thickness_mm": 1.7532,
+          "roughness_index": 0.336,
+          "wear_rate": 0.001765
+        },
+        "alerts": []
+      },
+      "nozzle_plate": {
+        "subsystem": "printhead_array",
+        "health_index": 0.776,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.224,
+          "clogging": 0.1523,
+          "thermal_fatigue": 0.0717
+        },
+        "metrics": {
+          "clogging_ratio": 0.466,
+          "blocked_nozzles_pct": 17.844,
+          "jetting_efficiency": 0.6245
+        },
+        "alerts": []
+      },
+      "heating_elements": {
+        "subsystem": "thermal_control",
+        "health_index": 0.848,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.152,
+          "electrical_degradation": 0.1125,
+          "thermal_overload": 0.0395
+        },
+        "metrics": {
+          "resistance_ohm": 10.2448,
+          "energy_factor": 1.051,
+          "thermal_stability": 0.838
+        },
+        "alerts": []
+      }
+    }
+  },
+  {
+    "run_id": "synthetic_mild_nozzle_clogging_01",
+    "timestamp": "2026-04-25T18:00:00",
+    "drivers": {
+      "temperature_stress": 1.112,
+      "humidity": 0.534,
+      "contamination": 0.362,
+      "operational_load": 0.674,
+      "maintenance_level": 0.772
+    },
+    "components": {
+      "recoater_blade": {
+        "subsystem": "recoating_system",
+        "health_index": 0.83,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.17,
+          "abrasive_wear": 0.1326,
+          "contamination_damage": 0.0374
+        },
+        "metrics": {
+          "thickness_mm": 1.7505,
+          "roughness_index": 0.344,
+          "wear_rate": 0.00181
+        },
+        "alerts": []
+      },
+      "nozzle_plate": {
+        "subsystem": "printhead_array",
+        "health_index": 0.764,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.236,
+          "clogging": 0.1605,
+          "thermal_fatigue": 0.0755
+        },
+        "metrics": {
+          "clogging_ratio": 0.484,
+          "blocked_nozzles_pct": 18.456,
+          "jetting_efficiency": 0.6115
+        },
+        "alerts": []
+      },
+      "heating_elements": {
+        "subsystem": "thermal_control",
+        "health_index": 0.842,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.158,
+          "electrical_degradation": 0.1169,
+          "thermal_overload": 0.0411
+        },
+        "metrics": {
+          "resistance_ohm": 10.2592,
+          "energy_factor": 1.054,
+          "thermal_stability": 0.832
+        },
+        "alerts": []
+      }
+    }
+  },
+  {
+    "run_id": "synthetic_mild_nozzle_clogging_01",
+    "timestamp": "2026-04-25T19:00:00",
+    "drivers": {
+      "temperature_stress": 1.116,
+      "humidity": 0.537,
+      "contamination": 0.371,
+      "operational_load": 0.677,
+      "maintenance_level": 0.766
+    },
+    "components": {
+      "recoater_blade": {
+        "subsystem": "recoating_system",
+        "health_index": 0.825,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.175,
+          "abrasive_wear": 0.1365,
+          "contamination_damage": 0.0385
+        },
+        "metrics": {
+          "thickness_mm": 1.7478,
+          "roughness_index": 0.352,
+          "wear_rate": 0.001855
+        },
+        "alerts": []
+      },
+      "nozzle_plate": {
+        "subsystem": "printhead_array",
+        "health_index": 0.752,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.248,
+          "clogging": 0.1686,
+          "thermal_fatigue": 0.0794
+        },
+        "metrics": {
+          "clogging_ratio": 0.502,
+          "blocked_nozzles_pct": 19.068,
+          "jetting_efficiency": 0.5986
+        },
+        "alerts": []
+      },
+      "heating_elements": {
+        "subsystem": "thermal_control",
+        "health_index": 0.836,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.164,
+          "electrical_degradation": 0.1214,
+          "thermal_overload": 0.0426
+        },
+        "metrics": {
+          "resistance_ohm": 10.2736,
+          "energy_factor": 1.057,
+          "thermal_stability": 0.826
+        },
+        "alerts": []
+      }
+    }
+  },
+  {
+    "run_id": "synthetic_mild_nozzle_clogging_01",
+    "timestamp": "2026-04-25T20:00:00",
+    "drivers": {
+      "temperature_stress": 1.12,
+      "humidity": 0.54,
+      "contamination": 0.38,
+      "operational_load": 0.68,
+      "maintenance_level": 0.76
+    },
+    "components": {
+      "recoater_blade": {
+        "subsystem": "recoating_system",
+        "health_index": 0.82,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.18,
+          "abrasive_wear": 0.1404,
+          "contamination_damage": 0.0396
+        },
+        "metrics": {
+          "thickness_mm": 1.745,
+          "roughness_index": 0.36,
+          "wear_rate": 0.0019
+        },
+        "alerts": []
+      },
+      "nozzle_plate": {
+        "subsystem": "printhead_array",
+        "health_index": 0.74,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.26,
+          "clogging": 0.1768,
+          "thermal_fatigue": 0.0832
+        },
+        "metrics": {
+          "clogging_ratio": 0.52,
+          "blocked_nozzles_pct": 19.68,
+          "jetting_efficiency": 0.5856
+        },
+        "alerts": []
+      },
+      "heating_elements": {
+        "subsystem": "thermal_control",
+        "health_index": 0.83,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.17,
+          "electrical_degradation": 0.1258,
+          "thermal_overload": 0.0442
+        },
+        "metrics": {
+          "resistance_ohm": 10.288,
+          "energy_factor": 1.06,
+          "thermal_stability": 0.82
+        },
+        "alerts": []
+      }
+    }
+  },
+  {
+    "run_id": "synthetic_mild_nozzle_clogging_01",
+    "timestamp": "2026-04-25T21:00:00",
+    "drivers": {
+      "temperature_stress": 1.124,
+      "humidity": 0.543,
+      "contamination": 0.389,
+      "operational_load": 0.683,
+      "maintenance_level": 0.754
+    },
+    "components": {
+      "recoater_blade": {
+        "subsystem": "recoating_system",
+        "health_index": 0.815,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.185,
+          "abrasive_wear": 0.1443,
+          "contamination_damage": 0.0407
+        },
+        "metrics": {
+          "thickness_mm": 1.7423,
+          "roughness_index": 0.368,
+          "wear_rate": 0.001945
+        },
+        "alerts": []
+      },
+      "nozzle_plate": {
+        "subsystem": "printhead_array",
+        "health_index": 0.728,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.272,
+          "clogging": 0.185,
+          "thermal_fatigue": 0.087
+        },
+        "metrics": {
+          "clogging_ratio": 0.538,
+          "blocked_nozzles_pct": 20.292,
+          "jetting_efficiency": 0.5726
+        },
+        "alerts": []
+      },
+      "heating_elements": {
+        "subsystem": "thermal_control",
+        "health_index": 0.824,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.176,
+          "electrical_degradation": 0.1302,
+          "thermal_overload": 0.0458
+        },
+        "metrics": {
+          "resistance_ohm": 10.3024,
+          "energy_factor": 1.063,
+          "thermal_stability": 0.814
+        },
+        "alerts": []
+      }
+    }
+  },
+  {
+    "run_id": "synthetic_mild_nozzle_clogging_01",
+    "timestamp": "2026-04-25T22:00:00",
+    "drivers": {
+      "temperature_stress": 1.128,
+      "humidity": 0.546,
+      "contamination": 0.398,
+      "operational_load": 0.686,
+      "maintenance_level": 0.748
+    },
+    "components": {
+      "recoater_blade": {
+        "subsystem": "recoating_system",
+        "health_index": 0.81,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.19,
+          "abrasive_wear": 0.1482,
+          "contamination_damage": 0.0418
+        },
+        "metrics": {
+          "thickness_mm": 1.7395,
+          "roughness_index": 0.376,
+          "wear_rate": 0.00199
+        },
+        "alerts": []
+      },
+      "nozzle_plate": {
+        "subsystem": "printhead_array",
+        "health_index": 0.716,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.284,
+          "clogging": 0.1931,
+          "thermal_fatigue": 0.0909
+        },
+        "metrics": {
+          "clogging_ratio": 0.556,
+          "blocked_nozzles_pct": 20.904,
+          "jetting_efficiency": 0.5597
+        },
+        "alerts": []
+      },
+      "heating_elements": {
+        "subsystem": "thermal_control",
+        "health_index": 0.818,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.182,
+          "electrical_degradation": 0.1347,
+          "thermal_overload": 0.0473
+        },
+        "metrics": {
+          "resistance_ohm": 10.3168,
+          "energy_factor": 1.066,
+          "thermal_stability": 0.808
+        },
+        "alerts": []
+      }
+    }
+  },
+  {
+    "run_id": "synthetic_mild_nozzle_clogging_01",
+    "timestamp": "2026-04-25T23:00:00",
+    "drivers": {
+      "temperature_stress": 1.132,
+      "humidity": 0.549,
+      "contamination": 0.407,
+      "operational_load": 0.689,
+      "maintenance_level": 0.742
+    },
+    "components": {
+      "recoater_blade": {
+        "subsystem": "recoating_system",
+        "health_index": 0.805,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.195,
+          "abrasive_wear": 0.1521,
+          "contamination_damage": 0.0429
+        },
+        "metrics": {
+          "thickness_mm": 1.7368,
+          "roughness_index": 0.384,
+          "wear_rate": 0.002035
+        },
+        "alerts": []
+      },
+      "nozzle_plate": {
+        "subsystem": "printhead_array",
+        "health_index": 0.704,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.296,
+          "clogging": 0.2013,
+          "thermal_fatigue": 0.0947
+        },
+        "metrics": {
+          "clogging_ratio": 0.574,
+          "blocked_nozzles_pct": 21.516,
+          "jetting_efficiency": 0.5467
+        },
+        "alerts": []
+      },
+      "heating_elements": {
+        "subsystem": "thermal_control",
+        "health_index": 0.812,
+        "status": "FUNCTIONAL",
+        "damage": {
+          "total": 0.188,
+          "electrical_degradation": 0.1391,
+          "thermal_overload": 0.0489
+        },
+        "metrics": {
+          "resistance_ohm": 10.3312,
+          "energy_factor": 1.069,
+          "thermal_stability": 0.802
+        },
+        "alerts": []
+      }
+    }
+  }
+]
