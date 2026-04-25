@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from typing import Any
 from urllib import error, request
 
+from app.prediction.predictor import predict_component_failure
 from app.storage import historian
 
 
@@ -200,6 +201,8 @@ def _build_grounded_context(question: str, run_id: str | None, component_id: str
         component_history = historian.get_component_history(target_run_id, inferred_component_id)
         component_summary = _summarize_component_history(component_history, inferred_component_id)
         prediction = historian.get_latest_prediction(target_run_id, inferred_component_id)
+        if prediction is None:
+            prediction = predict_component_failure(target_run_id, inferred_component_id)
         component_messages = [message for message in messages if message.get("component_id") == inferred_component_id]
 
         facts.extend(component_summary["facts"])

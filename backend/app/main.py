@@ -13,7 +13,15 @@ from app.chatbot import answer_chat_question
 from app.adapters.phase1_adapter import adapt_phase1_output
 from app.core.phase1 import get_default_simulation_config, load_phase1_config, run_phase1_update, to_phase1_drivers
 from app.prediction.predictor import predict_component_failure
-from app.schemas import PredictionRequest, SimulationRunRequest, SimulationStepRequest
+from app.schemas import (
+    AgentAskRequest,
+    AgentLLMAnswerRequest,
+    AgentLLMContextRequest,
+    ChatQueryRequest,
+    PredictionRequest,
+    SimulationRunRequest,
+    SimulationStepRequest,
+)
 from app.simulation.simulation_runner import run_simulation, run_single_step
 from app.storage import historian
 
@@ -89,6 +97,11 @@ def predict_failure(request: PredictionRequest) -> dict:
         return predict_component_failure(request.run_id, request.component_id)
     except Exception as error:  # pragma: no cover
         raise _structured_error(500, "prediction_failed", str(error)) from error
+
+
+@app.post("/api/model/predict")
+def predict_failure_legacy(request: PredictionRequest) -> dict:
+    return predict_failure(request)
 
 @app.get("/api/agent/runs/{run_id}/analysis")
 def get_agent_analysis(
@@ -219,6 +232,11 @@ def chat_query(request: ChatQueryRequest) -> dict:
         )
     except Exception as error:  # pragma: no cover
         raise _structured_error(500, "chat_query_failed", str(error)) from error
+
+
+@app.post("/api/chat")
+def chat_query_legacy(request: ChatQueryRequest) -> dict:
+    return chat_query(request)
 
 
 @app.get("/api/historian/runs/{run_id}/timeline")

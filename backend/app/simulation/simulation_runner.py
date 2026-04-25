@@ -170,6 +170,33 @@ def _driver_snapshot(drivers: dict) -> dict:
     }
 
 
+def _normalize_previous_model_output(previous_model_output: dict | None) -> dict:
+    if not previous_model_output:
+        return {}
+
+    normalized_state = dict(previous_model_output)
+    if isinstance(normalized_state.get("model_output"), dict):
+        normalized_state = dict(normalized_state["model_output"])
+
+    raw_components = normalized_state.get("components")
+    if not isinstance(raw_components, dict):
+        return normalized_state
+
+    normalized_components = {}
+    for component_id, component_state in raw_components.items():
+        if not isinstance(component_state, dict):
+            continue
+
+        normalized_component = dict(component_state)
+        if "health" not in normalized_component and "health_index" in normalized_component:
+            normalized_component["health"] = normalized_component["health_index"]
+        normalized_components[component_id] = normalized_component
+
+    return {
+        "components": normalized_components,
+    }
+
+
 def run_simulation(config: dict) -> dict:
     config = _normalize_config(config)
     run_id = config["run_id"]
@@ -256,9 +283,10 @@ def run_simulation(config: dict) -> dict:
 def run_single_step(payload: dict) -> dict:
     phase1_config = load_phase1_config()
     phase1_drivers = to_phase1_drivers(payload.get("drivers", {}))
+    previous_model_output = _normalize_previous_model_output(payload.get("previous_model_output"))
     adapted_output = adapt_phase1_output(
         run_phase1_update(
-            previous_state=payload.get("previous_model_output") or {},
+            previous_state=previous_model_output,
             drivers=phase1_drivers,
             config=phase1_config,
         )
