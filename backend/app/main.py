@@ -11,7 +11,7 @@ from pathlib import Path
 from app.adapters.phase1_adapter import adapt_phase1_output
 from app.core.phase1 import get_default_simulation_config, load_phase1_config, run_phase1_update, to_phase1_drivers
 from app.prediction.predictor import predict_component_failure
-from app.schemas import AgentAskRequest, PredictionRequest, SimulationRunRequest, SimulationStepRequest
+from app.schemas import AgentAskRequest, AgentLLMContextRequest, PredictionRequest, SimulationRunRequest, SimulationStepRequest
 from app.simulation.simulation_runner import run_simulation, run_single_step
 from app.storage import historian
 
@@ -19,6 +19,8 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from agent.src.llm_context import build_llm_context
+from agent.src.llm_context import build_llm_messages
 from agent.src.query import answer_question
 from agent.src.service import analyze_scenario_response
 from agent.src.sqlite_historian import SQLiteHistorian
@@ -128,6 +130,35 @@ def ask_agent(run_id: str, request: AgentAskRequest) -> dict:
         raise _structured_error(404, "agent_run_not_found", str(error)) from error
     except Exception as error:
         raise _structured_error(500, "agent_ask_failed", str(error)) from error
+
+@app.post("/api/agent/runs/{run_id}/llm-context")
+def get_agent_llm_context(run_id: str, request: AgentLLMContextRequest) -> dict:
+    try:
+        analysis = analyze_scenario_response(
+            historian=AGENT_HISTORIAN,
+            scenario_name=run_id,
+            horizon_steps=request.horizon_steps,
+            history_window_steps=request.history_window_steps,
+        )
+
+        context = build_llm_context(
+            run_id=run_id,
+            question=request.question,
+            analysis=analysis,
+            max_alternatives_per_decision=request.max_alternatives_per_decision,
+        )
+
+        return {
+            "run_id": run_id,
+            "question": request.question,
+            "context": context,
+            "messages": build_llm_messages(context),
+        }
+
+    except ValueError as error:
+        raise _structured_error(404, "agent_run_not_found", str(error)) from error
+    except Exception as error:
+        raise _structured_error(500, "agent_llm_context_failed", str(error)) from error
 
 @app.get("/api/messages/{run_id}")
 def get_messages(run_id: str) -> list[dict]:

@@ -73,3 +73,9 @@ class AgentAskRequest(BaseModel):
     horizon_steps: int = Field(default=24, gt=0)
     history_window_steps: int | None = None
     include_analysis: bool = False
+
+class AgentLLMContextRequest(BaseModel):
+    question: str = Field(min_length=1)
+    horizon_steps: int = Field(default=24, gt=0)
+    history_window_steps: int | None = None
+    max_alternatives_per_decision: int = Field(default=5, ge=1, le=10)
