@@ -8,7 +8,7 @@ FAILURE_THRESHOLD_TOLERANCE = 1e-5
 COMPONENT_MODEL_TYPES = {
     "recoater_blade": "linear_abrasive_wear",
     "linear_guide": "linear_friction_misalignment",
-    "recoater_drive_motor": "motor_fatigue_ingress",
+    "recoater_drive_motor": "weibull_motor_fatigue_ingress",
     "nozzle_plate": "clogging_thermal_fatigue",
     "thermal_firing_resistors": "exponential_resistor_fatigue",
     "cleaning_interface": "wiper_wear_residue",
@@ -205,6 +205,22 @@ def validate_component_config(component_name: str, component_config: dict) -> No
             f"{component_name} maintenance_protection cannot make maintenance_factor "
             "negative at maintenance_level=1."
         )
+
+    if component_name == "recoater_drive_motor":
+        raw_weibull_shape = calibration.get("weibull_shape_beta")
+
+        if raw_weibull_shape is None:
+            raise ValueError(
+                "recoater_drive_motor calibration config is missing: "
+                "weibull_shape_beta"
+            )
+
+        weibull_shape = float(raw_weibull_shape)
+
+        if weibull_shape <= 0:
+            raise ValueError(
+                "recoater_drive_motor weibull_shape_beta must be > 0."
+            )
 
     if component_name == "nozzle_plate":
         weights = component_config["damage_weights"]

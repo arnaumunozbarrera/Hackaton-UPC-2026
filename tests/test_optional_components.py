@@ -192,7 +192,7 @@ def test_optional_nominal_lifetimes_reach_failure_threshold(component_name):
 def test_optional_damage_matches_reported_health_loss_for_small_loads(component_name):
     config = load_real_config()
     calculator, extra_kwargs = OPTIONAL_COMPONENTS[component_name]
-    drivers = {**NOMINAL_DRIVERS[component_name], "operational_load": 0.0001}
+    drivers = {**NOMINAL_DRIVERS[component_name], "operational_load": 1.0}
     previous_state = {"health": 1.0}
 
     result = calculator(
@@ -206,6 +206,45 @@ def test_optional_damage_matches_reported_health_loss_for_small_loads(component_
 
     assert result["damage"]["total"] > 0.0
     assert result["damage"]["total"] == health_loss
+
+
+def test_recoater_drive_motor_weibull_damage_accelerates_with_age():
+    config = load_real_config()
+    target_cycles = config["components"]["recoater_drive_motor"]["calibration"][
+        "target_cycles_until_failure"
+    ]
+    drivers = NOMINAL_DRIVERS["recoater_drive_motor"]
+
+    early = calculate_recoater_drive_motor_state(
+        {"health": 1.0},
+        drivers,
+        config,
+        linear_guide_state={"health": 1.0},
+    )
+
+    aged_state = {"health": 1.0}
+    for _ in range(target_cycles // 2):
+        aged_state = calculate_recoater_drive_motor_state(
+            aged_state,
+            drivers,
+            config,
+            linear_guide_state={"health": 1.0},
+        )
+
+    aged_next = calculate_recoater_drive_motor_state(
+        aged_state,
+        drivers,
+        config,
+        linear_guide_state={"health": 1.0},
+    )
+
+    assert aged_state["metrics"]["effective_age_cycles"] == pytest.approx(
+        target_cycles / 2
+    )
+    assert aged_next["damage"]["total"] > early["damage"]["total"]
+    assert aged_next["metrics"]["weibull_cumulative_hazard"] > early["metrics"][
+        "weibull_cumulative_hazard"
+    ]
 
 
 def test_optional_damage_breakdowns_follow_relevant_drivers():

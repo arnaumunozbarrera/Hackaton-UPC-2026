@@ -339,6 +339,9 @@ def test_real_yaml_has_required_phase1_parameters_and_valid_ranges():
         in components["nozzle_plate"]["metrics"]
     )
 
+    motor_calibration = components["recoater_drive_motor"]["calibration"]
+    assert motor_calibration["weibull_shape_beta"] > 1.0
+
 
 def test_update_machine_state_rejects_mismatched_failure_thresholds():
     config = load_real_config()

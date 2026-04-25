@@ -69,7 +69,7 @@ components:
   recoater_drive_motor:
     enabled: true
     subsystem: recoating_system
-    model_type: motor_fatigue_ingress
+    model_type: weibull_motor_fatigue_ingress
 
     health:
       initial: 1.0
@@ -82,6 +82,7 @@ components:
     calibration:
       target_cycles_until_failure: 3200
       failure_threshold: 0.10
+      weibull_shape_beta: 2.2
 
     sensitivity:
       contamination: 1.1

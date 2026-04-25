@@ -9,7 +9,7 @@ import SimulationControls from './components/SimulationControls';
 import TimelineChart from './components/TimelineChart';
 import { HUMAN_DEPENDENCIES } from './data/dependencies';
 import { DEFAULT_SIMULATION_CONFIG } from './data/defaultConfig';
-import { getRunTimeline, listRuns, clearHistorian } from './services/historianApi';
+import { getRunTimeline, listRuns } from './services/historianApi';
 import { fetchRunMessages } from './services/messagesApi';
 import { fetchCurrentModel, fetchPrediction } from './services/modelApi';
 import { buildAxisTemplate, runSimulation } from './services/simulationApi';
@@ -128,9 +128,13 @@ export default function App() {
       .filter(Boolean);
   }, [timeline, selectedComponentId]);
 
-  const axisTemplate = useMemo(
-    () => buildAxisTemplate(config.totalUsages, config.usageStep),
+  const effectiveUsageStep = useMemo(
+    () => getEffectiveUsageStep(config.totalUsages, config.usageStep),
     [config.totalUsages, config.usageStep]
+  );
+  const axisTemplate = useMemo(
+    () => buildAxisTemplate(config.totalUsages, effectiveUsageStep),
+    [config.totalUsages, effectiveUsageStep]
   );
 
   async function handleRunTimeline() {
@@ -191,34 +195,6 @@ export default function App() {
     }
   }
 
-  async function handleClearHistorian() {
-    setLoading(true);
-    setError('');
-
-    try {
-      await clearHistorian();
-      const currentModel = await fetchCurrentModel();
-      setModelState(currentModel);
-      setTimeline([]);
-      setPrediction(null);
-      setMessages([]);
-      setDependencies([]);
-      setHistorianState({ runs: [], latestRun: null });
-    } catch (clearError) {
-      setError(clearError.message || 'Failed to clear historian.');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  function handleClearChart() {
-    setTimeline([]);
-    setPrediction(null);
-    setMessages([]);
-    setDependencies([]);
-    setError('');
-  }
-
   if (!modelState) {
     return <div className="loading-screen">{error || 'Loading system data...'}</div>;
   }
@@ -251,8 +227,8 @@ export default function App() {
           <strong>{displayModelState?.machine_state?.critical_components?.length || 0}</strong>
         </div>
         <div>
-          <span>Latest scenario</span>
-          <strong>{historianState.latestRun?.scenario_id || 'None'}</strong>
+          <span>Stored runs</span>
+          <strong>{historianState.runs.length}</strong>
         </div>
       </section>
 
@@ -262,8 +238,6 @@ export default function App() {
           setConfig={setConfig}
           running={loading}
           onRun={handleRunTimeline}
-          onResetTimeline={handleClearChart}
-          onResetDatabase={handleClearHistorian}
           historianSummary={{
             runs: historianState.runs.length,
             points: timeline.length,
@@ -302,25 +276,23 @@ export default function App() {
 
 function toBackendSimulationConfig(config, selectedComponentId) {
   const totalUsages = Number(config.totalUsages);
-  const usageStep = Number(config.usageStep);
   const temperatureC = Number(config.temperatureC);
   const humidity = Number(config.humidity);
   const contamination = Number(config.contamination);
   const operationalLoad = Number(config.operationalLoad);
   const maintenanceLevel = Number(config.maintenanceLevel);
-  const stochasticity = Number(config.stochasticity);
-  const seed = Number(config.seed);
-  const scenarioId = String(config.scenarioId || '').trim();
+  const stochasticity = getFiniteNumber(config.stochasticity, DEFAULT_SIMULATION_CONFIG.stochasticity);
+  const seed = getFiniteNumber(config.seed, DEFAULT_SIMULATION_CONFIG.seed);
+  const scenarioId = String(config.scenarioId || DEFAULT_SIMULATION_CONFIG.scenarioId || '').trim();
 
   if (!Number.isFinite(totalUsages) || totalUsages <= 0) {
     throw new Error('Invalid simulation config: total_usages must be greater than 0.');
   }
-  if (!Number.isFinite(usageStep) || usageStep <= 0 || usageStep > totalUsages) {
-    throw new Error('Invalid simulation config: usage_step must be greater than 0 and lower than total_usages.');
-  }
   if (!scenarioId) {
     throw new Error('Invalid simulation config: scenario_id is required.');
   }
+
+  const usageStep = getEffectiveUsageStep(totalUsages, config.usageStep);
 
   return {
     run_id: `run_${Date.now()}`,
@@ -336,8 +308,27 @@ function toBackendSimulationConfig(config, selectedComponentId) {
       stochasticity
     },
     selected_component: selectedComponentId,
-    seed: Number.isFinite(seed) ? seed : 1234
+    seed
   };
+}
+
+function getFiniteNumber(value, fallback) {
+  const numericValue = Number(value);
+  return Number.isFinite(numericValue) ? numericValue : fallback;
+}
+
+function getEffectiveUsageStep(totalUsages, configuredUsageStep) {
+  const total = Number(totalUsages);
+  const configuredStep = Number(configuredUsageStep);
+  const defaultStep = Number(DEFAULT_SIMULATION_CONFIG.usageStep);
+  const usageStep = Number.isFinite(configuredStep) && configuredStep > 0 ? configuredStep : defaultStep;
+  const positiveUsageStep = Math.max(1, usageStep);
+
+  if (!Number.isFinite(total) || total <= 0) {
+    return positiveUsageStep;
+  }
+
+  return Math.max(1, Math.min(positiveUsageStep, total));
 }
 
 function extractDependenciesFromTimeline(timeline, selectedComponentId) {

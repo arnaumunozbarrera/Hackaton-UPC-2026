@@ -1,10 +1,19 @@
-"""Recoater Drive Motor degradation model for the recoating system."""
+"""Recoater Drive Motor degradation model for the recoating system.
+
+The motor uses a Weibull wear-out curve because mechanical fatigue and bearing
+wear normally have increasing hazard with accumulated age. Environmental and
+mechanical stressors increase effective age; the Weibull curve maps that age to
+remaining health.
+"""
+
+import math
 
 from .common import (
     HEALTH_PRECISION,
     clamp,
     get_component_config,
     get_component_health,
+    get_previous_component_state,
     get_previous_health,
     get_reported_damage,
     get_status_from_health,
@@ -14,6 +23,26 @@ from .common import (
 
 
 COMPONENT_NAME = "recoater_drive_motor"
+
+
+def _get_previous_metric(previous_state, metric_name, default_value=0.0):
+    component_state = get_previous_component_state(previous_state, COMPONENT_NAME)
+    metrics = component_state.get("metrics", {})
+    return metrics.get(metric_name, default_value)
+
+
+def _infer_weibull_age_from_health(
+    health,
+    initial_health,
+    weibull_scale_cycles,
+    weibull_shape_beta,
+):
+    if health >= initial_health:
+        return 0.0
+
+    reliability_ratio = clamp(health / initial_health, 1e-12, 1.0)
+    cumulative_hazard = -math.log(reliability_ratio)
+    return weibull_scale_cycles * cumulative_hazard ** (1.0 / weibull_shape_beta)
 
 
 def _build_alerts(
@@ -70,7 +99,7 @@ def calculate_recoater_drive_motor_state(
     config: dict,
     linear_guide_state: dict | None = None,
 ) -> dict:
-    """Calculate deterministic mechanical, thermal, and ingress degradation."""
+    """Calculate deterministic Weibull fatigue, thermal stress, and ingress."""
     component_config = get_component_config(config, COMPONENT_NAME)
     health_config = component_config["health"]
     calibration_config = component_config["calibration"]
@@ -95,9 +124,32 @@ def calculate_recoater_drive_motor_state(
     linear_guide_health = get_component_health(linear_guide_state)
     guide_degradation = 1.0 - linear_guide_health
 
-    base_damage_per_cycle = (
-        health_config["initial"] - calibration_config["failure_threshold"]
-    ) / calibration_config["target_cycles_until_failure"]
+    initial_health = health_config["initial"]
+    failure_threshold = calibration_config["failure_threshold"]
+    target_cycles_until_failure = calibration_config["target_cycles_until_failure"]
+    weibull_shape_beta = float(calibration_config["weibull_shape_beta"])
+    target_cumulative_hazard = -math.log(failure_threshold / initial_health)
+    weibull_scale_cycles = target_cycles_until_failure / (
+        target_cumulative_hazard ** (1.0 / weibull_shape_beta)
+    )
+
+    previous_effective_age_cycles = _get_previous_metric(
+        previous_state,
+        "effective_age_cycles",
+        None,
+    )
+    if previous_effective_age_cycles is None:
+        previous_effective_age_cycles = _infer_weibull_age_from_health(
+            previous_health,
+            initial_health,
+            weibull_scale_cycles,
+            weibull_shape_beta,
+        )
+    else:
+        previous_effective_age_cycles = max(
+            float(previous_effective_age_cycles),
+            0.0,
+        )
 
     guide_drag_factor = 1.0 + sensitivity["linear_guide_drag"] * guide_degradation
     contamination_factor = 1.0 + sensitivity["contamination"] * contamination
@@ -105,18 +157,22 @@ def calculate_recoater_drive_motor_state(
     temperature_factor = 1.0 + sensitivity["temperature_stress"] * temperature_stress
     maintenance_factor = 1.0 - sensitivity["maintenance_protection"] * maintenance_level
 
-    effective_load = (
-        operational_load ** sensitivity["load_exponent"] * guide_drag_factor
-    )
-
-    raw_damage = (
-        base_damage_per_cycle
-        * effective_load
+    effective_load = operational_load ** sensitivity["load_exponent"]
+    effective_age_delta = (
+        effective_load
+        * guide_drag_factor
         * contamination_factor
         * humidity_factor
         * temperature_factor
         * maintenance_factor
     )
+    effective_age_cycles = previous_effective_age_cycles + effective_age_delta
+
+    cumulative_hazard = (effective_age_cycles / weibull_scale_cycles) ** (
+        weibull_shape_beta
+    )
+    health_from_weibull = initial_health * math.exp(-cumulative_hazard)
+    raw_damage = previous_health - min(previous_health, health_from_weibull)
 
     damage = clamp(raw_damage, 0.0, previous_health - health_config["min"])
     new_health = clamp(
@@ -186,6 +242,16 @@ def calculate_recoater_drive_motor_state(
             "humidity_factor": round(humidity_factor, 6),
             "temperature_factor": round(temperature_factor, 6),
             "maintenance_factor": round(maintenance_factor, 6),
+            "effective_load": round(effective_load, 6),
+            "effective_age_delta": round(effective_age_delta, 10),
+            "effective_age_cycles": round(effective_age_cycles, 10),
+            "weibull_shape_beta": round(weibull_shape_beta, 6),
+            "weibull_scale_cycles": round(weibull_scale_cycles, 6),
+            "weibull_cumulative_hazard": round(cumulative_hazard, 10),
+            "weibull_failure_probability": round(
+                1.0 - rounded_health / initial_health,
+                10,
+            ),
         },
         "alerts": _build_alerts(
             status,
