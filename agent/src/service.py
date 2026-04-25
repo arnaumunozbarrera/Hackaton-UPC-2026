@@ -1,13 +1,12 @@
 from typing import Any
 
 from agent.src.decision import make_agent_decisions
-from agent.src.historian import JsonHistorian
 from agent.src.response import build_agent_response
 from agent.src.schemas import AgentDecision
 
 
 def analyze_scenario(
-    historian: JsonHistorian,
+    historian: Any,
     scenario_name: str,
     horizon_steps: int,
     history_window_steps: int | None = None,
@@ -25,7 +24,7 @@ def analyze_scenario(
 
 
 def analyze_scenario_response(
-    historian: JsonHistorian,
+    historian: Any,
     scenario_name: str,
     horizon_steps: int,
     history_window_steps: int | None = None,
