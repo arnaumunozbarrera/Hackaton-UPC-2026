@@ -67,3 +67,9 @@ class SimulationStepRequest(BaseModel):
 class PredictionRequest(BaseModel):
     run_id: str
     component_id: str
+
+class AgentAskRequest(BaseModel):
+    question: str = Field(min_length=1)
+    horizon_steps: int = Field(default=24, gt=0)
+    history_window_steps: int | None = None
+    include_analysis: bool = False
