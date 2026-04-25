@@ -1,17 +1,18 @@
+import './HumanDependencyMap.css';
 import { COMPONENT_LABELS } from '../data/modelState';
 import { formatLabel } from '../services/formatters';
 
-export default function HumanDependencyMap({ selectedComponentId, dependencies }) {
+export default function HumanDependencyMap({ selectedComponentId, dependencies, className = '' }) {
   const related = (dependencies || []).filter(
     (item) => item.source === selectedComponentId || item.target === selectedComponentId
   );
 
   if (!related.length) {
     return (
-      <section className="panel human-map-panel">
+      <section className={`panel human-map-panel ${className}`.trim()}>
         <div className="section-title-row compact">
           <div>
-            <p className="eyebrow">Dependencies</p>
+            <p className="eyebrow">Dependency graph</p>
             <h2>Impact map</h2>
           </div>
         </div>
@@ -21,10 +22,10 @@ export default function HumanDependencyMap({ selectedComponentId, dependencies }
   }
 
   return (
-    <section className="panel human-map-panel">
-      <div className="section-title-row compact">
+    <section className={`panel human-map-panel ${className}`.trim()}>
+      <div className="section-title-row compact ">
         <div>
-          <p className="eyebrow">Dependencies</p>
+          <p className="eyebrow">Dependency graph</p>
           <h2>Impact map</h2>
         </div>
       </div>

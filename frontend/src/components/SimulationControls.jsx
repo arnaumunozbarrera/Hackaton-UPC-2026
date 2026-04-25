@@ -1,16 +1,20 @@
-export default function SimulationControls({ config, setConfig, running, onRun, historianSummary, error }) {
+export default function SimulationControls({ config, setConfig, running, onRun, historianSummary, error, className = '' }) {
   const updateNumber = (field, value) => {
     setConfig((previous) => ({ ...previous, [field]: Number(value) }));
   };
 
   return (
-    <section className="panel simulation-panel">
+    <section className={`panel simulation-panel ${className}`.trim()}>
       <div className="section-title-row compact">
         <div>
           <p className="eyebrow">Simulation</p>
           <h2>Run settings</h2>
         </div>
-        <div className="db-chip">Points: {historianSummary.points}</div>
+        <div className="run-meta-row">
+          <span className="db-chip">Run status: {historianSummary.status || 'Ready'}</span>
+          <span className="db-chip">Progress: {historianSummary.progress || '0%'}</span>
+          <span className="db-chip">Stored runs: {historianSummary.runs}</span>
+        </div>
       </div>
 
       <div className="form-grid">

@@ -1,0 +1,54 @@
+.messages-panel {
+  padding-bottom: 0;
+}
+
+.messages-panel > :last-child {
+  margin-bottom: 0;
+}
+
+.messages-panel.empty {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.messages-panel.empty.no-run-top {
+  justify-content: flex-start;
+}
+
+.message-list {
+  display: grid;
+  gap: 10px;
+}
+
+.message-card {
+  padding: 12px;
+  background: rgba(9, 15, 26, 0.72);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+.message-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.message-card p {
+  color: #d9e2f2;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.message-meta,
+.chart-note {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.message-card > :last-child {
+  margin-bottom: 0;
+}

@@ -1,3 +1,4 @@
+import './ComponentSelector.css';
 import { COMPONENT_LABELS, SUBSYSTEM_LABELS } from '../data/modelState';
 import { formatLabel } from '../services/formatters';
 
