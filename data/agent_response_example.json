@@ -1,0 +1,351 @@
+{
+  "scenario_name": "severe_thermal_risk",
+  "decision_count": 3,
+  "highest_priority": "CRITICAL",
+  "copilot_text": "Recommendation 1\n\nCRITICAL: heating_elements requires attention.\n\nDiagnosis: Heating elements are degrading under sustained temperature stress.\nRecommended action plan: TRIGGER_COOLDOWN + REDUCE_LOAD + SCHEDULE_MAINTENANCE.\nWhy this plan: it prevents the forecasted failure and projects the component to DEGRADED with health index 0.3203\nExpected effect: Apply TRIGGER_COOLDOWN + REDUCE_LOAD + SCHEDULE_MAINTENANCE. This reduces thermal stress and slows heat-driven degradation. Projected status becomes DEGRADED with health index 0.320.\n\nForecast without intervention: if current conditions continue, the component is expected to reach FAILED in 3 steps.\n\nEvaluated alternatives:\n- TRIGGER_COOLDOWN + REDUCE_LOAD + SCHEDULE_MAINTENANCE: projected_status=DEGRADED, projected_health=0.3203, risk_score=133.968\n- STOP_MACHINE + SCHEDULE_MAINTENANCE: projected_status=DEGRADED, projected_health=0.3082, risk_score=162.18\n- STOP_MACHINE: projected_status=CRITICAL, projected_health=0.103, risk_score=234.7\n- CONTINUE_OPERATION: projected_status=FAILED, projected_health=0.0, risk_score=300.0\n- REDUCE_LOAD: projected_status=FAILED, projected_health=0.0, risk_score=308.0\n\nEvidence:\n- 2026-04-25T23:00:00 | heating_elements | health_index = 0.145\n- 2026-04-25T23:00:00 | heating_elements | thermal_stability = 0.339\n- 2026-04-25T23:00:00 | machine | temperature_stress = 1.575\n\nRecommendation 2\n\nCRITICAL: recoater_blade requires attention.\n\nDiagnosis: Recoater blade wear may increase powder contamination.\nRecommended action plan: REPLACE_COMPONENT.\nWhy this plan: it prevents the forecasted failure and projects the component to FUNCTIONAL with health index 1.0\nExpected effect: Apply REPLACE_COMPONENT. This restores component condition at higher operational cost. Projected status becomes FUNCTIONAL with health index 1.000.\n\nForecast without intervention: if current conditions continue, the component is expected to reach FAILED in 17 steps.\n\nEvaluated alternatives:\n- REPLACE_COMPONENT: projected_status=FUNCTIONAL, projected_health=1.0, risk_score=85.0\n- REDUCE_LOAD + SCHEDULE_MAINTENANCE: projected_status=DEGRADED, projected_health=0.4778, risk_score=108.216\n- SCHEDULE_MAINTENANCE: projected_status=DEGRADED, projected_health=0.3828, risk_score=109.72\n- STOP_MACHINE: projected_status=DEGRADED, projected_health=0.3876, risk_score=136.24\n- REDUCE_LOAD: projected_status=CRITICAL, projected_health=0.1236, risk_score=195.64\n\nEvidence:\n- 2026-04-25T23:00:00 | recoater_blade | health_index = 0.414\n- 2026-04-25T23:00:00 | recoater_blade | roughness_index = 0.841\n\nRecommendation 3\n\nCRITICAL: nozzle_plate requires attention.\n\nDiagnosis: Nozzle plate shows signs of clogging.\nRecommended action plan: RUN_CLEANING_CYCLE + SCHEDULE_MAINTENANCE.\nWhy this plan: it avoids the forecasted critical state and projects the component to FUNCTIONAL with health index 0.7882\nExpected effect: Apply RUN_CLEANING_CYCLE + SCHEDULE_MAINTENANCE. This reduces clogging and recovers printhead efficiency. Projected status becomes FUNCTIONAL with health index 0.788.\n\nForecast without intervention: if current conditions continue, the component is expected to reach CRITICAL in 15 steps.\n\nEvaluated alternatives:\n- RUN_CLEANING_CYCLE + SCHEDULE_MAINTENANCE: projected_status=FUNCTIONAL, projected_health=0.7882, risk_score=51.176\n- SCHEDULE_MAINTENANCE: projected_status=DEGRADED, projected_health=0.5732, risk_score=90.68\n- RUN_CLEANING_CYCLE + REDUCE_LOAD: projected_status=DEGRADED, projected_health=0.5791, risk_score=92.092\n- RUN_CLEANING_CYCLE: projected_status=DEGRADED, projected_health=0.4916, risk_score=92.84\n- REDUCE_LOAD: projected_status=DEGRADED, projected_health=0.3284, risk_score=105.16\n\nEvidence:\n- 2026-04-25T23:00:00 | nozzle_plate | clogging_ratio = 0.816\n- 2026-04-25T23:00:00 | nozzle_plate | blocked_nozzles_pct = 29.744",
+  "decisions": [
+    {
+      "component_id": "heating_elements",
+      "issue": "thermal_instability",
+      "diagnosis_severity": "CRITICAL",
+      "recommendation_priority": "CRITICAL",
+      "diagnosis_description": "Heating elements are degrading under sustained temperature stress",
+      "forecast_without_intervention": {
+        "horizon_steps": 24,
+        "predicted_status": "FAILED",
+        "time_to_critical_steps": 0,
+        "time_to_failure_steps": 3,
+        "risk_score": 300.0
+      },
+      "selected_plan": {
+        "actions": [
+          "TRIGGER_COOLDOWN",
+          "REDUCE_LOAD",
+          "SCHEDULE_MAINTENANCE"
+        ],
+        "actions_text": "TRIGGER_COOLDOWN + REDUCE_LOAD + SCHEDULE_MAINTENANCE",
+        "expected_effect": "Apply TRIGGER_COOLDOWN + REDUCE_LOAD + SCHEDULE_MAINTENANCE. This reduces thermal stress and slows heat-driven degradation. Projected status becomes DEGRADED with health index 0.320",
+        "projected_status": "DEGRADED",
+        "projected_health_index": 0.3203,
+        "risk_score": 133.968
+      },
+      "alternatives": [
+        {
+          "actions": [
+            "TRIGGER_COOLDOWN",
+            "REDUCE_LOAD",
+            "SCHEDULE_MAINTENANCE"
+          ],
+          "actions_text": "TRIGGER_COOLDOWN + REDUCE_LOAD + SCHEDULE_MAINTENANCE",
+          "projected_health_index": 0.3203,
+          "predicted_status": "DEGRADED",
+          "risk_score": 133.968,
+          "expected_effect": "Apply TRIGGER_COOLDOWN + REDUCE_LOAD + SCHEDULE_MAINTENANCE. This reduces thermal stress and slows heat-driven degradation. Projected status becomes DEGRADED with health index 0.320"
+        },
+        {
+          "actions": [
+            "STOP_MACHINE",
+            "SCHEDULE_MAINTENANCE"
+          ],
+          "actions_text": "STOP_MACHINE + SCHEDULE_MAINTENANCE",
+          "projected_health_index": 0.3082,
+          "predicted_status": "DEGRADED",
+          "risk_score": 162.18,
+          "expected_effect": "Apply STOP_MACHINE + SCHEDULE_MAINTENANCE. This minimizes further degradation with downtime cost. Projected status becomes DEGRADED with health index 0.308"
+        },
+        {
+          "actions": [
+            "STOP_MACHINE"
+          ],
+          "actions_text": "STOP_MACHINE",
+          "projected_health_index": 0.103,
+          "predicted_status": "CRITICAL",
+          "risk_score": 234.7,
+          "expected_effect": "Apply STOP_MACHINE. This minimizes further degradation with downtime cost. Projected status becomes CRITICAL with health index 0.103"
+        },
+        {
+          "actions": [
+            "CONTINUE_OPERATION"
+          ],
+          "actions_text": "CONTINUE_OPERATION",
+          "projected_health_index": 0.0,
+          "predicted_status": "FAILED",
+          "risk_score": 300.0,
+          "expected_effect": "No intervention applied. Projected status remains FAILED with health index 0.000"
+        },
+        {
+          "actions": [
+            "REDUCE_LOAD"
+          ],
+          "actions_text": "REDUCE_LOAD",
+          "projected_health_index": 0.0,
+          "predicted_status": "FAILED",
+          "risk_score": 308.0,
+          "expected_effect": "Apply REDUCE_LOAD. This reduces thermal stress and slows heat-driven degradation. Projected status becomes FAILED with health index 0.000"
+        },
+        {
+          "actions": [
+            "TRIGGER_COOLDOWN"
+          ],
+          "actions_text": "TRIGGER_COOLDOWN",
+          "projected_health_index": 0.0,
+          "predicted_status": "FAILED",
+          "risk_score": 310.0,
+          "expected_effect": "Apply TRIGGER_COOLDOWN. This reduces thermal stress and slows heat-driven degradation. Projected status becomes FAILED with health index 0.000"
+        },
+        {
+          "actions": [
+            "TRIGGER_COOLDOWN",
+            "REDUCE_LOAD"
+          ],
+          "actions_text": "TRIGGER_COOLDOWN + REDUCE_LOAD",
+          "projected_health_index": 0.0433,
+          "predicted_status": "FAILED",
+          "risk_score": 313.67,
+          "expected_effect": "Apply TRIGGER_COOLDOWN + REDUCE_LOAD. This reduces thermal stress and slows heat-driven degradation. Projected status becomes FAILED with health index 0.043"
+        }
+      ],
+      "evidence": [
+        {
+          "run_id": "synthetic_severe_thermal_risk_01",
+          "timestamp": "2026-04-25T23:00:00",
+          "component_id": "heating_elements",
+          "field": "health_index",
+          "value": 0.145
+        },
+        {
+          "run_id": "synthetic_severe_thermal_risk_01",
+          "timestamp": "2026-04-25T23:00:00",
+          "component_id": "heating_elements",
+          "field": "thermal_stability",
+          "value": 0.339
+        },
+        {
+          "run_id": "synthetic_severe_thermal_risk_01",
+          "timestamp": "2026-04-25T23:00:00",
+          "component_id": "machine",
+          "field": "temperature_stress",
+          "value": 1.575
+        }
+      ]
+    },
+    {
+      "component_id": "recoater_blade",
+      "issue": "recoater_wear",
+      "diagnosis_severity": "WARNING",
+      "recommendation_priority": "CRITICAL",
+      "diagnosis_description": "Recoater blade wear may increase powder contamination",
+      "forecast_without_intervention": {
+        "horizon_steps": 24,
+        "predicted_status": "FAILED",
+        "time_to_critical_steps": 6,
+        "time_to_failure_steps": 17,
+        "risk_score": 300.0
+      },
+      "selected_plan": {
+        "actions": [
+          "REPLACE_COMPONENT"
+        ],
+        "actions_text": "REPLACE_COMPONENT",
+        "expected_effect": "Apply REPLACE_COMPONENT. This restores component condition at higher operational cost. Projected status becomes FUNCTIONAL with health index 1.000",
+        "projected_status": "FUNCTIONAL",
+        "projected_health_index": 1.0,
+        "risk_score": 85.0
+      },
+      "alternatives": [
+        {
+          "actions": [
+            "REPLACE_COMPONENT"
+          ],
+          "actions_text": "REPLACE_COMPONENT",
+          "projected_health_index": 1.0,
+          "predicted_status": "FUNCTIONAL",
+          "risk_score": 85.0,
+          "expected_effect": "Apply REPLACE_COMPONENT. This restores component condition at higher operational cost. Projected status becomes FUNCTIONAL with health index 1.000"
+        },
+        {
+          "actions": [
+            "REDUCE_LOAD",
+            "SCHEDULE_MAINTENANCE"
+          ],
+          "actions_text": "REDUCE_LOAD + SCHEDULE_MAINTENANCE",
+          "projected_health_index": 0.4778,
+          "predicted_status": "DEGRADED",
+          "risk_score": 108.216,
+          "expected_effect": "Apply REDUCE_LOAD + SCHEDULE_MAINTENANCE. This reduces wear propagation and downstream contamination risk. Projected status becomes DEGRADED with health index 0.478"
+        },
+        {
+          "actions": [
+            "SCHEDULE_MAINTENANCE"
+          ],
+          "actions_text": "SCHEDULE_MAINTENANCE",
+          "projected_health_index": 0.3828,
+          "predicted_status": "DEGRADED",
+          "risk_score": 109.72,
+          "expected_effect": "Apply SCHEDULE_MAINTENANCE. This reduces wear propagation and downstream contamination risk. Projected status becomes DEGRADED with health index 0.383"
+        },
+        {
+          "actions": [
+            "STOP_MACHINE"
+          ],
+          "actions_text": "STOP_MACHINE",
+          "projected_health_index": 0.3876,
+          "predicted_status": "DEGRADED",
+          "risk_score": 136.24,
+          "expected_effect": "Apply STOP_MACHINE. This minimizes further degradation with downtime cost. Projected status becomes DEGRADED with health index 0.388"
+        },
+        {
+          "actions": [
+            "REDUCE_LOAD"
+          ],
+          "actions_text": "REDUCE_LOAD",
+          "projected_health_index": 0.1236,
+          "predicted_status": "CRITICAL",
+          "risk_score": 195.64,
+          "expected_effect": "Apply REDUCE_LOAD. This reduces wear propagation and downstream contamination risk. Projected status becomes CRITICAL with health index 0.124"
+        },
+        {
+          "actions": [
+            "CONTINUE_OPERATION"
+          ],
+          "actions_text": "CONTINUE_OPERATION",
+          "projected_health_index": 0.0,
+          "predicted_status": "FAILED",
+          "risk_score": 300.0,
+          "expected_effect": "No intervention applied. Projected status remains FAILED with health index 0.000"
+        }
+      ],
+      "evidence": [
+        {
+          "run_id": "synthetic_severe_thermal_risk_01",
+          "timestamp": "2026-04-25T23:00:00",
+          "component_id": "recoater_blade",
+          "field": "health_index",
+          "value": 0.414
+        },
+        {
+          "run_id": "synthetic_severe_thermal_risk_01",
+          "timestamp": "2026-04-25T23:00:00",
+          "component_id": "recoater_blade",
+          "field": "roughness_index",
+          "value": 0.841
+        }
+      ]
+    },
+    {
+      "component_id": "nozzle_plate",
+      "issue": "nozzle_clogging",
+      "diagnosis_severity": "WARNING",
+      "recommendation_priority": "CRITICAL",
+      "diagnosis_description": "Nozzle plate shows signs of clogging",
+      "forecast_without_intervention": {
+        "horizon_steps": 24,
+        "predicted_status": "CRITICAL",
+        "time_to_critical_steps": 15,
+        "time_to_failure_steps": 29,
+        "risk_score": 186.60000000000002
+      },
+      "selected_plan": {
+        "actions": [
+          "RUN_CLEANING_CYCLE",
+          "SCHEDULE_MAINTENANCE"
+        ],
+        "actions_text": "RUN_CLEANING_CYCLE + SCHEDULE_MAINTENANCE",
+        "expected_effect": "Apply RUN_CLEANING_CYCLE + SCHEDULE_MAINTENANCE. This reduces clogging and recovers printhead efficiency. Projected status becomes FUNCTIONAL with health index 0.788",
+        "projected_status": "FUNCTIONAL",
+        "projected_health_index": 0.7882,
+        "risk_score": 51.176
+      },
+      "alternatives": [
+        {
+          "actions": [
+            "RUN_CLEANING_CYCLE",
+            "SCHEDULE_MAINTENANCE"
+          ],
+          "actions_text": "RUN_CLEANING_CYCLE + SCHEDULE_MAINTENANCE",
+          "projected_health_index": 0.7882,
+          "predicted_status": "FUNCTIONAL",
+          "risk_score": 51.176,
+          "expected_effect": "Apply RUN_CLEANING_CYCLE + SCHEDULE_MAINTENANCE. This reduces clogging and recovers printhead efficiency. Projected status becomes FUNCTIONAL with health index 0.788"
+        },
+        {
+          "actions": [
+            "SCHEDULE_MAINTENANCE"
+          ],
+          "actions_text": "SCHEDULE_MAINTENANCE",
+          "projected_health_index": 0.5732,
+          "predicted_status": "DEGRADED",
+          "risk_score": 90.68,
+          "expected_effect": "Apply SCHEDULE_MAINTENANCE. This reduces clogging and recovers printhead efficiency. Projected status becomes DEGRADED with health index 0.573"
+        },
+        {
+          "actions": [
+            "RUN_CLEANING_CYCLE",
+            "REDUCE_LOAD"
+          ],
+          "actions_text": "RUN_CLEANING_CYCLE + REDUCE_LOAD",
+          "projected_health_index": 0.5791,
+          "predicted_status": "DEGRADED",
+          "risk_score": 92.092,
+          "expected_effect": "Apply RUN_CLEANING_CYCLE + REDUCE_LOAD. This reduces clogging and recovers printhead efficiency. Projected status becomes DEGRADED with health index 0.579"
+        },
+        {
+          "actions": [
+            "RUN_CLEANING_CYCLE"
+          ],
+          "actions_text": "RUN_CLEANING_CYCLE",
+          "projected_health_index": 0.4916,
+          "predicted_status": "DEGRADED",
+          "risk_score": 92.84,
+          "expected_effect": "Apply RUN_CLEANING_CYCLE. This reduces clogging and recovers printhead efficiency. Projected status becomes DEGRADED with health index 0.492"
+        },
+        {
+          "actions": [
+            "REDUCE_LOAD"
+          ],
+          "actions_text": "REDUCE_LOAD",
+          "projected_health_index": 0.3284,
+          "predicted_status": "DEGRADED",
+          "risk_score": 105.16,
+          "expected_effect": "Apply REDUCE_LOAD. This reduces clogging and recovers printhead efficiency. Projected status becomes DEGRADED with health index 0.328"
+        },
+        {
+          "actions": [
+            "STOP_MACHINE"
+          ],
+          "actions_text": "STOP_MACHINE",
+          "projected_health_index": 0.5444,
+          "predicted_status": "DEGRADED",
+          "risk_score": 120.56,
+          "expected_effect": "Apply STOP_MACHINE. This minimizes further degradation with downtime cost. Projected status becomes DEGRADED with health index 0.544"
+        },
+        {
+          "actions": [
+            "CONTINUE_OPERATION"
+          ],
+          "actions_text": "CONTINUE_OPERATION",
+          "projected_health_index": 0.134,
+          "predicted_status": "CRITICAL",
+          "risk_score": 186.6,
+          "expected_effect": "No intervention applied. Projected status remains CRITICAL with health index 0.134"
+        }
+      ],
+      "evidence": [
+        {
+          "run_id": "synthetic_severe_thermal_risk_01",
+          "timestamp": "2026-04-25T23:00:00",
+          "component_id": "nozzle_plate",
+          "field": "clogging_ratio",
+          "value": 0.816
+        },
+        {
+          "run_id": "synthetic_severe_thermal_risk_01",
+          "timestamp": "2026-04-25T23:00:00",
+          "component_id": "nozzle_plate",
+          "field": "blocked_nozzles_pct",
+          "value": 29.744
+        }
+      ]
+    }
+  ]
+}
