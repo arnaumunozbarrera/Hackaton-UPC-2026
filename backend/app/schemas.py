@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class InitialConditions(BaseModel):
@@ -32,7 +32,7 @@ class SimulationRunRequest(BaseModel):
     total_usages: float = Field(gt=0)
     usage_step: float = Field(gt=0)
     initial_conditions: InitialConditions
-    selected_component: str
+    selected_component: str = Field(min_length=1)
     description: str | None = None
     seed: int | None = 1234
 
@@ -45,15 +45,6 @@ class SimulationRunRequest(BaseModel):
         if "step_h" in payload and "usage_step" not in payload:
             payload["usage_step"] = payload["step_h"]
         return payload
-
-    @field_validator("selected_component")
-    @classmethod
-    def validate_component(cls, value: str) -> str:
-        allowed = {"recoater_blade", "nozzle_plate", "heating_elements"}
-        if value not in allowed:
-            raise ValueError(f"selected_component must be one of {sorted(allowed)}")
-        return value
-
 
 class SimulationStepRequest(BaseModel):
     model_config = ConfigDict(populate_by_name=True)

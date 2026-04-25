@@ -42,24 +42,43 @@ DEPENDENCY_MAP = [
         "impact": "low",
         "description": "Recoater degradation can create process variability that increases heating adjustments.",
     },
+    {
+        "source": "linear_guide",
+        "target": "recoater_drive_motor",
+        "impact": "medium",
+        "description": "Guide friction increases drag demand on the recoater drive motor.",
+    },
+    {
+        "source": "temperature_sensors",
+        "target": "heating_elements",
+        "impact": "medium",
+        "description": "Sensor drift can reduce temperature control accuracy and increase heating load.",
+    },
+    {
+        "source": "insulation_panels",
+        "target": "heating_elements",
+        "impact": "high",
+        "description": "Insulation loss raises thermal demand on the heating elements.",
+    },
+    {
+        "source": "heating_elements",
+        "target": "thermal_firing_resistors",
+        "impact": "medium",
+        "description": "Thermal instability accelerates firing resistor fatigue.",
+    },
+    {
+        "source": "cleaning_interface",
+        "target": "nozzle_plate",
+        "impact": "medium",
+        "description": "Reduced cleaning efficiency increases residue and nozzle clogging risk.",
+    },
+    {
+        "source": "thermal_firing_resistors",
+        "target": "nozzle_plate",
+        "impact": "medium",
+        "description": "Firing resistor degradation increases jetting instability at the nozzle plate.",
+    },
 ]
-
-
-ALLOWED_DAMAGE_KEYS = {
-    "recoater_blade": ("total", "abrasive_wear", "contamination_damage"),
-    "nozzle_plate": ("total", "clogging", "thermal_fatigue"),
-    "heating_elements": ("total", "electrical_degradation", "thermal_overload"),
-}
-
-ALLOWED_METRIC_KEYS = {
-    "recoater_blade": ("thickness_mm", "roughness_index", "wear_rate"),
-    "nozzle_plate": ("clogging_ratio", "blocked_nozzles_pct", "jetting_efficiency"),
-    "heating_elements": ("resistance_ohm", "energy_factor", "thermal_stability"),
-}
-
-
-def _filter_keys(payload: dict, allowed_keys: tuple[str, ...]) -> dict:
-    return {key: payload[key] for key in allowed_keys if key in payload}
 
 
 def _normalize_component(component_id: str, component_state: dict) -> dict:
@@ -70,8 +89,8 @@ def _normalize_component(component_id: str, component_state: dict) -> dict:
         "subsystem": component_state.get("subsystem"),
         "health": float(component_state.get("health", 1.0)),
         "status": component_state.get("status", "FUNCTIONAL"),
-        "damage": _filter_keys(damage, ALLOWED_DAMAGE_KEYS[component_id]),
-        "metrics": _filter_keys(metrics, ALLOWED_METRIC_KEYS[component_id]),
+        "damage": damage,
+        "metrics": metrics,
         "alerts": component_state.get("alerts", []),
     }
 
@@ -81,7 +100,6 @@ def adapt_phase1_output(phase1_output: dict) -> dict:
     components = {
         component_id: _normalize_component(component_id, component_state)
         for component_id, component_state in raw_components.items()
-        if component_id in ALLOWED_DAMAGE_KEYS
     }
 
     health_values = [component["health"] for component in components.values()]

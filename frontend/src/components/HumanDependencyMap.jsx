@@ -1,4 +1,5 @@
 import { COMPONENT_LABELS } from '../data/modelState';
+import { formatLabel } from '../services/formatters';
 
 export default function HumanDependencyMap({ selectedComponentId, dependencies }) {
   const related = (dependencies || []).filter(
@@ -32,9 +33,9 @@ export default function HumanDependencyMap({ selectedComponentId, dependencies }
         {related.map((item) => (
           <article key={`${item.source}-${item.target}`} className="dependency-card">
             <div className="dependency-header">
-              <span>{COMPONENT_LABELS[item.source]}</span>
+              <span>{COMPONENT_LABELS[item.source] ?? formatLabel(item.source)}</span>
               <span className="arrow">causes risk on</span>
-              <span>{COMPONENT_LABELS[item.target]}</span>
+              <span>{COMPONENT_LABELS[item.target] ?? formatLabel(item.target)}</span>
               <strong className={`level ${item.impact.toLowerCase()}`}>{item.impact}</strong>
             </div>
             <p>{item.description}</p>

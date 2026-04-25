@@ -1,4 +1,5 @@
 import { COMPONENT_LABELS } from '../data/modelState';
+import { formatLabel } from '../services/formatters';
 
 export default function PredictionPanel({ prediction }) {
   if (!prediction) {
@@ -10,13 +11,14 @@ export default function PredictionPanel({ prediction }) {
       </section>
     );
   }
+  const componentLabel = COMPONENT_LABELS[prediction.component_id] ?? formatLabel(prediction.component_id);
 
   return (
     <section className="panel prediction-panel">
       <div className="section-title-row compact">
         <div>
           <p className="eyebrow">Prediction</p>
-          <h2>{COMPONENT_LABELS[prediction.component_id]}</h2>
+          <h2>{componentLabel}</h2>
         </div>
         <span className="axis-chip">Confidence {Math.round((prediction.confidence || 0) * 100)}%</span>
       </div>

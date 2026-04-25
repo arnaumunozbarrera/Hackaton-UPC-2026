@@ -1,6 +1,6 @@
 export const DEFAULT_SIMULATION_CONFIG = {
   scenarioId: 'baseline',
-  totalUsages: 96,
+  totalUsages: 2000,
   usageStep: 4,
   temperatureC: 42,
   humidity: 0.38,

@@ -1,4 +1,5 @@
 import { COMPONENT_LABELS, SUBSYSTEM_LABELS } from '../data/modelState';
+import { formatLabel } from '../services/formatters';
 
 export default function ComponentSelector({ modelState, selectedComponentId, onChange }) {
   return (
@@ -7,7 +8,7 @@ export default function ComponentSelector({ modelState, selectedComponentId, onC
       <select className="selector-input" value={selectedComponentId} onChange={(event) => onChange(event.target.value)}>
         {Object.entries(modelState.components).map(([id, component]) => (
           <option key={id} value={id}>
-            {COMPONENT_LABELS[id]} - {SUBSYSTEM_LABELS[component.subsystem]}
+            {COMPONENT_LABELS[id] ?? formatLabel(id)} - {SUBSYSTEM_LABELS[component.subsystem] ?? formatLabel(component.subsystem)}
           </option>
         ))}
       </select>
