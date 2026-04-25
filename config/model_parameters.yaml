@@ -1,0 +1,326 @@
+components:
+  recoater_blade:
+    enabled: true
+    subsystem: recoating_system
+    model_type: linear_abrasive_wear
+
+    health:
+      initial: 1.0
+      min: 0.0
+      max: 1.0
+      degraded_threshold: 0.70
+      critical_threshold: 0.40
+      failed_threshold: 0.10
+
+    calibration:
+      target_cycles_until_failure: 1500
+      failure_threshold: 0.10
+
+    physical_properties:
+      initial_thickness_mm: 2.0
+      min_thickness_mm: 0.25
+      max_roughness_index: 1.0
+
+    sensitivity:
+      contamination: 2.0
+      humidity: 0.8
+      maintenance_protection: 0.6
+      load_exponent: 1.0
+
+    alerts:
+      high_wear_rate_threshold: 0.003
+      high_roughness_threshold: 0.70
+      low_thickness_threshold_mm: 0.60
+
+  linear_guide:
+    enabled: true
+    subsystem: recoating_system
+    model_type: linear_friction_misalignment
+
+    health:
+      initial: 1.0
+      min: 0.0
+      max: 1.0
+      degraded_threshold: 0.70
+      critical_threshold: 0.40
+      failed_threshold: 0.10
+
+    calibration:
+      target_cycles_until_failure: 3000
+      failure_threshold: 0.10
+
+    sensitivity:
+      contamination: 1.6
+      humidity: 0.7
+      maintenance_protection: 0.55
+      load_exponent: 1.0
+
+    physical_properties:
+      nominal_friction_coefficient: 0.05
+      max_friction_increase: 0.25
+      max_straightness_error_mm: 0.18
+      max_carriage_drag_increase: 0.80
+
+    alerts:
+      high_friction_threshold: 0.18
+      high_straightness_error_mm: 0.10
+      high_carriage_drag_factor: 1.45
+
+  recoater_drive_motor:
+    enabled: true
+    subsystem: recoating_system
+    model_type: motor_fatigue_ingress
+
+    health:
+      initial: 1.0
+      min: 0.0
+      max: 1.0
+      degraded_threshold: 0.70
+      critical_threshold: 0.40
+      failed_threshold: 0.10
+
+    calibration:
+      target_cycles_until_failure: 3200
+      failure_threshold: 0.10
+
+    sensitivity:
+      contamination: 1.1
+      humidity: 0.6
+      temperature_stress: 0.9
+      maintenance_protection: 0.50
+      load_exponent: 1.0
+      linear_guide_drag: 0.5
+
+    physical_properties:
+      max_torque_margin_loss: 0.75
+      guide_drag_torque_penalty: 0.15
+      max_current_draw_increase: 0.55
+      guide_drag_current_penalty: 0.20
+      max_vibration_index: 1.0
+      max_winding_temperature_rise_c: 35.0
+
+    alerts:
+      low_torque_margin_threshold: 0.45
+      high_current_draw_factor: 1.35
+      high_vibration_threshold: 0.65
+
+  nozzle_plate:
+    enabled: true
+    subsystem: printhead_array
+    model_type: clogging_thermal_fatigue
+
+    health:
+      initial: 1.0
+      min: 0.0
+      max: 1.0
+      degraded_threshold: 0.70
+      critical_threshold: 0.40
+      failed_threshold: 0.10
+
+    calibration:
+      target_cycles_until_failure: 1200
+      failure_threshold: 0.10
+
+    sensitivity:
+      contamination: 3.0
+      humidity: 1.2
+      temperature_stress: 2.0
+      maintenance_protection: 0.7
+      load_exponent: 1.0
+      recoater_cascade: 0.4
+      heating_cascade: 0.3
+      cleaning_cascade: 0.35
+      firing_resistor_cascade: 0.25
+
+    damage_weights:
+      clogging: 0.65
+      thermal_fatigue: 0.35
+
+    metrics:
+      max_blocked_nozzles_pct: 100.0
+      min_jetting_efficiency: 0.0
+      jetting_efficiency_clogging_penalty: 0.5
+
+    alerts:
+      high_clogging_threshold: 0.60
+      high_thermal_fatigue_threshold: 0.60
+      low_jetting_efficiency_threshold: 0.50
+
+  thermal_firing_resistors:
+    enabled: true
+    subsystem: printhead_array
+    model_type: exponential_resistor_fatigue
+
+    health:
+      initial: 1.0
+      min: 0.0
+      max: 1.0
+      degraded_threshold: 0.70
+      critical_threshold: 0.40
+      failed_threshold: 0.10
+
+    calibration:
+      target_cycles_until_failure: 1800
+      failure_threshold: 0.10
+
+    sensitivity:
+      contamination: 0.7
+      humidity: 0.7
+      temperature_stress: 2.3
+      maintenance_protection: 0.55
+      load_exponent: 1.0
+      heating_cascade: 0.25
+
+    physical_properties:
+      nominal_resistance_ohm: 12.0
+      max_resistance_increase_pct: 0.45
+      max_firing_energy_overhead: 0.50
+      max_pulse_uniformity_loss: 0.65
+      max_misfire_risk: 0.70
+
+    alerts:
+      high_resistance_threshold_ohm: 16.0
+      low_pulse_uniformity_threshold: 0.55
+      high_misfire_risk_threshold: 0.45
+
+  cleaning_interface:
+    enabled: true
+    subsystem: printhead_array
+    model_type: wiper_wear_residue
+
+    health:
+      initial: 1.0
+      min: 0.0
+      max: 1.0
+      degraded_threshold: 0.70
+      critical_threshold: 0.40
+      failed_threshold: 0.10
+
+    calibration:
+      target_cycles_until_failure: 2200
+      failure_threshold: 0.10
+
+    sensitivity:
+      contamination: 2.0
+      humidity: 0.9
+      maintenance_protection: 0.65
+      load_exponent: 1.0
+
+    physical_properties:
+      max_cleaning_efficiency_loss: 0.80
+      min_cleaning_efficiency: 0.0
+      max_residue_buildup: 1.0
+      current_contamination_residue_gain: 0.15
+      max_wipe_pressure_loss: 0.70
+
+    alerts:
+      low_cleaning_efficiency_threshold: 0.45
+      high_residue_buildup_threshold: 0.60
+      low_wipe_pressure_factor: 0.50
+
+  heating_elements:
+    enabled: true
+    subsystem: thermal_control
+    model_type: exponential_electrical_degradation
+
+    health:
+      initial: 1.0
+      min: 0.0
+      max: 1.0
+      degraded_threshold: 0.70
+      critical_threshold: 0.40
+      failed_threshold: 0.10
+
+    calibration:
+      target_cycles_until_failure: 2500
+      failure_threshold: 0.10
+
+    sensitivity:
+      temperature_stress: 2.0
+      humidity: 0.6
+      maintenance_protection: 0.5
+      load_exponent: 1.0
+      temperature_sensor_cascade: 0.25
+      insulation_cascade: 0.6
+
+    physical_properties:
+      nominal_resistance_ohm: 10.0
+      max_resistance_increase_pct: 0.40
+      max_energy_overhead_factor: 0.60
+      max_temperature_control_error_c: 12.0
+
+    alerts:
+      high_resistance_threshold_ohm: 13.0
+      high_energy_factor_threshold: 1.35
+      low_thermal_stability_threshold: 0.50
+      high_temperature_control_error_c: 6.0
+
+  temperature_sensors:
+    enabled: true
+    subsystem: thermal_control
+    model_type: sensor_drift_response
+
+    health:
+      initial: 1.0
+      min: 0.0
+      max: 1.0
+      degraded_threshold: 0.70
+      critical_threshold: 0.40
+      failed_threshold: 0.10
+
+    calibration:
+      target_cycles_until_failure: 2800
+      failure_threshold: 0.10
+
+    sensitivity:
+      temperature_stress: 1.5
+      humidity: 0.8
+      maintenance_protection: 0.55
+      load_exponent: 1.0
+
+    physical_properties:
+      max_drift_c: 8.0
+      nominal_response_time_ms: 120.0
+      max_response_delay_ms: 450.0
+      max_signal_noise_index: 1.0
+      max_calibration_confidence_loss: 0.75
+
+    alerts:
+      high_drift_threshold_c: 4.0
+      high_response_time_ms: 360.0
+      low_calibration_confidence_threshold: 0.50
+
+  insulation_panels:
+    enabled: true
+    subsystem: thermal_control
+    model_type: insulation_thermal_cycling
+
+    health:
+      initial: 1.0
+      min: 0.0
+      max: 1.0
+      degraded_threshold: 0.70
+      critical_threshold: 0.40
+      failed_threshold: 0.10
+
+    calibration:
+      target_cycles_until_failure: 4000
+      failure_threshold: 0.10
+
+    sensitivity:
+      contamination: 0.5
+      humidity: 1.1
+      temperature_stress: 1.4
+      maintenance_protection: 0.45
+      load_exponent: 1.0
+
+    physical_properties:
+      max_insulation_efficiency_loss: 0.60
+      min_insulation_efficiency: 0.0
+      max_heat_loss_factor_increase: 1.20
+      max_thermal_gradient_c: 18.0
+
+    alerts:
+      low_insulation_efficiency_threshold: 0.60
+      high_heat_loss_factor: 1.75
+      high_thermal_gradient_c: 10.0
