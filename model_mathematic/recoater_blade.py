@@ -11,11 +11,14 @@ from .common import (
     DAMAGE_PRECISION,
     HEALTH_PRECISION,
     clamp,
+    deterministic_signed_noise,
     get_component_config,
     get_previous_health,
+    get_simulation_seed,
     get_reported_damage,
     get_status_from_health,
     snap_health_to_failure_threshold,
+    split_damage_by_pressure,
 )
 
 
@@ -76,6 +79,7 @@ def calculate_recoater_blade_state(
     physical_properties = component_config["physical_properties"]
     sensitivity = component_config["sensitivity"]
     alerts_config = component_config["alerts"]
+    uncertainty_config = component_config.get("uncertainty", {})
 
     previous_health = clamp(
         float(get_previous_health(previous_state, COMPONENT_NAME, health_config)),
@@ -89,6 +93,7 @@ def calculate_recoater_blade_state(
     contamination = clamp(float(drivers.get("contamination", 0.0)), 0.0, 1.0)
     humidity = clamp(float(drivers.get("humidity", 0.0)), 0.0, 1.0)
     maintenance_level = clamp(float(drivers.get("maintenance_level", 0.0)), 0.0, 1.0)
+    seed = get_simulation_seed(config)
 
     base_damage_per_cycle = (
         health_config["initial"] - calibration_config["failure_threshold"]
@@ -97,14 +102,51 @@ def calculate_recoater_blade_state(
     contamination_factor = 1.0 + sensitivity["contamination"] * contamination
     humidity_factor = 1.0 + sensitivity["humidity"] * humidity
     maintenance_factor = 1.0 - sensitivity["maintenance_protection"] * maintenance_level
+    maintenance_error_rate = clamp(
+        float(uncertainty_config.get("maintenance_error_rate", 0.0)),
+        0.0,
+        1.0,
+    )
+    failure_risk_scale = clamp(
+        float(uncertainty_config.get("failure_risk_scale", 0.0)),
+        0.0,
+        1.0,
+    )
+    maintenance_noise = deterministic_signed_noise(
+        seed,
+        COMPONENT_NAME,
+        "maintenance_error",
+        round(previous_health, HEALTH_PRECISION),
+        operational_load,
+        contamination,
+        humidity,
+        maintenance_level,
+    )
+    maintenance_noise_factor = 0.5 * (maintenance_noise + 1.0)
+    maintenance_error_index = (
+        maintenance_error_rate
+        * (1.0 - maintenance_level)
+        * maintenance_noise_factor
+    )
+    failure_risk_index = (
+        failure_risk_scale
+        * (1.0 - maintenance_level)
+        * maintenance_noise_factor
+    )
 
-    raw_damage = (
+    physical_damage = (
         base_damage_per_cycle
         * operational_load ** sensitivity["load_exponent"]
         * contamination_factor
         * humidity_factor
         * maintenance_factor
     )
+    uncertainty_damage = (
+        base_damage_per_cycle
+        * operational_load ** sensitivity["load_exponent"]
+        * failure_risk_index
+    )
+    raw_damage = physical_damage + uncertainty_damage
 
     damage = clamp(
         raw_damage,
@@ -138,31 +180,14 @@ def calculate_recoater_blade_state(
 
     wear_rate = reported_damage / max(operational_load, 1.0)
 
-    abrasive_pressure = 1.0
-    contamination_pressure = sensitivity["contamination"] * contamination
-    humidity_pressure = sensitivity["humidity"] * humidity
-
-    total_pressure = (
-        abrasive_pressure
-        + contamination_pressure
-        + humidity_pressure
-    )
-
-    damage_breakdown = {
-        "total": reported_damage,
-        "abrasive_wear": round(
-            reported_damage * abrasive_pressure / total_pressure,
-            DAMAGE_PRECISION,
-        ),
-        "contamination_damage": round(
-            reported_damage * contamination_pressure / total_pressure,
-            DAMAGE_PRECISION,
-        ),
-        "humidity_damage": round(
-            reported_damage * humidity_pressure / total_pressure,
-            DAMAGE_PRECISION,
-        ),
+    pressures = {
+        "abrasive_wear": 1.0,
+        "contamination_damage": sensitivity["contamination"] * contamination,
+        "humidity_damage": sensitivity["humidity"] * humidity,
+        "maintenance_uncertainty": maintenance_error_index + failure_risk_index,
     }
+    damage_breakdown = {"total": reported_damage}
+    damage_breakdown.update(split_damage_by_pressure(reported_damage, pressures))
 
     rounded_thickness_mm = round(thickness_mm, 6)
     rounded_roughness_index = round(roughness_index, 6)
@@ -181,6 +206,10 @@ def calculate_recoater_blade_state(
             "contamination_factor": round(contamination_factor, 6),
             "humidity_factor": round(humidity_factor, 6),
             "maintenance_factor": round(maintenance_factor, 6),
+            "maintenance_error_index": round(maintenance_error_index, 6),
+            "failure_risk_index": round(failure_risk_index, 6),
+            "uncertainty_damage": round(uncertainty_damage, 8),
+            "seed": seed,
         },
         "alerts": _build_alerts(
             status,

@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, timezone
 from time import perf_counter
 
 from app.core.phase1 import load_phase1_config
+from app.prediction.artifact_store import load_model_artifact
 from app.prediction.ai_curve_utils import calibrate_ai_health
 from model_mathematic.cleaning_interface import calculate_cleaning_interface_state
 from sklearn.ensemble import HistGradientBoostingRegressor
@@ -112,22 +113,12 @@ def _synthetic_label_multiplier(
     residue_stress = contamination * (0.55 + 0.45 * humidity)
     swelling_stress = humidity * (0.5 + 0.5 * contamination)
     pressure_loss_memory = degradation * (0.6 + 0.4 * contamination)
-    periodic_residual = (
-        (
-            usage_count * 0.012
-            + contamination * 1.8
-            + humidity * 1.3
-            + degradation * 1.1
-        )
-        % 1.0
-    ) - 0.5
     multiplier = (
         1.0
         + 0.10 * residue_stress
         + 0.06 * swelling_stress
         + 0.06 * pressure_loss_memory
         - 0.05 * maintenance_level
-        + 0.035 * periodic_residual
     )
     return _clamp(multiplier, 0.9, 1.2)
 
@@ -265,11 +256,7 @@ def _build_ai_curve(
         predicted_health = _clamp(ai_health - damage, 0.0, 1.0)
         ai_health = calibrate_ai_health(
             predicted_health=predicted_health,
-            mathematical_health=_component_health(point["components"][COMPONENT_ID]),
             previous_health=ai_health,
-            usage_count=usage_count,
-            drivers=drivers,
-            component_phase=3.7,
         )
         previous_damage_per_usage = damage_per_usage
         previous_usage = usage_count
@@ -311,7 +298,9 @@ def predict_cleaning_interface_ai_from_timeline(
         }
 
     config = load_phase1_config()
-    model, training = train_cleaning_interface_model()
+    artifact = load_model_artifact(COMPONENT_ID)
+    model = artifact["model"]
+    training = artifact["training"]
     curve = _build_ai_curve(points, model, config)
     failure_point = _first_failure_point(curve)
     last_point = points[-1]

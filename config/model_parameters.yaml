@@ -27,6 +27,10 @@ components:
       maintenance_protection: 0.6
       load_exponent: 1.0
 
+    uncertainty:
+      maintenance_error_rate: 0.0
+      failure_risk_scale: 0.0
+
     alerts:
       high_wear_rate_threshold: 0.003
       high_roughness_threshold: 0.70
@@ -92,6 +96,10 @@ components:
       load_exponent: 1.0
       linear_guide_drag: 0.5
 
+    uncertainty:
+      maintenance_error_rate: 0.0
+      failure_risk_scale: 0.0
+
     physical_properties:
       max_torque_margin_loss: 0.75
       guide_drag_torque_penalty: 0.15
@@ -132,6 +140,10 @@ components:
       heating_cascade: 0.3
       cleaning_cascade: 0.35
       firing_resistor_cascade: 0.25
+
+    uncertainty:
+      maintenance_error_rate: 0.0
+      failure_risk_scale: 0.0
 
     damage_weights:
       clogging: 0.65

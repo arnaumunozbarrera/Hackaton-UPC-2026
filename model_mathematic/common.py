@@ -1,5 +1,8 @@
 """Shared helpers for Phase 1 degradation models."""
 
+import hashlib
+import json
+
 
 HEALTH_PRECISION = 8
 DAMAGE_PRECISION = 8
@@ -323,3 +326,40 @@ def split_damage_by_pressure(total_damage: float, pressures: dict[str, float]) -
         name: round(total_damage * pressure / total_pressure, DAMAGE_PRECISION)
         for name, pressure in pressures.items()
     }
+
+
+def get_simulation_seed(config: dict) -> int:
+    """Return the deterministic seed used for seeded uncertainty helpers."""
+    config = config or {}
+    raw_seed = config.get("seed", config.get("simulation_seed", 0))
+
+    try:
+        return int(raw_seed)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _serialize_seed_payload(payload: dict) -> str:
+    return json.dumps(
+        payload,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=True,
+        default=str,
+    )
+
+
+def deterministic_unit_interval(seed: int, *parts) -> float:
+    """Return a reproducible pseudo-random value in the inclusive [0, 1] range."""
+    payload = {
+        "seed": int(seed),
+        "parts": parts,
+    }
+    digest = hashlib.sha256(_serialize_seed_payload(payload).encode("utf-8")).digest()
+    integer = int.from_bytes(digest[:8], "big", signed=False)
+    return integer / float(2**64 - 1)
+
+
+def deterministic_signed_noise(seed: int, *parts) -> float:
+    """Return a reproducible pseudo-random value in the [-1, 1] range."""
+    return deterministic_unit_interval(seed, *parts) * 2.0 - 1.0

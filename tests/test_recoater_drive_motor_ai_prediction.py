@@ -46,6 +46,8 @@ def test_recoater_drive_motor_ai_predictor_trains_sklearn_model_and_returns_curv
     assert prediction["prediction_method"] == "supervised_synthetic_gradient_boosting"
     assert prediction["training"]["trained_from_scratch"] is True
     assert prediction["training"]["training_samples"] > 10000
+    assert prediction["training"]["ai_uncertainty"]["enabled"] is True
+    assert prediction["training"]["training_teacher"]["type"] == "heuristic_hybrid"
     assert prediction["confidence"] > 0.5
 
     ai_curve = prediction["ai_prediction_curve"]
@@ -66,4 +68,4 @@ def test_recoater_drive_motor_ai_predictor_trains_sklearn_model_and_returns_curv
         abs(ai_point["health"] - math_point["health"]) > 0.0001
         for ai_point, math_point in zip(ai_curve[1:], math_curve[1:])
     )
-    assert prediction["explanation"]["target"] == "damage_per_usage"
+    assert prediction["explanation"]["target"] == "damage_per_step"

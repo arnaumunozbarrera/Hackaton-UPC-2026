@@ -81,7 +81,7 @@ Your engine can be implemented in two ways:
 1. **Rule-Based (Deterministic):** You use classical mathematical formulas to calculate the state. This is the standard approach.
 2. **Data-Driven (Probabilistic/AI):** Instead of a fixed formula, you use a trained model (e.g., a Neural Network or Regression model) to predict the state based on the input vectors.
 
-**Regardless of your choice, your engine MUST adhere to the Data Contract and must be deterministic (two runs with the same inputs must provide the same output).**
+**Regardless of your choice, your engine MUST adhere to the Data Contract and must be deterministic for a fixed seed (two runs with the same inputs and the same seed must provide the same output).**
 
 ## 1.5 The Data Contract (Inputs & Outputs)
 
@@ -125,6 +125,8 @@ Real machines don't degrade on a smooth curve. Add random environmental shocks, 
 
 **3. Maintenance as an Input**
 What happens when a technician intervenes? Model maintenance actions as inputs to the engine: partial health recovery, reset of degradation curves, cooldown effects after servicing. This sets up a fascinating question for Phase 2 — *when* is the right moment to trigger maintenance?
+
+If you want to add realism, you can model imperfect maintenance with a seeded uncertainty term: the same intervention may have slightly different effectiveness depending on the scenario, but it must remain reproducible when the seed is fixed.
 
 **4. AI-Powered Degradation Model**
 Swap out a hand-tuned formula for a machine learning model. Can a neural network learn the degradation curve from synthetic data better than a classical equation? Try replacing one component's rule-based model with a trained regressor or LSTM.

@@ -218,6 +218,7 @@ def run_simulation(config: dict) -> dict:
     )
 
     phase1_config = load_phase1_config()
+    phase1_config["seed"] = int(config.get("seed", 1234))
     usage_counts = _build_usage_counts(total_usages, usage_step)
     base_timestamp = datetime.now(timezone.utc)
     rng = random.Random(config.get("seed", 1234))

@@ -6,7 +6,14 @@ from datetime import datetime, timedelta, timezone
 from time import perf_counter
 
 from app.core.phase1 import load_phase1_config
+from app.prediction.artifact_store import load_model_artifact
+from app.prediction.ai_uncertainty import with_ai_uncertainty
 from app.prediction.ai_curve_utils import calibrate_ai_health
+from app.prediction.heuristic_teacher import (
+    HEURISTIC_TEACHER_TYPE,
+    HEURISTIC_TEACHER_VERSION,
+    apply_hybrid_teacher,
+)
 from model_mathematic.nozzle_plate import calculate_nozzle_plate_state
 from sklearn.ensemble import HistGradientBoostingRegressor
 
@@ -34,7 +41,6 @@ FEATURE_NAMES = (
     "blocked_nozzles_pct",
     "jetting_efficiency",
     "previous_damage_per_usage",
-    "usage_count",
 )
 
 
@@ -188,7 +194,6 @@ def _feature_row(
     blocked_nozzles_pct: float,
     jetting_efficiency: float,
     previous_damage_per_usage: float,
-    usage_count: float,
 ) -> list[float]:
     return [
         float(previous_health),
@@ -208,53 +213,7 @@ def _feature_row(
         float(blocked_nozzles_pct),
         float(jetting_efficiency),
         float(previous_damage_per_usage),
-        float(usage_count),
     ]
-
-
-def _synthetic_label_multiplier(
-    usage_count: float,
-    contamination: float,
-    humidity: float,
-    temperature_stress: float,
-    maintenance_level: float,
-    dependency_healths: dict,
-    previous_clogging_ratio: float,
-    previous_thermal_fatigue_index: float,
-    previous_health: float,
-) -> float:
-    recoater_degradation = 1.0 - dependency_healths["recoater_blade_health"]
-    cleaning_degradation = 1.0 - dependency_healths["cleaning_interface_health"]
-    heating_degradation = 1.0 - dependency_healths["heating_elements_health"]
-    firing_degradation = 1.0 - dependency_healths[
-        "thermal_firing_resistors_health"
-    ]
-    clogging_memory = previous_clogging_ratio * (0.5 + 0.5 * contamination)
-    thermal_memory = previous_thermal_fatigue_index * (
-        0.5 + 0.5 * temperature_stress
-    )
-    degradation = 1.0 - previous_health
-    periodic_residual = (
-        (
-            usage_count * 0.009
-            + contamination * 1.5
-            + humidity * 1.1
-            + temperature_stress * 1.7
-            + cleaning_degradation * 1.9
-        )
-        % 1.0
-    ) - 0.5
-    multiplier = (
-        1.0
-        + 0.08 * clogging_memory
-        + 0.07 * thermal_memory
-        + 0.06 * (recoater_degradation + cleaning_degradation)
-        + 0.05 * (heating_degradation + firing_degradation)
-        + 0.04 * degradation**2
-        - 0.05 * maintenance_level
-        + 0.035 * periodic_residual
-    )
-    return _clamp(multiplier, 0.9, 1.24)
 
 
 def _build_training_dataset(config: dict) -> tuple[list[list[float]], list[float]]:
@@ -302,8 +261,6 @@ def _build_training_dataset(config: dict) -> tuple[list[list[float]], list[float
             "thermal_firing_resistors_health": 0.55,
         },
     )
-    usage_values = (0.0, 1800.0)
-
     rows = []
     targets = []
     for health in health_values:
@@ -342,61 +299,87 @@ def _build_training_dataset(config: dict) -> tuple[list[list[float]], list[float
                                     mathematical_damage = float(
                                         next_state["damage"]["total"]
                                     )
-                                    for usage_count in usage_values:
-                                        multiplier = _synthetic_label_multiplier(
-                                            usage_count,
-                                            contamination,
-                                            humidity,
-                                            temperature_stress,
-                                            maintenance_level,
-                                            dependency_healths,
-                                            bounded_clogging,
-                                            bounded_thermal,
-                                            health,
+                                    previous_damage_per_usage = (
+                                        mathematical_damage
+                                        * (
+                                            0.25
+                                            + 0.35 * bounded_clogging
+                                            + 0.25 * bounded_thermal
+                                            + 0.15 * (1.0 - health)
                                         )
-                                        rows.append(
-                                            _feature_row(
-                                                previous_health=health,
-                                                previous_clogging_ratio=bounded_clogging,
-                                                previous_thermal_fatigue_index=bounded_thermal,
-                                                operational_load=operational_load,
-                                                contamination=contamination,
-                                                humidity=humidity,
-                                                temperature_stress=temperature_stress,
-                                                maintenance_level=maintenance_level,
-                                                effective_contamination=float(
-                                                    metrics[
-                                                        "effective_contamination"
-                                                    ]
-                                                ),
-                                                effective_temperature_stress=float(
-                                                    metrics[
-                                                        "effective_temperature_stress"
-                                                    ]
-                                                ),
-                                                blocked_nozzles_pct=float(
-                                                    metrics["blocked_nozzles_pct"]
-                                                ),
-                                                jetting_efficiency=float(
-                                                    metrics["jetting_efficiency"]
-                                                ),
-                                                previous_damage_per_usage=0.0,
-                                                usage_count=usage_count,
-                                                **dependency_healths,
-                                            )
+                                    )
+                                    target_damage, _ = apply_hybrid_teacher(
+                                        COMPONENT_ID,
+                                        mathematical_damage,
+                                        {
+                                            "previous_health": health,
+                                            "operational_load": operational_load,
+                                            "contamination": contamination,
+                                            "humidity": humidity,
+                                            "temperature_stress": (
+                                                temperature_stress
+                                            ),
+                                            "maintenance_level": (
+                                                maintenance_level
+                                            ),
+                                            "previous_clogging_ratio": (
+                                                bounded_clogging
+                                            ),
+                                            "previous_thermal_fatigue_index": (
+                                                bounded_thermal
+                                            ),
+                                            "previous_damage_per_usage": (
+                                                previous_damage_per_usage
+                                            ),
+                                            **dependency_healths,
+                                        },
+                                    )
+                                    rows.append(
+                                        _feature_row(
+                                            previous_health=health,
+                                            previous_clogging_ratio=bounded_clogging,
+                                            previous_thermal_fatigue_index=bounded_thermal,
+                                            operational_load=operational_load,
+                                            contamination=contamination,
+                                            humidity=humidity,
+                                            temperature_stress=temperature_stress,
+                                            maintenance_level=maintenance_level,
+                                            effective_contamination=float(
+                                                metrics[
+                                                    "effective_contamination"
+                                                ]
+                                            ),
+                                            effective_temperature_stress=float(
+                                                metrics[
+                                                    "effective_temperature_stress"
+                                                ]
+                                            ),
+                                            blocked_nozzles_pct=float(
+                                                metrics["blocked_nozzles_pct"]
+                                            ),
+                                            jetting_efficiency=float(
+                                                metrics["jetting_efficiency"]
+                                            ),
+                                            previous_damage_per_usage=(
+                                                previous_damage_per_usage
+                                            ),
+                                            **dependency_healths,
                                         )
-                                        targets.append(
-                                            mathematical_damage
-                                            * multiplier
-                                            * SYNTHETIC_LABEL_SCALE
-                                        )
+                                    )
+                                    targets.append(
+                                        target_damage * SYNTHETIC_LABEL_SCALE
+                                    )
 
     return rows, targets
 
 
 def train_nozzle_plate_model() -> tuple[HistGradientBoostingRegressor, dict]:
     started_at = perf_counter()
-    config = load_phase1_config()
+    config, uncertainty = with_ai_uncertainty(
+        load_phase1_config(),
+        COMPONENT_ID,
+        MODEL_RANDOM_STATE,
+    )
     rows, targets = _build_training_dataset(config)
     model = HistGradientBoostingRegressor(
         max_iter=135,
@@ -413,6 +396,16 @@ def train_nozzle_plate_model() -> tuple[HistGradientBoostingRegressor, dict]:
         "model": "HistGradientBoostingRegressor",
         "random_state": MODEL_RANDOM_STATE,
         "synthetic_label_scale": SYNTHETIC_LABEL_SCALE,
+        "training_target": "damage_per_step",
+        "ai_uncertainty": {
+            "enabled": bool(uncertainty),
+            **uncertainty,
+        },
+        "training_teacher": {
+            "type": HEURISTIC_TEACHER_TYPE,
+            "version": HEURISTIC_TEACHER_VERSION,
+            "component_profile": COMPONENT_ID,
+        },
         "trained_from_scratch": True,
     }
 
@@ -433,7 +426,15 @@ def _build_ai_curve(
         1.0,
     )
     previous_usage = float(first_point["usage_count"])
-    previous_damage_per_usage = 0.0
+    previous_damage_per_usage = _clamp(
+        (
+            float(first_metrics.get("clogging_ratio", 0.0)) * 0.01
+            + float(first_metrics.get("thermal_fatigue_index", 0.0)) * 0.008
+            + (1.0 - ai_health) * 0.006
+        ),
+        0.0,
+        1.0,
+    )
     curve = [
         {
             "usage_count": round(previous_usage, 2),
@@ -471,11 +472,10 @@ def _build_ai_curve(
             blocked_nozzles_pct=float(metrics["blocked_nozzles_pct"]),
             jetting_efficiency=float(metrics["jetting_efficiency"]),
             previous_damage_per_usage=previous_damage_per_usage,
-            usage_count=usage_count,
             **dependency_healths,
         )
-        damage_per_usage = max(float(model.predict([features])[0]), 0.0)
-        predicted_damage = damage_per_usage * usage_delta
+        damage_per_step = max(float(model.predict([features])[0]), 0.0)
+        predicted_damage = damage_per_step
         next_math_state = _next_state(
             config,
             ai_health,
@@ -495,11 +495,7 @@ def _build_ai_curve(
         predicted_health = _clamp(ai_health - predicted_damage, 0.0, 1.0)
         new_ai_health = calibrate_ai_health(
             predicted_health=predicted_health,
-            mathematical_health=_component_health(point["components"][COMPONENT_ID]),
             previous_health=ai_health,
-            usage_count=usage_count,
-            drivers=drivers,
-            component_phase=2.0,
         )
         applied_damage = max(ai_health - new_ai_health, 0.0)
         ai_clogging_ratio = _clamp(
@@ -513,7 +509,7 @@ def _build_ai_curve(
             1.0,
         )
         ai_health = new_ai_health
-        previous_damage_per_usage = damage_per_usage
+        previous_damage_per_usage = damage_per_step / max(usage_delta, 1.0)
         previous_usage = usage_count
         curve.append(
             {
@@ -550,7 +546,9 @@ def predict_nozzle_plate_ai_from_timeline(run_id: str, timeline: list[dict]) -> 
         }
 
     config = load_phase1_config()
-    model, training = train_nozzle_plate_model()
+    artifact = load_model_artifact(COMPONENT_ID)
+    model = artifact["model"]
+    training = artifact["training"]
     curve = _build_ai_curve(points, model, config)
     failure_point = _first_failure_point(curve)
     last_point = points[-1]
@@ -597,7 +595,7 @@ def predict_nozzle_plate_ai_from_timeline(run_id: str, timeline: list[dict]) -> 
             "status": last_component["status"],
         },
         "explanation": {
-            "target": "damage_per_usage",
+            "target": "damage_per_step",
             "feature_names": list(FEATURE_NAMES),
             "top_factors": [
                 {"name": "effective_contamination", "direction": "risk"},
@@ -605,6 +603,8 @@ def predict_nozzle_plate_ai_from_timeline(run_id: str, timeline: list[dict]) -> 
                 {"name": "clogging_ratio", "direction": "state"},
                 {"name": "jetting_efficiency", "direction": "state"},
                 {"name": "maintenance_level", "direction": "protective"},
+                {"name": "maintenance_error_index", "direction": "risk"},
+                {"name": "failure_risk_index", "direction": "risk"},
             ],
         },
     }

@@ -13,13 +13,16 @@ from .common import (
     DAMAGE_PRECISION,
     HEALTH_PRECISION,
     clamp,
+    deterministic_signed_noise,
     get_component_config,
     get_component_health,
     get_previous_component_state,
     get_previous_health,
     get_reported_damage,
+    get_simulation_seed,
     get_status_from_health,
     snap_health_to_failure_threshold,
+    split_damage_by_pressure,
 )
 
 
@@ -97,6 +100,7 @@ def calculate_nozzle_plate_state(
     damage_weights = component_config["damage_weights"]
     metrics_config = component_config["metrics"]
     alerts_config = component_config["alerts"]
+    uncertainty_config = component_config.get("uncertainty", {})
 
     previous_health = clamp(
         float(get_previous_health(previous_state, COMPONENT_NAME, health_config)),
@@ -123,6 +127,7 @@ def calculate_nozzle_plate_state(
     humidity = clamp(float(drivers.get("humidity", 0.0)), 0.0, 1.0)
     temperature_stress = clamp(float(drivers.get("temperature_stress", 0.0)), 0.0, 1.0)
     maintenance_level = clamp(float(drivers.get("maintenance_level", 0.0)), 0.0, 1.0)
+    seed = get_simulation_seed(config)
 
     recoater_blade_health = get_component_health(recoater_blade_state)
     heating_elements_health = get_component_health(heating_elements_state)
@@ -165,6 +170,40 @@ def calculate_nozzle_plate_state(
         1.0 + sensitivity["temperature_stress"] * effective_temperature_stress
     )
     maintenance_factor = 1.0 - sensitivity["maintenance_protection"] * maintenance_level
+    maintenance_error_rate = clamp(
+        float(uncertainty_config.get("maintenance_error_rate", 0.0)),
+        0.0,
+        1.0,
+    )
+    failure_risk_scale = clamp(
+        float(uncertainty_config.get("failure_risk_scale", 0.0)),
+        0.0,
+        1.0,
+    )
+    maintenance_noise = deterministic_signed_noise(
+        seed,
+        COMPONENT_NAME,
+        "maintenance_error",
+        round(previous_health, HEALTH_PRECISION),
+        operational_load,
+        contamination,
+        humidity,
+        temperature_stress,
+        maintenance_level,
+        round(previous_clogging_ratio, 6),
+        round(previous_thermal_fatigue_index, 6),
+    )
+    maintenance_noise_factor = 0.5 * (maintenance_noise + 1.0)
+    maintenance_error_index = (
+        maintenance_error_rate
+        * (1.0 - maintenance_level)
+        * maintenance_noise_factor
+    )
+    failure_risk_index = (
+        failure_risk_scale
+        * (1.0 - maintenance_level)
+        * maintenance_noise_factor
+    )
 
     base_damage = base_damage_per_cycle * load_factor
 
@@ -181,9 +220,14 @@ def calculate_nozzle_plate_state(
         * temperature_factor
     )
 
-    raw_total_damage = (
+    physical_total_damage = (
         raw_clogging_damage + raw_thermal_fatigue_damage
     ) * maintenance_factor
+    uncertainty_damage = (
+        base_damage
+        * failure_risk_index
+    )
+    raw_total_damage = physical_total_damage + uncertainty_damage
 
     damage = clamp(
         raw_total_damage,
@@ -200,6 +244,7 @@ def calculate_nozzle_plate_state(
     thermal_fatigue_damage = (
         raw_thermal_fatigue_damage * maintenance_factor * damage_scale
     )
+    uncertainty_damage = uncertainty_damage * damage_scale
 
     new_health = clamp(
         previous_health - damage,
@@ -247,20 +292,24 @@ def calculate_nozzle_plate_state(
     rounded_clogging_ratio = round(clogging_ratio, 6)
     rounded_thermal_fatigue_index = round(thermal_fatigue_index, 6)
     rounded_jetting_efficiency = round(jetting_efficiency, 6)
+    damage_breakdown = {"total": reported_damage}
+    damage_breakdown.update(
+        split_damage_by_pressure(
+            reported_damage,
+            {
+                "clogging": max(clogging_damage, 0.0),
+                "thermal_fatigue": max(thermal_fatigue_damage, 0.0),
+                "maintenance_uncertainty": max(uncertainty_damage, 0.0),
+            },
+        )
+    )
 
     return {
         "subsystem": component_config["subsystem"],
         "component": COMPONENT_NAME,
         "health": rounded_health,
         "status": status,
-        "damage": {
-            "total": reported_damage,
-            "clogging": round(reported_clogging_damage, DAMAGE_PRECISION),
-            "thermal_fatigue": round(
-                reported_thermal_fatigue_damage,
-                DAMAGE_PRECISION,
-            ),
-        },
+        "damage": damage_breakdown,
         "metrics": {
             "effective_contamination": round(effective_contamination, 6),
             "effective_temperature_stress": round(effective_temperature_stress, 6),
@@ -280,6 +329,10 @@ def calculate_nozzle_plate_state(
             "humidity_factor": round(humidity_factor, 6),
             "temperature_factor": round(temperature_factor, 6),
             "maintenance_factor": round(maintenance_factor, 6),
+            "maintenance_error_index": round(maintenance_error_index, 6),
+            "failure_risk_index": round(failure_risk_index, 6),
+            "uncertainty_damage": round(uncertainty_damage, 8),
+            "seed": seed,
         },
         "alerts": _build_alerts(
             status=status,

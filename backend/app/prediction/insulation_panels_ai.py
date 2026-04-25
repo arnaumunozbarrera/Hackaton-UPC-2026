@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, timezone
 from time import perf_counter
 
 from app.core.phase1 import load_phase1_config
+from app.prediction.artifact_store import load_model_artifact
 from app.prediction.ai_curve_utils import calibrate_ai_health
 from model_mathematic.insulation_panels import calculate_insulation_panels_state
 from sklearn.ensemble import HistGradientBoostingRegressor
@@ -117,16 +118,6 @@ def _synthetic_label_multiplier(
     moisture_stress = humidity * (0.55 + 0.45 * temperature_stress)
     fouling_stress = contamination * (0.5 + 0.5 * humidity)
     heat_loss_memory = degradation * (0.5 + 0.5 * temperature_stress)
-    periodic_residual = (
-        (
-            usage_count * 0.0095
-            + temperature_stress * 1.6
-            + humidity * 1.4
-            + contamination * 1.1
-            + degradation * 1.2
-        )
-        % 1.0
-    ) - 0.5
     multiplier = (
         1.0
         + 0.09 * thermal_cycling_stress
@@ -134,7 +125,6 @@ def _synthetic_label_multiplier(
         + 0.05 * fouling_stress
         + 0.05 * heat_loss_memory
         - 0.05 * maintenance_level
-        + 0.035 * periodic_residual
     )
     return _clamp(multiplier, 0.9, 1.22)
 
@@ -277,11 +267,7 @@ def _build_ai_curve(
         predicted_health = _clamp(ai_health - damage, 0.0, 1.0)
         ai_health = calibrate_ai_health(
             predicted_health=predicted_health,
-            mathematical_health=_component_health(point["components"][COMPONENT_ID]),
             previous_health=ai_health,
-            usage_count=usage_count,
-            drivers=drivers,
-            component_phase=4.8,
         )
         previous_damage_per_usage = damage_per_usage
         previous_usage = usage_count
@@ -323,7 +309,9 @@ def predict_insulation_panels_ai_from_timeline(
         }
 
     config = load_phase1_config()
-    model, training = train_insulation_panels_model()
+    artifact = load_model_artifact(COMPONENT_ID)
+    model = artifact["model"]
+    training = artifact["training"]
     curve = _build_ai_curve(points, model, config)
     failure_point = _first_failure_point(curve)
     last_point = points[-1]

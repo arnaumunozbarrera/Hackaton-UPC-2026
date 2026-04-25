@@ -11,11 +11,13 @@ import math
 from .common import (
     HEALTH_PRECISION,
     clamp,
+    deterministic_signed_noise,
     get_component_config,
     get_component_health,
     get_previous_component_state,
     get_previous_health,
     get_reported_damage,
+    get_simulation_seed,
     get_status_from_health,
     snap_health_to_failure_threshold,
     split_damage_by_pressure,
@@ -106,6 +108,7 @@ def calculate_recoater_drive_motor_state(
     sensitivity = component_config["sensitivity"]
     physical_properties = component_config["physical_properties"]
     alerts_config = component_config["alerts"]
+    uncertainty_config = component_config.get("uncertainty", {})
 
     previous_health = clamp(
         float(get_previous_health(previous_state, COMPONENT_NAME, health_config)),
@@ -120,6 +123,7 @@ def calculate_recoater_drive_motor_state(
     humidity = clamp(float(drivers.get("humidity", 0.0)), 0.0, 1.0)
     temperature_stress = clamp(float(drivers.get("temperature_stress", 0.0)), 0.0, 1.0)
     maintenance_level = clamp(float(drivers.get("maintenance_level", 0.0)), 0.0, 1.0)
+    seed = get_simulation_seed(config)
 
     linear_guide_health = get_component_health(linear_guide_state)
     guide_degradation = 1.0 - linear_guide_health
@@ -156,6 +160,39 @@ def calculate_recoater_drive_motor_state(
     humidity_factor = 1.0 + sensitivity["humidity"] * humidity
     temperature_factor = 1.0 + sensitivity["temperature_stress"] * temperature_stress
     maintenance_factor = 1.0 - sensitivity["maintenance_protection"] * maintenance_level
+    maintenance_error_rate = clamp(
+        float(uncertainty_config.get("maintenance_error_rate", 0.0)),
+        0.0,
+        1.0,
+    )
+    failure_risk_scale = clamp(
+        float(uncertainty_config.get("failure_risk_scale", 0.0)),
+        0.0,
+        1.0,
+    )
+    maintenance_noise = deterministic_signed_noise(
+        seed,
+        COMPONENT_NAME,
+        "maintenance_error",
+        round(previous_health, HEALTH_PRECISION),
+        operational_load,
+        contamination,
+        humidity,
+        temperature_stress,
+        maintenance_level,
+        round(previous_effective_age_cycles, 10),
+    )
+    maintenance_noise_factor = 0.5 * (maintenance_noise + 1.0)
+    maintenance_error_index = (
+        maintenance_error_rate
+        * (1.0 - maintenance_level)
+        * maintenance_noise_factor
+    )
+    failure_risk_index = (
+        failure_risk_scale
+        * (1.0 - maintenance_level)
+        * maintenance_noise_factor
+    )
 
     effective_load = operational_load ** sensitivity["load_exponent"]
     effective_age_delta = (
@@ -166,6 +203,8 @@ def calculate_recoater_drive_motor_state(
         * temperature_factor
         * maintenance_factor
     )
+    effective_age_delta *= 1.0 + maintenance_error_index
+    effective_age_delta += effective_load * failure_risk_index
     effective_age_cycles = previous_effective_age_cycles + effective_age_delta
 
     cumulative_hazard = (effective_age_cycles / weibull_scale_cycles) ** (
@@ -217,6 +256,7 @@ def calculate_recoater_drive_motor_state(
         "contamination_ingress": sensitivity["contamination"] * contamination,
         "humidity_corrosion": sensitivity["humidity"] * humidity,
         "thermal_stress": sensitivity["temperature_stress"] * temperature_stress,
+        "maintenance_uncertainty": maintenance_error_index + failure_risk_index,
     }
     damage_breakdown = {"total": reported_damage}
     damage_breakdown.update(split_damage_by_pressure(reported_damage, pressures))
@@ -242,6 +282,8 @@ def calculate_recoater_drive_motor_state(
             "humidity_factor": round(humidity_factor, 6),
             "temperature_factor": round(temperature_factor, 6),
             "maintenance_factor": round(maintenance_factor, 6),
+            "maintenance_error_index": round(maintenance_error_index, 6),
+            "failure_risk_index": round(failure_risk_index, 6),
             "effective_load": round(effective_load, 6),
             "effective_age_delta": round(effective_age_delta, 10),
             "effective_age_cycles": round(effective_age_cycles, 10),
@@ -252,6 +294,7 @@ def calculate_recoater_drive_motor_state(
                 1.0 - rounded_health / initial_health,
                 10,
             ),
+            "seed": seed,
         },
         "alerts": _build_alerts(
             status,

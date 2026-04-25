@@ -129,22 +129,31 @@ usando la prediccion lineal base.
 La curva matematica y la curva IA se calculan por separado:
 
 - `/api/simulation/run` devuelve la timeline matematica rapidamente.
-- `/api/prediction/ai/component` entrena el modelo IA desde cero y devuelve la
+- `backend/scripts/train_ai_models.py` entrena offline y guarda un artefacto por
+  componente.
+- `/api/prediction/ai/component` carga ese artefacto ya entrenado y devuelve la
   segunda linea `ai_prediction_curve`.
 - El frontend muestra `Loading AI prediction...` mientras llega esa segunda
   linea.
 
 El enfoque es hibrido:
 
-1. El modelo fisico de Phase 1 sigue siendo la fuente de verdad.
+1. El modelo fisico de Phase 1 sigue siendo la baseline trazable.
 2. Se genera un dataset sintetico determinista variando salud actual, carga,
    contaminacion, humedad y mantenimiento.
-3. Cada muestra se etiqueta con el uso restante hasta el umbral preventivo de
-   fallo `health = 0.15`.
-4. En runtime, el predictor extrae features del historico real de la simulacion.
-5. Se entrena desde cero un `HistGradientBoostingRegressor` de scikit-learn.
-6. El modelo aprende a predecir `damage_per_usage`.
-7. En runtime se genera `ai_prediction_curve` sobre los mismos `usage_count` que
+3. Para entrenar la IA, ese dataset activa incertidumbre sembrada de error de
+   mantenimiento y riesgo de fallo latente.
+4. Sobre la salida matematica de cada muestra se aplica un `teacher` heuristico
+   hibrido solo para entrenamiento. Ese teacher no sustituye el modelo fisico:
+   corrige la label con memoria, interacciones de riesgo, cambio de regimen y
+   mantenimiento imperfecto.
+5. Con la misma seed el resultado se reproduce, pero la etiqueta deja de ser
+   una copia perfecta de la formula.
+6. En runtime, el predictor extrae features del historico real de la simulacion.
+7. Offline se entrena un `HistGradientBoostingRegressor` de scikit-learn.
+8. El modelo aprende a predecir `damage_per_usage`.
+9. En runtime se carga el artefacto persistido y se genera `ai_prediction_curve`
+   sobre los mismos `usage_count` que
    la curva matematica, para pintar ambas lineas en el mismo grafico sin mezclar
    componentes.
 
@@ -166,6 +175,8 @@ Por que empezar asi:
 
 - Usa un modelo entrenado real, no una formula alternativa pintada como IA.
 - Es determinista y repetible, por lo que respeta el contrato del brief.
+- Introduce incertidumbre solo en la capa IA, dejando la curva matematica como
+  referencia explicable.
 - Permite explicar la IA como aprendizaje supervisado sobre datos generados por
   el propio digital twin.
 - Mantiene una comparacion visual directa con la curva matematica.
@@ -181,6 +192,7 @@ horizon.threshold: 0.15
 explanation.top_factors
 training.training_samples
 training.trained_from_scratch
+training.ai_uncertainty
 ai_prediction_curve: puntos { usage_count, health } alineados con la linea matematica
 ```
 
@@ -195,6 +207,12 @@ linea `ai_prediction_curve` con los mismos `usage_count`.
 La diferencia es que el motor no se degrada como desgaste lineal. Su modelo
 matematico usa Weibull, por lo que la IA aprende un target de `damage_per_usage`
 condicionado por edad efectiva y fatiga acumulada.
+
+Igual que en `recoater_blade`, la IA entrena offline sobre etiquetas sinteticas con
+incertidumbre sembrada y un `teacher` heuristico hibrido que corrige la salida
+matematica por memoria, fatiga y combinaciones de riesgo. El modelo matematico
+se conserva como baseline determinista y calibrada; la IA aprende una version
+mas realista y menos suave.
 
 Modelo usado:
 
@@ -235,8 +253,22 @@ Salida adicional:
 model_family: recoater_drive_motor_sklearn_gradient_boosting
 prediction_method: supervised_synthetic_gradient_boosting
 training.trained_from_scratch
+training.ai_uncertainty
 ai_prediction_curve: puntos { usage_count, health } alineados con la linea matematica
 ```
+
+## Prototipo IA: Nozzle Plate
+
+Archivo: `backend/app/prediction/nozzle_plate_ai.py`
+
+La placa de boquillas tambien usa IA supervisada sobre datos sinteticos, porque
+su degradacion combina clogging, fatiga termica y cascadas de otros componentes.
+Para que no sea una replica exacta del modelo fisico, las etiquetas de
+entrenamiento activan incertidumbre sembrada y pasan por un `teacher`
+heuristico hibrido. Ese teacher solo se usa offline para generar labels de
+entrenamiento; la simulacion sigue ejecutando el modelo matematico base. Esto
+permite que la curva IA aprenda un comportamiento mas robusto ante
+incertidumbre, sin perder reproducibilidad con la misma seed.
 
 ## Formula Base 1: Dano Lineal Acumulativo
 
@@ -729,7 +761,8 @@ Puntos fuertes:
 - No se usan datos reales de HP; la calibracion es sintetica.
 - El predictor temporal usa tendencia lineal historica para ser simple y
   explicable.
-- Phase 1 es determinista; la variabilidad entra en Phase 2 modificando drivers
-  con una semilla reproducible.
+- Phase 1 es determinista y calibrada; la variabilidad entra en Phase 2
+  modificando drivers con una semilla reproducible y en la capa IA mediante
+  incertidumbre sembrada sobre las etiquetas sinteticas.
 - El mantenimiento reduce dano futuro, pero no recupera salud perdida salvo que
   se modele una accion de mantenimiento adicional en Phase 2.

@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, timezone
 from time import perf_counter
 
 from app.core.phase1 import load_phase1_config
+from app.prediction.artifact_store import load_model_artifact
 from app.prediction.ai_curve_utils import calibrate_ai_health
 from model_mathematic.thermal_firing_resistors import (
     calculate_thermal_firing_resistors_state,
@@ -142,15 +143,6 @@ def _synthetic_label_multiplier(
     deposit_stress = contamination * (0.6 + 0.4 * humidity)
     degradation = 1.0 - previous_health
     misfire_pressure = degradation * (0.5 + 0.5 * thermal_stress)
-    periodic_residual = (
-        (
-            usage_count * 0.0108
-            + temperature_stress * 1.8
-            + contamination * 1.5
-            + heating_degradation * 1.7
-        )
-        % 1.0
-    ) - 0.5
     multiplier = (
         1.0
         + 0.10 * thermal_stress
@@ -158,7 +150,6 @@ def _synthetic_label_multiplier(
         + 0.06 * misfire_pressure
         + 0.04 * humidity
         - 0.05 * maintenance_level
-        + 0.035 * periodic_residual
     )
     return _clamp(multiplier, 0.9, 1.24)
 
@@ -331,11 +322,7 @@ def _build_ai_curve(
         predicted_health = _clamp(ai_health - damage, 0.0, 1.0)
         ai_health = calibrate_ai_health(
             predicted_health=predicted_health,
-            mathematical_health=_component_health(point["components"][COMPONENT_ID]),
             previous_health=ai_health,
-            usage_count=usage_count,
-            drivers=drivers,
-            component_phase=3.1,
         )
         previous_damage_per_usage = damage_per_usage
         previous_usage = usage_count
@@ -377,7 +364,9 @@ def predict_thermal_firing_resistors_ai_from_timeline(
         }
 
     config = load_phase1_config()
-    model, training = train_thermal_firing_resistors_model()
+    artifact = load_model_artifact(COMPONENT_ID)
+    model = artifact["model"]
+    training = artifact["training"]
     curve = _build_ai_curve(points, model, config)
     failure_point = _first_failure_point(curve)
     last_point = points[-1]

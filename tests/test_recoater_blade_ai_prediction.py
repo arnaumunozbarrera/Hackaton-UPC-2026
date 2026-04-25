@@ -1,8 +1,8 @@
 import pytest
 
-from app.prediction.recoater_blade_ai import (
-    predict_recoater_blade_ai_from_timeline,
-)
+import app.prediction.recoater_blade_ai as recoater_blade_ai
+from app.prediction.artifact_store import artifact_exists
+from app.prediction.recoater_blade_ai import predict_recoater_blade_ai_from_timeline
 from app.simulation.simulation_runner import run_simulation
 from app.storage import historian
 
@@ -74,6 +74,8 @@ def test_recoater_blade_ai_predictor_trains_sklearn_model_and_returns_curve():
     assert prediction["prediction_method"] == "supervised_synthetic_gradient_boosting"
     assert prediction["training"]["trained_from_scratch"] is True
     assert prediction["training"]["training_samples"] > 5000
+    assert prediction["training"]["ai_uncertainty"]["enabled"] is True
+    assert prediction["training"]["training_teacher"]["type"] == "heuristic_hybrid"
     assert prediction["confidence"] > 0.5
     ai_curve = prediction["ai_prediction_curve"]
     math_curve = [
@@ -91,7 +93,7 @@ def test_recoater_blade_ai_predictor_trains_sklearn_model_and_returns_curve():
         abs(ai_point["health"] - math_point["health"]) > 0.0001
         for ai_point, math_point in zip(ai_curve[1:], math_curve[1:])
     )
-    assert prediction["explanation"]["target"] == "damage_per_usage"
+    assert prediction["explanation"]["target"] == "damage_per_step"
 
 
 def test_recoater_blade_ai_predicts_earlier_failure_for_higher_wear():
@@ -123,3 +125,34 @@ def test_recoater_blade_ai_predicts_earlier_failure_for_higher_wear():
         "maintenance_level",
         "previous_health",
     }
+
+
+def test_recoater_blade_ai_prediction_uses_persisted_artifact(monkeypatch):
+    assert artifact_exists("recoater_blade") is True
+
+    def fail_training():
+        raise AssertionError("predictor should not train during inference")
+
+    monkeypatch.setattr(recoater_blade_ai, "train_recoater_blade_model", fail_training)
+
+    prediction = predict_recoater_blade_ai_from_timeline(
+        "low_wear",
+        [
+            _timeline_point(
+                0,
+                0.95,
+                contamination=0.1,
+                humidity=0.1,
+                maintenance_level=0.8,
+            ),
+            _timeline_point(
+                20,
+                0.93,
+                contamination=0.1,
+                humidity=0.1,
+                maintenance_level=0.8,
+            ),
+        ],
+    )
+
+    assert prediction["component_id"] == "recoater_blade"

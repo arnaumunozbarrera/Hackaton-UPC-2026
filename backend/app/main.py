@@ -264,6 +264,8 @@ def predict_ai_curve(request: PredictionRequest) -> dict:
 
     try:
         return predictor(request.run_id, timeline)
+    except FileNotFoundError as error:
+        raise _structured_error(404, "ai_model_artifact_not_found", str(error)) from error
     except Exception as error:  # pragma: no cover
         raise _structured_error(500, "ai_prediction_failed", str(error)) from error
 
