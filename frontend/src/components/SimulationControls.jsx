@@ -1,4 +1,4 @@
-export default function SimulationControls({ config, setConfig, running, onRun, onResetTimeline, onResetDatabase, historianSummary }) {
+export default function SimulationControls({ config, setConfig, running, onRun, onResetTimeline, onResetDatabase, historianSummary, error }) {
   const updateNumber = (field, value) => {
     setConfig((previous) => ({ ...previous, [field]: Number(value) }));
   };
@@ -15,16 +15,20 @@ export default function SimulationControls({ config, setConfig, running, onRun, 
 
       <div className="form-grid">
         <label className="field">
-          <span>Duration [h]</span>
-          <input type="number" min="1" value={config.durationHours} onChange={(event) => updateNumber('durationHours', event.target.value)} />
+          <span>Scenario</span>
+          <input type="text" value={config.scenarioId} onChange={(event) => setConfig((previous) => ({ ...previous, scenarioId: event.target.value }))} />
         </label>
         <label className="field">
-          <span>Step [h]</span>
-          <input type="number" min="1" value={config.stepHours} onChange={(event) => updateNumber('stepHours', event.target.value)} />
+          <span>Total usages</span>
+          <input type="number" min="1" value={config.totalUsages} onChange={(event) => updateNumber('totalUsages', event.target.value)} />
+        </label>
+        <label className="field">
+          <span>Usage step</span>
+          <input type="number" min="1" value={config.usageStep} onChange={(event) => updateNumber('usageStep', event.target.value)} />
         </label>
         <label className="field">
           <span>Temperature [C]</span>
-          <input type="number" value={config.temperatureStressC} onChange={(event) => updateNumber('temperatureStressC', event.target.value)} />
+          <input type="number" value={config.temperatureC} onChange={(event) => updateNumber('temperatureC', event.target.value)} />
         </label>
         <label className="field">
           <span>Humidity</span>
@@ -46,6 +50,10 @@ export default function SimulationControls({ config, setConfig, running, onRun, 
           <span>Stochasticity</span>
           <input type="number" min="0" max="1" step="0.05" value={config.stochasticity} onChange={(event) => updateNumber('stochasticity', event.target.value)} />
         </label>
+        <label className="field">
+          <span>Seed</span>
+          <input type="number" min="0" value={config.seed} onChange={(event) => updateNumber('seed', event.target.value)} />
+        </label>
       </div>
 
       <div className="button-row">
@@ -61,8 +69,9 @@ export default function SimulationControls({ config, setConfig, running, onRun, 
       </div>
 
       <div className="historian-note">
-        <strong>Local history:</strong> generated points are stored in browser SQLite and persisted in local storage.
+        <strong>SQLite historian:</strong> runs are stored by the Python backend and can be reloaded after refresh.
       </div>
+      {error ? <div className="error-banner">{error}</div> : null}
     </section>
   );
 }

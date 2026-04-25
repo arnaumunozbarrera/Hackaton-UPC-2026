@@ -6,7 +6,7 @@ export default function HealthSummary({ modelState, selectedComponentId, latestP
   const component = modelState.components[selectedComponentId];
   const health = latestPoint?.health ?? component.health;
   const status = latestPoint?.status ?? component.status;
-  const damage = latestPoint?.damage ?? component.damage.total;
+  const damage = component.damage.total;
 
   return (
     <section className="panel component-summary">

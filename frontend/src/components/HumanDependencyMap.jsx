@@ -1,10 +1,23 @@
-import { HUMAN_DEPENDENCIES } from '../data/dependencies';
 import { COMPONENT_LABELS } from '../data/modelState';
 
-export default function HumanDependencyMap({ selectedComponentId }) {
-  const related = HUMAN_DEPENDENCIES.filter(
+export default function HumanDependencyMap({ selectedComponentId, dependencies }) {
+  const related = (dependencies || []).filter(
     (item) => item.source === selectedComponentId || item.target === selectedComponentId
   );
+
+  if (!related.length) {
+    return (
+      <section className="panel human-map-panel">
+        <div className="section-title-row compact">
+          <div>
+            <p className="eyebrow">Dependencies</p>
+            <h2>Impact map</h2>
+          </div>
+        </div>
+        <p className="muted">Run the simulation to load natural-language dependency impacts.</p>
+      </section>
+    );
+  }
 
   return (
     <section className="panel human-map-panel">
@@ -22,11 +35,11 @@ export default function HumanDependencyMap({ selectedComponentId }) {
               <span>{COMPONENT_LABELS[item.source]}</span>
               <span className="arrow">causes risk on</span>
               <span>{COMPONENT_LABELS[item.target]}</span>
-              <strong className={`level ${item.level.toLowerCase()}`}>{item.level}</strong>
+              <strong className={`level ${item.impact.toLowerCase()}`}>{item.impact}</strong>
             </div>
-            <p>{item.sentence}</p>
+            <p>{item.description}</p>
             <div className="action-line">
-              <strong>Operator action:</strong> {item.operatorAction}
+              <strong>Interpretation:</strong> monitor this dependency when reviewing the selected component trend.
             </div>
           </article>
         ))}
