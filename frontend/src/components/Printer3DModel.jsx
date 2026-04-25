@@ -1,18 +1,23 @@
-import { Canvas } from '@react-three/fiber';
-import { OrbitControls } from '@react-three/drei';
+import { Component, Suspense, useEffect, useMemo } from 'react';
+import { Canvas, useThree } from '@react-three/fiber';
+import { Html, OrbitControls, useGLTF } from '@react-three/drei';
+import { Box3, Vector3 } from 'three';
 import { COMPONENT_LABELS } from '../data/modelState';
 import { formatLabel } from '../services/formatters';
 
-const COLORS = {
-  recoater_blade: '#58a6ff',
-  linear_guide: '#7dd3fc',
-  recoater_drive_motor: '#34d399',
-  nozzle_plate: '#f59e0b',
-  thermal_firing_resistors: '#f97316',
-  cleaning_interface: '#a78bfa',
-  heating_elements: '#ef4444',
-  temperature_sensors: '#f472b6',
-  insulation_panels: '#22c55e'
+const MODEL_VIEW_SIZE = 2.1;
+const MODEL_GROUND_Y = -0.95;
+
+const MODEL_ASSETS = {
+  recoater_blade: '/Blade.glb',
+  linear_guide: '/linear_guide.glb',
+  recoater_drive_motor: '/Stepper%20Motor.glb',
+  nozzle_plate: '/Nozzle_Plate.glb',
+  thermal_firing_resistors: '/Axial%20Thermal%20Fuse%20Horizontal.glb',
+  cleaning_interface: '/brusher.glb',
+  heating_elements: '/Heating_Element.glb',
+  temperature_sensors: '/temperature_sensor.glb',
+  insulation_panels: '/isolatingPanel.glb'
 };
 
 export default function Printer3DModel({ modelState, selectedComponentId, onSelect }) {
@@ -33,13 +38,20 @@ export default function Printer3DModel({ modelState, selectedComponentId, onSele
       </div>
 
       <div className="model-canvas dark">
-        <Canvas camera={{ position: [0, 0, 4.8], fov: 42 }}>
+        <Canvas camera={{ position: [3.2, 2.3, 5.6], fov: 34, near: 0.01, far: 1000 }}>
           <color attach="background" args={['#05080d']} />
-          <ambientLight intensity={0.75} />
-          <directionalLight position={[4, 6, 5]} intensity={1.2} />
-          <directionalLight position={[-4, -2, 3]} intensity={0.35} />
-          <SelectedComponentMesh selectedComponentId={selectedComponentId} />
-          <OrbitControls enablePan={false} />
+          <ambientLight intensity={0.55} />
+          <hemisphereLight args={['#f0f6fc', '#0d1117', 1.1]} />
+          <directionalLight position={[5, 7, 4]} intensity={1.8} />
+          <directionalLight position={[-4, 2, -3]} intensity={0.65} />
+          <Suspense fallback={<ModelLoading />}>
+            <ModelLoadBoundary key={selectedComponentId} fallback={<MissingModel selectedLabel={selectedLabel} />}>
+              <SelectedComponentModel selectedComponentId={selectedComponentId} />
+            </ModelLoadBoundary>
+          </Suspense>
+          <gridHelper args={[4, 16, '#1f6feb', '#30363d']} position={[0, MODEL_GROUND_Y - 0.02, 0]} />
+          <CameraLookAt />
+          <OrbitControls makeDefault enablePan={false} minDistance={0.4} maxDistance={12} target={[0, 0, 0]} />
         </Canvas>
       </div>
 
@@ -59,31 +71,95 @@ export default function Printer3DModel({ modelState, selectedComponentId, onSele
   );
 }
 
-function SelectedComponentMesh({ selectedComponentId }) {
-  const color = COLORS[selectedComponentId] || '#58a6ff';
+function CameraLookAt() {
+  const { camera } = useThree();
 
-  if (selectedComponentId === 'recoater_blade') {
-    return (
-      <mesh rotation={[0.3, 0.5, -0.1]}>
-        <boxGeometry args={[3.2, 0.24, 0.7]} />
-        <meshStandardMaterial color={color} metalness={0.4} roughness={0.35} />
-      </mesh>
-    );
+  useEffect(() => {
+    camera.lookAt(0, 0, 0);
+    camera.updateProjectionMatrix();
+  }, [camera]);
+
+  return null;
+}
+
+function SelectedComponentModel({ selectedComponentId }) {
+  const modelUrl = MODEL_ASSETS[selectedComponentId] || MODEL_ASSETS.heating_elements;
+  const { scene } = useGLTF(modelUrl);
+  const normalizedScene = useMemo(() => normalizeModelScene(scene), [scene]);
+
+  return <primitive object={normalizedScene} />;
+}
+
+function normalizeModelScene(scene) {
+  const clone = scene.clone(true);
+  const bounds = new Box3().setFromObject(clone);
+  const size = bounds.getSize(new Vector3());
+  const center = bounds.getCenter(new Vector3());
+  const maxDimension = Math.max(size.x, size.y, size.z);
+
+  let scale = 1;
+  if (Number.isFinite(maxDimension) && maxDimension > 0) {
+    scale = MODEL_VIEW_SIZE / maxDimension;
   }
 
-  if (selectedComponentId === 'nozzle_plate') {
-    return (
-      <mesh rotation={[0.4, 0.55, 0]}>
-        <boxGeometry args={[2.1, 1.2, 0.28]} />
-        <meshStandardMaterial color={color} metalness={0.3} roughness={0.45} />
-      </mesh>
-    );
-  }
-
-  return (
-    <mesh rotation={[0.5, -0.4, 0.3]}>
-      <cylinderGeometry args={[0.8, 0.8, 2.4, 32]} />
-      <meshStandardMaterial color={color} metalness={0.35} roughness={0.4} />
-    </mesh>
+  clone.scale.setScalar(scale);
+  clone.position.set(
+    -center.x * scale,
+    MODEL_GROUND_Y - bounds.min.y * scale,
+    -center.z * scale
   );
+
+  clone.traverse((child) => {
+    if (child.isMesh) {
+      child.castShadow = true;
+      child.receiveShadow = true;
+    }
+  });
+
+  return clone;
+}
+
+function ModelLoading() {
+  return (
+    <Html center className="model-status">
+      Loading model
+    </Html>
+  );
+}
+
+function MissingModel({ selectedLabel }) {
+  return (
+    <>
+      <Html center className="model-status error">
+        {selectedLabel} model unavailable
+      </Html>
+      <mesh rotation={[0.45, -0.45, 0.2]}>
+        <boxGeometry args={[1.5, 0.7, 0.7]} />
+        <meshStandardMaterial color="#58a6ff" metalness={0.35} roughness={0.45} />
+      </mesh>
+    </>
+  );
+}
+
+class ModelLoadBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { failed: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  componentDidCatch(error) {
+    console.error('Failed to load 3D component model.', error);
+  }
+
+  render() {
+    if (this.state.failed) {
+      return this.props.fallback;
+    }
+
+    return this.props.children;
+  }
 }

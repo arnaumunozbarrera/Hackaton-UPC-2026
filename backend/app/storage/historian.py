@@ -6,6 +6,8 @@ import json
 import sqlite3
 from pathlib import Path
 
+from app.messages.message_generator import select_top_messages
+
 
 DB_PATH = Path(__file__).resolve().parents[2] / "storage" / "historian.sqlite"
 
@@ -423,6 +425,7 @@ def save_prediction(run_id: str, component_id: str, created_at: str, prediction:
 
 
 def save_messages(run_id: str, messages: list[dict]) -> None:
+    messages = select_top_messages(messages)
     if not messages:
         return
 
@@ -710,7 +713,7 @@ def get_messages(run_id: str) -> list[dict]:
             (run_id,),
         ).fetchall()
 
-    return [
+    messages = [
         {
             "id": f"msg_{row['id']}",
             "run_id": row["run_id"],
@@ -723,6 +726,7 @@ def get_messages(run_id: str) -> list[dict]:
         }
         for row in rows
     ]
+    return select_top_messages(messages)
 
 
 def get_latest_prediction(run_id: str, component_id: str) -> dict | None:
