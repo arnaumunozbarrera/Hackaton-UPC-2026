@@ -267,6 +267,29 @@ def save_simulation_step(
     return record_id
 
 
+def save_simulation_steps(steps: list[dict]) -> list[int]:
+    if not steps:
+        return []
+
+    record_ids = []
+    with _connect() as connection:
+        for step in steps:
+            record_ids.append(
+                _insert_simulation_step(
+                    connection=connection,
+                    run_id=step["run_id"],
+                    scenario_id=step["scenario_id"],
+                    step_index=step["step_index"],
+                    usage_count=step["usage_count"],
+                    timestamp=step["timestamp"],
+                    drivers=step["drivers"],
+                    phase1_output=step["phase1_output"],
+                )
+            )
+        connection.commit()
+    return record_ids
+
+
 def _insert_simulation_step(
     connection: sqlite3.Connection,
     run_id: str,
@@ -621,11 +644,106 @@ def get_run_timeline(run_id: str) -> list[dict]:
 
 
 def get_component_history(run_id: str, component_id: str) -> list[dict]:
-    return [
-        point
-        for point in get_run_timeline(run_id)
-        if component_id in point.get("components", {})
-    ]
+    with _connect() as connection:
+        run_metadata = _get_run_metadata(connection, run_id)
+        if run_metadata is None:
+            return []
+
+        rows = connection.execute(
+            """
+            SELECT
+                telemetry_records.record_id,
+                telemetry_records.run_id,
+                telemetry_records.scenario_id,
+                telemetry_records.step_index,
+                telemetry_records.usage_count,
+                telemetry_records.timestamp,
+                driver_values.operational_load,
+                driver_values.contamination,
+                driver_values.humidity,
+                driver_values.temperature_stress,
+                driver_values.maintenance_level,
+                component_states.subsystem,
+                component_states.health_index,
+                component_states.status
+            FROM telemetry_records
+            JOIN driver_values
+                ON driver_values.record_id = telemetry_records.record_id
+            JOIN component_states
+                ON component_states.record_id = telemetry_records.record_id
+                AND component_states.component_id = ?
+            WHERE telemetry_records.run_id = ?
+            ORDER BY telemetry_records.step_index ASC
+            """,
+            (component_id, run_id),
+        ).fetchall()
+
+        timeline = []
+        usage_step = float(run_metadata["usage_step"] or 1.0)
+        for row in rows:
+            metric_rows = connection.execute(
+                """
+                SELECT metric_name, metric_value
+                FROM component_metrics
+                WHERE record_id = ? AND component_id = ?
+                ORDER BY metric_name ASC
+                """,
+                (row["record_id"], component_id),
+            ).fetchall()
+            damage_rows = connection.execute(
+                """
+                SELECT damage_name, damage_value
+                FROM component_damage
+                WHERE record_id = ? AND component_id = ?
+                ORDER BY damage_name ASC
+                """,
+                (row["record_id"], component_id),
+            ).fetchall()
+
+            usage_count = (
+                float(row["usage_count"])
+                if row["usage_count"] is not None
+                else float(row["step_index"]) * usage_step
+            )
+            timeline.append(
+                {
+                    "run_id": row["run_id"],
+                    "scenario_id": row["scenario_id"],
+                    "step_index": row["step_index"],
+                    "usage_count": round(usage_count, 6),
+                    "timestamp": row["timestamp"],
+                    "drivers": {
+                        "operational_load": float(row["operational_load"]),
+                        "contamination": float(row["contamination"]),
+                        "humidity": float(row["humidity"]),
+                        "temperature_stress": float(row["temperature_stress"]),
+                        "maintenance_level": float(row["maintenance_level"]),
+                    },
+                    "components": {
+                        component_id: {
+                            "component": component_id,
+                            "subsystem": row["subsystem"],
+                            "health_index": float(row["health_index"]),
+                            "status": row["status"],
+                            "damage": {
+                                damage_row["damage_name"]: float(
+                                    damage_row["damage_value"]
+                                )
+                                for damage_row in damage_rows
+                            },
+                            "metrics": {
+                                metric_row["metric_name"]: float(
+                                    metric_row["metric_value"]
+                                )
+                                for metric_row in metric_rows
+                            },
+                            "alerts": [],
+                        }
+                    },
+                }
+            )
+
+    return timeline
 
 
 def get_recent_history(scenario_name: str, window_steps: int) -> list[dict]:

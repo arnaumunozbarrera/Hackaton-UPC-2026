@@ -7,42 +7,6 @@ from copy import deepcopy
 
 DEPENDENCY_MAP = [
     {
-        "source": "heating_elements",
-        "target": "nozzle_plate",
-        "impact": "medium",
-        "description": "Thermal instability can accelerate nozzle clogging and reduce jetting efficiency.",
-    },
-    {
-        "source": "recoater_blade",
-        "target": "nozzle_plate",
-        "impact": "high",
-        "description": "Recoater blade wear can increase powder irregularity, which may increase nozzle contamination risk.",
-    },
-    {
-        "source": "nozzle_plate",
-        "target": "recoater_blade",
-        "impact": "low",
-        "description": "Reduced jetting uniformity can increase downstream powder handling corrections and inspection load.",
-    },
-    {
-        "source": "heating_elements",
-        "target": "recoater_blade",
-        "impact": "low",
-        "description": "Thermal instability can indirectly alter powder behavior and slightly worsen blade wear conditions.",
-    },
-    {
-        "source": "nozzle_plate",
-        "target": "heating_elements",
-        "impact": "medium",
-        "description": "Compensating for unstable jetting may increase thermal demand on the heating subsystem.",
-    },
-    {
-        "source": "recoater_blade",
-        "target": "heating_elements",
-        "impact": "low",
-        "description": "Recoater degradation can create process variability that increases heating adjustments.",
-    },
-    {
         "source": "linear_guide",
         "target": "recoater_drive_motor",
         "impact": "medium",
@@ -67,10 +31,22 @@ DEPENDENCY_MAP = [
         "description": "Thermal instability accelerates firing resistor fatigue.",
     },
     {
+        "source": "recoater_blade",
+        "target": "nozzle_plate",
+        "impact": "high",
+        "description": "Recoater blade wear increases effective contamination at the nozzle plate.",
+    },
+    {
         "source": "cleaning_interface",
         "target": "nozzle_plate",
         "impact": "medium",
         "description": "Reduced cleaning efficiency increases residue and nozzle clogging risk.",
+    },
+    {
+        "source": "heating_elements",
+        "target": "nozzle_plate",
+        "impact": "medium",
+        "description": "Heating element degradation increases effective thermal stress at the nozzle plate.",
     },
     {
         "source": "thermal_firing_resistors",

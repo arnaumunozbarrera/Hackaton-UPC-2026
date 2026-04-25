@@ -13,3 +13,13 @@ export async function fetchPrediction(runId, componentId) {
     })
   });
 }
+
+export async function fetchAiPrediction(runId, componentId) {
+  return fetchJson('/api/prediction/ai/component', {
+    method: 'POST',
+    body: JSON.stringify({
+      run_id: runId,
+      component_id: componentId
+    })
+  });
+}

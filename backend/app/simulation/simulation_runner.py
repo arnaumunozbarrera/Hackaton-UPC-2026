@@ -10,7 +10,7 @@ from datetime import datetime, timedelta, timezone
 from app.adapters.phase1_adapter import adapt_phase1_output, get_dependencies_for_component
 from app.core.phase1 import load_phase1_config, run_phase1_update, to_phase1_drivers
 from app.messages.message_generator import generate_messages
-from app.prediction.predictor import predict_component_failure
+from app.prediction.predictor import predict_component_failure_from_timeline
 from app.storage import historian
 
 
@@ -227,6 +227,7 @@ def run_simulation(config: dict) -> dict:
     )
     current_usage = 0.0
     timeline = []
+    persisted_steps = []
 
     for step_index, usage_count in enumerate(usage_counts):
         if step_index == 0:
@@ -250,20 +251,27 @@ def run_simulation(config: dict) -> dict:
             "drivers": _driver_snapshot(point_drivers),
             "model_output": adapted_output,
         }
-        historian.save_simulation_step(
-            run_id=run_id,
-            scenario_id=scenario_id,
-            step_index=step_index,
-            usage_count=usage_count,
-            timestamp=point["timestamp"],
-            drivers=point["drivers"],
-            phase1_output=phase1_output,
+        persisted_steps.append(
+            {
+                "run_id": run_id,
+                "scenario_id": scenario_id,
+                "step_index": step_index,
+                "usage_count": usage_count,
+                "timestamp": point["timestamp"],
+                "drivers": point["drivers"],
+                "phase1_output": phase1_output,
+            }
         )
         timeline.append(point)
         previous_internal_output = phase1_output
         current_usage = usage_count
 
-    prediction = predict_component_failure(run_id, selected_component)
+    historian.save_simulation_steps(persisted_steps)
+    prediction = predict_component_failure_from_timeline(
+        run_id,
+        selected_component,
+        timeline,
+    )
     historian.save_prediction(run_id, selected_component, created_at, prediction)
 
     messages = generate_messages(run_id, timeline)
