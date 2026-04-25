@@ -2,8 +2,7 @@ import json
 from pathlib import Path
 
 from agent.src.decision import make_agent_decisions
-
-
+from agent.src.explainer import explain_decisions
 
 
 def main() -> None:
@@ -20,8 +19,15 @@ def main() -> None:
         run_id=run_id,
         latest_record=latest_record,
         history=history,
-        horizon_steps=horizon_steps
+        horizon_steps=horizon_steps,
     )
+
+    print("\nCopilot output")
+    print("=" * 80)
+    print(explain_decisions(decisions))
+
+    print("\nTechnical debug")
+    print("=" * 80)
 
     if not decisions:
         print("No issues detected.")
@@ -31,14 +37,14 @@ def main() -> None:
         print(f"\nDecision {index}")
         print(f"Issue: {decision.diagnosis.issue}")
         print(f"Component: {decision.diagnosis.component_id}")
-        print(f"Severity: {decision.diagnosis.severity.value}")
+        print(f"Diagnosis severity: {decision.diagnosis.severity.value}")
+        print(f"Recommendation priority: {decision.recommendation.priority.value}")
         print(f"Description: {decision.diagnosis.description}")
         print(f"Predicted status: {decision.forecast.predicted_status}")
         print(f"Time to critical steps: {decision.forecast.time_to_critical_steps}")
         print(f"Time to failure steps: {decision.forecast.time_to_failure_steps}")
         print(f"Risk score: {decision.forecast.risk_score:.2f}")
         print(f"Recommended action: {decision.recommendation.action.value}")
-        print(f"Priority: {decision.recommendation.priority.value}")
         print(f"Expected effect: {decision.recommendation.expected_effect}")
         print("Evidence:")
 
