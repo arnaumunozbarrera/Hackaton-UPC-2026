@@ -45,6 +45,13 @@ def _health_by_component(result: dict) -> dict:
     }
 
 
+def _component_health_timeline(result: dict, component_id: str) -> list[float]:
+    return [
+        point["model_output"]["components"][component_id]["health"]
+        for point in result["timeline"]
+    ]
+
+
 def _parse_timestamp(value: str) -> datetime:
     return datetime.fromisoformat(value.replace("Z", "+00:00"))
 
@@ -94,6 +101,60 @@ def test_simulation_degradation_is_independent_of_chart_resolution():
             fine_health[component_id],
             abs=1e-8,
         )
+
+
+def test_stochasticity_materially_changes_health_curve():
+    deterministic_result = run_simulation(
+        _config("deterministic_curve", total_usages=240, usage_step=4, stochasticity=0.0)
+    )
+    stochastic_result = run_simulation(
+        _config("stochastic_curve", total_usages=240, usage_step=4, stochasticity=1.0)
+    )
+
+    deterministic_health = _component_health_timeline(
+        deterministic_result,
+        "heating_elements",
+    )
+    stochastic_health = _component_health_timeline(
+        stochastic_result,
+        "heating_elements",
+    )
+    deterministic_drops = [
+        deterministic_health[index - 1] - deterministic_health[index]
+        for index in range(1, len(deterministic_health))
+    ]
+    stochastic_drops = [
+        stochastic_health[index - 1] - stochastic_health[index]
+        for index in range(1, len(stochastic_health))
+    ]
+
+    max_curve_difference = max(
+        abs(deterministic - stochastic)
+        for deterministic, stochastic in zip(deterministic_health, stochastic_health)
+    )
+
+    assert max_curve_difference > 0.02
+    assert max(stochastic_drops) - min(stochastic_drops) > 0.004
+    assert max(stochastic_drops) - min(stochastic_drops) > 4 * (
+        max(deterministic_drops) - min(deterministic_drops)
+    )
+
+
+def test_stochasticity_is_reproducible_for_same_seed():
+    first_result = run_simulation(
+        _config("seeded_curve_a", total_usages=120, usage_step=4, stochasticity=1.0)
+    )
+    second_result = run_simulation(
+        _config("seeded_curve_b", total_usages=120, usage_step=4, stochasticity=1.0)
+    )
+
+    first_health = _component_health_timeline(first_result, "heating_elements")
+    second_health = _component_health_timeline(second_result, "heating_elements")
+    first_drivers = [point["drivers"] for point in first_result["timeline"]]
+    second_drivers = [point["drivers"] for point in second_result["timeline"]]
+
+    assert second_health == first_health
+    assert second_drivers == first_drivers
 
 
 def test_simulation_records_exact_final_usage_count_when_step_does_not_divide_total():

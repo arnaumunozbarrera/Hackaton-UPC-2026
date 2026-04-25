@@ -9,6 +9,7 @@ SEVERITY_ORDER = {
     "CRITICAL": 2,
     "FAILURE": 3,
 }
+TOP_RUNTIME_MESSAGE_LIMIT = 3
 
 
 def health_to_severity(health: float) -> str:
@@ -39,6 +40,37 @@ def _component_health(component: dict) -> float:
     if "health_index" in component:
         return float(component["health_index"])
     return float(component.get("health", 1.0))
+
+
+def _message_rank(message: dict) -> tuple[int, float, float, str]:
+    evidence = message.get("evidence", {})
+    health = evidence.get("health")
+    health_priority = 0.0 if health is None else 1.0 - float(health)
+    usage_count = float(evidence.get("usage_count", 0.0))
+    return (
+        SEVERITY_ORDER.get(message.get("severity", "INFO"), 0),
+        health_priority,
+        usage_count,
+        message.get("timestamp", ""),
+    )
+
+
+def select_top_messages(
+    messages: list[dict],
+    limit: int = TOP_RUNTIME_MESSAGE_LIMIT,
+) -> list[dict]:
+    """Return the highest-impact runtime messages without repeated event spam."""
+    if limit <= 0:
+        return []
+
+    strongest_by_event = {}
+    for message in messages:
+        event_key = (message.get("component_id"), message.get("title"))
+        current = strongest_by_event.get(event_key)
+        if current is None or _message_rank(message) > _message_rank(current):
+            strongest_by_event[event_key] = message
+
+    return sorted(strongest_by_event.values(), key=_message_rank, reverse=True)[:limit]
 
 
 def generate_messages(run_id: str, timeline: list[dict]) -> list[dict]:
@@ -186,10 +218,12 @@ def generate_messages(run_id: str, timeline: list[dict]) -> list[dict]:
         seen.add(key)
         deduplicated.append(message)
 
+    top_messages = select_top_messages(deduplicated)
+
     return [
         {
             "id": f"msg_{index + 1:03d}",
             **message,
         }
-        for index, message in enumerate(deduplicated)
+        for index, message in enumerate(top_messages)
     ]
