@@ -1,7 +1,8 @@
-export default function MessagesPanel({ messages }) {
+import './MessagesPanel.css';
+export default function MessagesPanel({ messages, className = '' }) {
   if (!messages?.length) {
     return (
-      <section className="panel messages-panel empty">
+      <section className={`panel messages-panel empty ${className}`.trim()}>
         <p className="eyebrow">Runtime messages</p>
         <h2>No messages yet</h2>
         <p className="muted">Run the simulation to generate grounded messages from the historian.</p>
@@ -10,7 +11,7 @@ export default function MessagesPanel({ messages }) {
   }
 
   return (
-    <section className="panel messages-panel">
+    <section className={`panel messages-panel ${className}`.trim()}>
       <div className="section-title-row compact">
         <div>
           <p className="eyebrow">Runtime messages</p>

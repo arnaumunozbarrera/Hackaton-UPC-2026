@@ -1,0 +1,100 @@
+.component-summary {
+  padding-bottom: 0;
+}
+
+.component-summary > :last-child {
+  margin-bottom: 0;
+}
+
+.health-bar-block {
+  margin: 14px 0;
+}
+
+.health-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.health-header strong {
+  color: var(--text);
+}
+
+.health-track {
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+}
+
+.health-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--blue) 0%, var(--green) 100%);
+  transition: width 0.25s ease;
+}
+
+.metrics-grid,
+.data-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.metrics-grid.three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.two-columns {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 12px;
+}
+
+.metric-card {
+  padding: 12px;
+}
+
+.metric-value {
+  margin-top: 6px;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+.metric-helper {
+  margin-top: 2px;
+  color: var(--muted-2);
+  font-size: 11px;
+}
+
+.key-value-list {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.key-value-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  background: rgba(8, 12, 20, 0.6);
+  border-bottom: 1px solid var(--line);
+}
+
+.key-value-row:last-child {
+  border-bottom: none;
+}
+
+.key-value-row span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.key-value-row strong {
+  color: var(--text);
+  font-size: 12px;
+}

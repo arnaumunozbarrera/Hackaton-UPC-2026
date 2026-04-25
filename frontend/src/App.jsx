@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
+import './styles/App.css';
 import ChatbotPanel from './components/ChatbotPanel';
-import ComponentSelector from './components/ComponentSelector';
 import HealthSummary from './components/HealthSummary';
 import HumanDependencyMap from './components/HumanDependencyMap';
 import MessagesPanel from './components/MessagesPanel';
@@ -41,9 +41,10 @@ export default function App() {
   const [historianState, setHistorianState] = useState({ runs: [], latestRun: null });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [chatOpen, setChatOpen] = useState(false);
 
   useEffect(() => {
-    document.title = 'Component health index estimation';
+    document.title = 'SimuFlow | Industrial Digital Twin';
   }, []);
 
   useEffect(() => {
@@ -166,6 +167,7 @@ export default function App() {
       })
       .filter(Boolean);
   }, [timeline, selectedComponentId]);
+
   const predictionCurve = useMemo(() => {
     const aiCurve = aiPrediction?.ai_prediction_curve ?? [];
     if (aiPrediction?.component_id !== selectedComponentId || !Array.isArray(aiCurve)) {
@@ -188,6 +190,19 @@ export default function App() {
     () => buildAxisTemplate(config.totalUsages, effectiveUsageStep),
     [config.totalUsages, effectiveUsageStep]
   );
+
+  const liveProgress = useMemo(() => {
+    if (!timeline.length) return 0;
+    const totalUsages = Number(config.totalUsages) || 1;
+    const latestUsage = Number(timeline.at(-1)?.usage_count || 0);
+    return Math.max(0, Math.min(100, Math.round((latestUsage / totalUsages) * 100)));
+  }, [timeline, config.totalUsages]);
+
+  const overallHealth = Math.round((displayModelState?.machine_state?.overall_health || 0) * 100);
+  const activeRunId = historianState.latestRun?.run_id || 'No run';
+  const currentStatus = displayModelState?.machine_state?.overall_status || 'UNKNOWN';
+  const storedRuns = historianState.runs.length;
+  const hasSimulationRun = timeline.length > 0;
 
   async function handleRunTimeline() {
     setLoading(true);
@@ -251,91 +266,182 @@ export default function App() {
   }
 
   if (!modelState) {
-    return <div className="loading-screen">{error || 'Loading system data...'}</div>;
+    return <div className="loading-screen">{error || 'Loading SimuFlow control room...'}</div>;
   }
 
   return (
-    <main className="app-shell">
-      <header className="top-bar">
-        <div>
-          <p className="eyebrow">Digital twin backend connected</p>
-          <h1>Component health index estimation</h1>
+    <main className="simuflow-app">
+      <div className="ambient ambient-a" />
+      <div className="ambient ambient-b" />
+      <div className="ambient ambient-c" />
+
+      <header className="app-header panel">
+        <div className="brand-block">
+          <div className="brand-mark" aria-hidden="true">
+            <LogoMark />
+          </div>
+          <div>
+            <p className="brand-name">SimuFlow</p>
+            <div className="brand-meta">
+              <span className="brand-version">v1.0.0</span>
+              <span className="brand-separator" />
+              <span className="live-chip">
+                <span className="live-dot" />
+                Digital twin connected
+              </span>
+            </div>
+          </div>
         </div>
-        <ComponentSelector
-          modelState={displayModelState}
-          selectedComponentId={selectedComponentId}
-          onChange={setSelectedComponentId}
-        />
+
       </header>
 
-      <section className="summary-strip">
-        <div>
-          <span>Overall machine health</span>
-          <strong>{Math.round((displayModelState?.machine_state?.overall_health || 0) * 100)}%</strong>
-        </div>
-        <div>
-          <span>Overall status</span>
-          <strong>{displayModelState?.machine_state?.overall_status || 'UNKNOWN'}</strong>
-        </div>
-        <div>
-          <span>Critical components</span>
-          <strong>{displayModelState?.machine_state?.critical_components?.length || 0}</strong>
-        </div>
-        <div>
-          <span>Stored runs</span>
-          <strong>{historianState.runs.length}</strong>
-        </div>
-      </section>
+      <div className="dashboard-grid">
+        <section className="panel hero-panel dashboard-tile tile-span-5">
+          <div className="section-title-row compact">
+            <div>
+              <p className="eyebrow">Runtime timeline</p>
+              <h2>Simulation lifecycle</h2>
+            </div>
+            <div className="hero-status-row">
+              <span className="live-chip">
+                <span className="live-dot" />
+                Real-time
+              </span>
+              <span className="axis-chip">{timeline.length ? `${timeline.length} checkpoints` : 'No active run'}</span>
+              <span className="axis-chip">{currentStatus}</span>
+            </div>
+          </div>
 
-      <section className="main-grid">
-        <SimulationControls
-          config={config}
-          setConfig={setConfig}
-          running={loading}
-          onRun={handleRunTimeline}
-          historianSummary={{
-            runs: historianState.runs.length,
-            points: timeline.length,
-            lastRun: historianState.latestRun
-          }}
-          error={error}
-        />
-        <TimelineChart
-          chartData={chartData}
-          predictionCurve={predictionCurve}
-          axisTemplate={axisTemplate}
-          totalUsages={config.totalUsages}
+          <div className="hero-stats">
+            <MiniStat label="Current time" value={historianState.latestRun?.current_time || '01:20:35'} helper="Runtime clock" />
+            <MiniStat label="Total duration" value={historianState.latestRun?.duration || '02:00:00'} helper="Configured window" />
+            <MiniStat label="Machine health" value={`${overallHealth}%`} helper="Fleet aggregate" tone="green" />
+            <MiniStat label="Critical components" value={String(displayModelState?.machine_state?.critical_components?.length || 0)} helper="Active alerts" tone="amber" />
+          </div>
+
+          <TimelineChart
+            chartData={chartData}
+            predictionCurve={predictionCurve}
+            axisTemplate={axisTemplate}
+            totalUsages={config.totalUsages}
+            selectedComponentId={selectedComponentId}
+            loading={loading}
+            loadingAiPrediction={loadingAiPrediction}
+            aiPredictionError={aiPredictionError}
+            error={error}
+          />
+        </section>
+
+        <section className="sidebar-row tile-span-5">
+          <section className="panel simulation-panel sidebar-block sidebar-panel">
+            <SimulationControls
+              config={config}
+              setConfig={setConfig}
+              running={loading}
+              onRun={handleRunTimeline}
+              historianSummary={{
+                runs: historianState.runs.length,
+                points: timeline.length,
+                lastRun: historianState.latestRun,
+                status: timeline.length ? 'Real-time' : 'Ready',
+                progress: timeline.length ? `${liveProgress}%` : '0%'
+              }}
+              error={error}
+            />
+          </section>
+
+          <section className="panel quick-status-panel sidebar-block sidebar-panel">
+            <div className="section-title-row compact">
+              <div>
+                <p className="eyebrow">System pulse</p>
+                <h2>{activeRunId}</h2>
+              </div>
+              <span className={`status-pill ${currentStatus.toLowerCase()}`}>{currentStatus}</span>
+            </div>
+            <div className="pulse-grid">
+              <div>
+                <span>Progress</span>
+                <strong>{timeline.length ? `${liveProgress}%` : 'Idle'}</strong>
+              </div>
+              <div>
+                <span>Scenario</span>
+                <strong>{historianState.latestRun?.scenario_id || config.scenarioId}</strong>
+              </div>
+              <div>
+                <span>Component</span>
+                <strong>{selectedComponentId.replaceAll('_', ' ')}</strong>
+              </div>
+              <div>
+                <span>Prediction</span>
+                <strong>{prediction?.predicted_failure_usage || 'Pending'}</strong>
+              </div>
+            </div>
+          </section>
+        </section>
+
+        <HealthSummary
+          className={`tile-fill tile-span-2 ${hasSimulationRun ? '' : 'no-run-top'}`.trim()}
+          modelState={displayModelState}
           selectedComponentId={selectedComponentId}
-          loading={loading}
-          loadingAiPrediction={loadingAiPrediction}
-          aiPredictionError={aiPredictionError}
-          error={error}
         />
-      </section>
 
-      <Printer3DModel
-        modelState={displayModelState}
-        selectedComponentId={selectedComponentId}
-        onSelect={setSelectedComponentId}
-      />
+        <PredictionPanel className="tile-fill tile-span-3" prediction={aiPrediction || prediction} />
 
-      <section className="bottom-grid">
-        <HealthSummary modelState={displayModelState} selectedComponentId={selectedComponentId} />
-        <PredictionPanel prediction={aiPrediction || prediction} />
-      </section>
-
-      <section className="bottom-grid stacked-grid">
-        <MessagesPanel messages={messages} />
-        <HumanDependencyMap selectedComponentId={selectedComponentId} dependencies={dependencies} />
-      </section>
-
-      <section className="bottom-grid full-width-grid">
-        <ChatbotPanel
-          runId={historianState.latestRun?.run_id || null}
+        <Printer3DModel
+          className="tile-fill tile-model tile-span-5"
+          modelState={displayModelState}
           selectedComponentId={selectedComponentId}
-          disabled={!historianState.latestRun?.run_id}
+          onSelect={setSelectedComponentId}
         />
-      </section>
+
+        <MessagesPanel
+          className={`tile-fill tile-messages tile-span-2 ${hasSimulationRun ? '' : 'no-run-top'}`.trim()}
+          messages={messages}
+        />
+
+        <HumanDependencyMap
+          className={`tile-fill tile-dependency tile-span-3 ${hasSimulationRun ? '' : 'no-run-top'}`.trim()}
+          selectedComponentId={selectedComponentId}
+          dependencies={dependencies}
+        />
+
+      </div>
+
+      <button
+        type="button"
+        className="chat-fab"
+        aria-label="Open chat"
+        onClick={() => setChatOpen(true)}
+      >
+        <ChatIcon />
+      </button>
+
+      {chatOpen ? (
+        <div className="chat-modal-backdrop" role="presentation" onClick={() => setChatOpen(false)}>
+          <section
+            className="chat-modal panel"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Chatbot panel"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="chat-modal-header">
+              <div>
+                <p className="eyebrow">Codex chat</p>
+                <h2>History and grounded assistance</h2>
+              </div>
+              <button type="button" className="icon-button transparent" onClick={() => setChatOpen(false)} aria-label="Close chat">
+                <CloseIcon />
+              </button>
+            </div>
+            <ChatbotPanel
+              runId={historianState.latestRun?.run_id || null}
+              selectedComponentId={selectedComponentId}
+              disabled={!historianState.latestRun?.run_id}
+            />
+          </section>
+        </div>
+      ) : null}
     </main>
   );
 }
@@ -521,4 +627,112 @@ function buildMachineStateFromComponents(components) {
     critical_components: criticalComponents,
     failed_components: failedComponents
   };
+}
+
+function LogoMark() {
+  return (
+    <svg viewBox="0 0 32 32" role="img" aria-label="SimuFlow logo">
+      <path d="M16 2.5 27.5 9v14L16 29.5 4.5 23V9Z" />
+      <path d="M16 8.2 22 11.8v8.4L16 23.8 10 20.2v-8.4Z" />
+    </svg>
+  );
+}
+
+function GridIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 4h6v6H4V4Zm10 0h6v6h-6V4ZM4 14h6v6H4v-6Zm10 0h6v6h-6v-6Z" />
+    </svg>
+  );
+}
+
+function CubeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="m12 3 8 4.4v9.2L12 21l-8-4.4V7.4L12 3Zm0 2.3L6.2 8.1 12 11.4l5.8-3.3L12 5.3ZM5.5 9.6V15l5.5 3v-5.5l-5.5-2.9Zm13 0-5.5 3V18l5.5-3v-5.4Z" />
+    </svg>
+  );
+}
+
+function ChartIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 19.5V5h1.8v12.7H20V19.5H4Zm3.2-4.8 3.3-4.1 3.1 2.4 4.7-6.3 1.5 1.1-5.9 8-3.1-2.4-2.6 3.2-1-1.9Z" />
+    </svg>
+  );
+}
+
+function NetworkIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M7 5.5A2.5 2.5 0 1 1 12 5.5 2.5 2.5 0 0 1 7 5.5Zm8 3A2.5 2.5 0 1 1 20 8.5 2.5 2.5 0 0 1 15 8.5Zm-6 8A2.5 2.5 0 1 1 14 16.5 2.5 2.5 0 0 1 9 16.5Zm-3.8-7.2 2.6 1.7m8.4-3.3 1.3 2.8M10 14l4.4-3.1" />
+    </svg>
+  );
+}
+
+function ChatIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M5 5.5h14v10H10l-4.3 3v-3H5v-10Zm2 2v6h9.4V7.5H7Zm1.5 1.6h6.4v1.4H8.5V9.1Zm0 2.6h4.9v1.4H8.5v-1.4Z" />
+    </svg>
+  );
+}
+
+function GearIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="m12 7.1 1.1-2 2.2.8.3 2.2 1.9 1.1 2-1.1 1.6 1.7-1 2.1.8 2.1 2.2.5v2.4l-2.2.5-.8 2.1 1 2.1-1.6 1.7-2-1.1-1.9 1.1-.3 2.2-2.2.8-1.1-2-2.1-.1-1.1 2-2.2-.8-.3-2.2-1.9-1.1-2 1.1-1.6-1.7 1-2.1-.8-2.1-2.2-.5v-2.4l2.2-.5.8-2.1-1-2.1 1.6-1.7 2 1.1 1.9-1.1.3-2.2 2.2-.8 1.1 2 2.1.1Zm0 3.5A1.9 1.9 0 1 0 12 15.5 1.9 1.9 0 0 0 12 10.6Z" />
+    </svg>
+  );
+}
+
+function MoonIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M18.6 15.7A8.5 8.5 0 0 1 8.3 5.4 8.2 8.2 0 1 0 18.6 15.7Z" />
+    </svg>
+  );
+}
+
+function ChevronDownIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="m6.5 9 5.5 5.5L17.5 9l1.4 1.4L12 17.3 5.1 10.4 6.5 9Z" />
+    </svg>
+  );
+}
+
+function CloseIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M6 6l12 12M18 6 6 18" />
+    </svg>
+  );
+}
+
+function RailButton({ label, icon, active = false }) {
+  return (
+    <button type="button" className={`rail-button ${active ? 'active' : ''}`} aria-label={label}>
+      {icon}
+    </button>
+  );
+}
+
+function Badge({ label, value, tone = 'blue' }) {
+  return (
+    <div className={`badge badge-${tone}`}>
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
+  );
+}
+
+function MiniStat({ label, value, helper, tone = 'blue' }) {
+  return (
+    <div className={`mini-stat mini-stat-${tone}`}>
+      <span>{label}</span>
+      <strong>{value}</strong>
+      <small>{helper}</small>
+    </div>
+  );
 }

@@ -1,0 +1,119 @@
+.chatbot-panel {
+  min-height: 100%;
+}
+
+.chatbot-history {
+  max-height: 454px;
+  overflow-y: auto;
+  display: grid;
+  gap: 12px;
+  padding-right: 4px;
+  margin-top: 8px;
+}
+
+.chat-thread-card {
+  padding: 12px;
+  background: rgba(9, 15, 26, 0.72);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+.chat-question-block {
+  padding: 12px;
+  background: rgba(9, 15, 26, 0.72);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+.chat-role {
+  display: inline-block;
+  margin-bottom: 6px;
+  color: var(--blue-soft);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.chat-question-block p,
+.chat-answer-header + p,
+.chatbot-answer p,
+.fact-list {
+  color: #d9e2f2;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.suggestion-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.chatbot-empty,
+.chatbot-answer,
+.chatbot-facts {
+  margin-top: 14px;
+  padding: 12px;
+  background: rgba(9, 15, 26, 0.72);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+.chatbot-answer {
+  display: grid;
+  gap: 10px;
+}
+
+.chat-answer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.chatbot-answer.insufficient {
+  border-color: rgba(240, 177, 63, 0.34);
+  background: rgba(240, 177, 63, 0.08);
+}
+
+.chatbot-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.fact-list {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.metric-list {
+  padding-left: 0;
+  list-style: none;
+}
+
+.metric-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(122, 146, 187, 0.14);
+}
+
+.metric-list li:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.metric-list span {
+  color: var(--muted);
+}
+
+.metric-list strong {
+  color: var(--text);
+  font-size: 12px;
+}

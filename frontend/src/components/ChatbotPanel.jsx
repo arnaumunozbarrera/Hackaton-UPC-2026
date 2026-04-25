@@ -1,3 +1,4 @@
+import './ChatbotPanel.css';
 import { useEffect, useRef, useState } from 'react';
 import { sendChatQuery } from '../services/chatApi';
 
@@ -14,6 +15,7 @@ export default function ChatbotPanel({ runId, selectedComponentId, disabled }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const historyRef = useRef(null);
+  const latestEntryRef = useRef(null);
 
   useEffect(() => {
     setChatEntries([]);
@@ -23,7 +25,11 @@ export default function ChatbotPanel({ runId, selectedComponentId, disabled }) {
 
   useEffect(() => {
     if (!historyRef.current) return;
-    historyRef.current.scrollTop = historyRef.current.scrollHeight;
+    if (latestEntryRef.current) {
+      latestEntryRef.current.scrollIntoView({ block: 'start', behavior: 'smooth' });
+      return;
+    }
+    historyRef.current.scrollTop = 0;
   }, [chatEntries, loading]);
 
   async function submitQuestion(nextQuestion) {
@@ -80,7 +86,7 @@ export default function ChatbotPanel({ runId, selectedComponentId, disabled }) {
       <div className="section-title-row compact">
         <div>
           <p className="eyebrow">Grounded chat</p>
-          <h2>Components AI experted</h2>
+          <h2>Component AI expert</h2>
         </div>
         <span className="db-chip">
           {latestModel?.provider === 'ollama' ? `Model: ${latestModel.name}` : 'Model: grounded explainer'}
@@ -98,8 +104,12 @@ export default function ChatbotPanel({ runId, selectedComponentId, disabled }) {
             <p className="muted">Ask a question about the selected component or the latest stored run.</p>
           </div>
         ) : (
-          chatEntries.map((entry) => (
-            <article key={entry.id} className="chat-thread-card">
+          chatEntries.map((entry, index) => (
+            <article
+              key={entry.id}
+              ref={index === chatEntries.length - 1 ? latestEntryRef : null}
+              className="chat-thread-card"
+            >
               <div className="chat-question-block">
                 <span className="chat-role">Question</span>
                 <p>{entry.question}</p>

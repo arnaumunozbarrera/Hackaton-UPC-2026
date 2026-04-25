@@ -1,4 +1,5 @@
 import { Component, Suspense, useEffect, useMemo } from 'react';
+import './Printer3DModel.css';
 import { Canvas, useThree } from '@react-three/fiber';
 import { Environment, Html, OrbitControls, ContactShadows, useGLTF } from '@react-three/drei';
 import { Box3, Color, MeshStandardMaterial, Vector3 } from 'three';
@@ -6,7 +7,7 @@ import { COMPONENT_LABELS } from '../data/modelState';
 import { formatLabel } from '../services/formatters';
 
 const MODEL_VIEW_SIZE = 2.1;
-const INDUSTRIAL_PALETTE = ['#ccb49b', '#b89574', '#9d7757', '#e0c8ae', '#7f634d'];
+const INDUSTRIAL_PALETTE = ['#eadfc9', '#dbc8a7', '#cfb891', '#f3e9d7', '#bca786'];
 
 const MODEL_ASSETS = {
   recoater_blade: '/Blade.glb',
@@ -20,7 +21,7 @@ const MODEL_ASSETS = {
   insulation_panels: '/isolatingPanel.glb'
 };
 
-export default function Printer3DModel({ modelState, selectedComponentId, onSelect }) {
+export default function Printer3DModel({ modelState, selectedComponentId, onSelect, className = '' }) {
   const selectedLabel = COMPONENT_LABELS[selectedComponentId] ?? formatLabel(selectedComponentId);
   const componentEntries = Object.keys(modelState?.components || COMPONENT_LABELS).map((componentId) => [
     componentId,
@@ -28,27 +29,27 @@ export default function Printer3DModel({ modelState, selectedComponentId, onSele
   ]);
 
   return (
-    <section className="panel model-panel">
+    <section className={`panel model-panel ${className}`.trim()}>
       <div className="section-title-row compact">
         <div>
           <p className="eyebrow">3D view</p>
-          <h2>Isolated selected component</h2>
+          <h2>Selected component</h2>
         </div>
         <span className="axis-chip">{selectedLabel}</span>
       </div>
 
-      <div className="model-canvas dark">
+      <div className="model-canvas solidworks">
         <Canvas
           shadows
-          gl={{ alpha: true, toneMappingExposure: 1.25 }}
+          gl={{ alpha: true, toneMappingExposure: 1.18 }}
           camera={{ position: [3.2, 2.3, 5.6], fov: 34, near: 0.01, far: 1000 }}
         >
-          <ambientLight intensity={0.72} color="#ffffff" />
-          <hemisphereLight args={['#ffffff', '#dadada', 1.05]} />
+          <ambientLight intensity={0.52} color="#dfe7f1" />
+          <hemisphereLight args={['#d9e4f2', '#607086', 0.95]} />
           <directionalLight
             position={[5.5, 7.5, 4.5]}
             intensity={2.65}
-            color="#fffdf8"
+            color="#f7f3ea"
             castShadow
             shadow-mapSize-width={2048}
             shadow-mapSize-height={2048}
@@ -59,9 +60,9 @@ export default function Printer3DModel({ modelState, selectedComponentId, onSele
             shadow-camera-top={4}
             shadow-camera-bottom={-4}
           />
-          <directionalLight position={[-4, 2, -3]} intensity={0.72} color="#dedede" />
-          <directionalLight position={[0, -2, 4]} intensity={0.4} color="#f7f7f7" />
-          <Environment preset="warehouse" intensity={0.85} />
+          <directionalLight position={[-4, 2, -3]} intensity={0.78} color="#d8dde6" />
+          <directionalLight position={[0, -2, 4]} intensity={0.42} color="#f7f7f7" />
+          <Environment preset="warehouse" intensity={0.82} />
           <Suspense fallback={<ModelLoading />}>
             <ModelLoadBoundary key={selectedComponentId} fallback={<MissingModel selectedLabel={selectedLabel} />}>
               <SelectedComponentModel selectedComponentId={selectedComponentId} />
@@ -69,12 +70,12 @@ export default function Printer3DModel({ modelState, selectedComponentId, onSele
           </Suspense>
           <ContactShadows
             position={[0, -0.98, 0]}
-            opacity={0.38}
+            opacity={0.34}
             scale={8}
             blur={2.8}
             far={3.2}
             resolution={1024}
-            color="#000000"
+            color="#39485c"
           />
           <CameraLookAt />
           <OrbitControls makeDefault enablePan={false} minDistance={0.4} maxDistance={12} target={[0, 0, 0]} />

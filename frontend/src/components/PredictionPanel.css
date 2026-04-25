@@ -1,0 +1,48 @@
+.prediction-panel {
+  padding-bottom: 0;
+}
+
+.prediction-panel > :last-child {
+  margin-bottom: 0;
+}
+
+.prediction-panel.empty {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.prediction-panel.empty.no-run-top {
+  justify-content: flex-start;
+}
+
+.prediction-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.prediction-grid > div {
+  padding: 12px;
+  background: rgba(9, 15, 26, 0.72);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+.prediction-grid strong {
+  display: block;
+  margin-top: 5px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.evidence-box {
+  padding: 12px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+  background: rgba(9, 15, 26, 0.72);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}

@@ -1,8 +1,9 @@
+import './HealthSummary.css';
 import MetricCard from './MetricCard';
 import { COMPONENT_LABELS, SUBSYSTEM_LABELS } from '../data/modelState';
 import { formatLabel, formatMetricValue } from '../services/formatters';
 
-export default function HealthSummary({ modelState, selectedComponentId, latestPoint }) {
+export default function HealthSummary({ modelState, selectedComponentId, latestPoint, className = '' }) {
   const component = modelState.components[selectedComponentId];
   const health = latestPoint?.health ?? component.health;
   const status = latestPoint?.status ?? component.status;
@@ -11,10 +12,10 @@ export default function HealthSummary({ modelState, selectedComponentId, latestP
   const subsystemLabel = SUBSYSTEM_LABELS[component.subsystem] ?? formatLabel(component.subsystem);
 
   return (
-    <section className="panel component-summary">
+    <section className={`panel component-summary ${className}`.trim()}>
       <div className="section-title-row">
         <div>
-          <p className="eyebrow">Selected subsystem</p>
+          <p className="eyebrow">Component data</p>
           <h2>{componentLabel}</h2>
           <p className="muted">{subsystemLabel}</p>
         </div>
