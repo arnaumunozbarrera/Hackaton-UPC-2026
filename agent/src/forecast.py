@@ -1,5 +1,6 @@
 from math import ceil
 
+from agent.src.risk import compute_risk_score
 from agent.src.schemas import Forecast
 
 
@@ -19,12 +20,13 @@ def forecast_from_health_trend(history: list[dict], component_id: str, horizon_s
     degradation_rate = max((first - last) / steps, 0.0)
 
     if degradation_rate == 0.0:
+        predicted_status = history[-1]["components"][component_id]["status"]
         return Forecast(
             horizon_steps=horizon_steps,
-            predicted_status=history[-1]["components"][component_id]["status"],
+            predicted_status=predicted_status,
             time_to_critical_steps=None,
             time_to_failure_steps=None,
-            risk_score=(1.0 - last) * 100.0,
+            risk_score=compute_risk_score(last, predicted_status),
         )
 
     critical_threshold = 0.30
@@ -44,7 +46,7 @@ def forecast_from_health_trend(history: list[dict], component_id: str, horizon_s
     else:
         predicted_status = "FUNCTIONAL"
 
-    risk_score = (1.0 - future_health) * 100.0
+    risk_score = compute_risk_score(future_health, predicted_status)
 
     return Forecast(
         horizon_steps=horizon_steps,

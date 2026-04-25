@@ -3,6 +3,7 @@ from pathlib import Path
 
 from agent.src.decision import make_agent_decisions
 from agent.src.explainer import explain_decisions
+from agent.src.explainer import format_actions
 
 
 def main() -> None:
@@ -44,13 +45,13 @@ def main() -> None:
         print(f"Time to critical steps: {decision.forecast.time_to_critical_steps}")
         print(f"Time to failure steps: {decision.forecast.time_to_failure_steps}")
         print(f"Baseline risk score: {decision.forecast.risk_score:.2f}")
-        print(f"Recommended action: {decision.recommendation.action.value}")
+        print(f"Recommended action plan: {format_actions(decision.recommendation.actions)}")
         print(f"Expected effect: {decision.recommendation.expected_effect}")
         print("Evaluated alternatives:")
 
         for alternative in decision.recommendation.alternatives:
             print(
-                f"- {alternative.action.value}: "
+                f"- {format_actions(alternative.actions)}: "
                 f"projected_status={alternative.predicted_status}, "
                 f"projected_health={alternative.projected_health_index}, "
                 f"risk_score={alternative.risk_score}, "

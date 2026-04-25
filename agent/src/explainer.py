@@ -1,16 +1,15 @@
-from agent.src.schemas import AgentDecision
+from agent.src.schemas import ActionType, AgentDecision
 
 
 def explain_decision(decision: AgentDecision) -> str:
     diagnosis = decision.diagnosis
-    forecast = decision.forecast
     recommendation = decision.recommendation
 
     lines = [
         f"{recommendation.priority.value}: {diagnosis.component_id} requires attention.",
         "",
         f"Diagnosis: {diagnosis.description}.",
-        f"Recommended action: {recommendation.action.value}.",
+        f"Recommended action plan: {format_actions(recommendation.actions)}.",
         f"Expected effect: {recommendation.expected_effect}.",
         "",
         build_forecast_sentence(decision),
@@ -18,9 +17,9 @@ def explain_decision(decision: AgentDecision) -> str:
         "Evaluated alternatives:",
     ]
 
-    for alternative in recommendation.alternatives[:4]:
+    for alternative in recommendation.alternatives[:5]:
         lines.append(
-            f"- {alternative.action.value}: projected_status={alternative.predicted_status}, "
+            f"- {format_actions(alternative.actions)}: projected_status={alternative.predicted_status}, "
             f"projected_health={alternative.projected_health_index}, risk_score={alternative.risk_score}"
         )
 
@@ -69,3 +68,7 @@ def build_forecast_sentence(decision: AgentDecision) -> str:
         return "Forecast without intervention: if current conditions continue, the component is expected to reach CRITICAL within the forecast horizon."
 
     return f"Forecast without intervention: predicted status after {forecast.horizon_steps} steps is {forecast.predicted_status}, with risk score {forecast.risk_score:.2f}."
+
+
+def format_actions(actions: tuple[ActionType, ...]) -> str:
+    return " + ".join(action.value for action in actions)

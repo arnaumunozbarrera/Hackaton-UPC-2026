@@ -1,4 +1,4 @@
-from agent.src.action_evaluator import evaluate_candidate_actions
+from agent.src.action_evaluator import evaluate_candidate_action_plans
 from agent.src.schemas import Diagnosis, Forecast, Recommendation, Severity
 
 
@@ -9,7 +9,7 @@ def recommend_action(
     history: list[dict],
     horizon_steps: int,
 ) -> Recommendation:
-    evaluations = evaluate_candidate_actions(
+    evaluations = evaluate_candidate_action_plans(
         diagnosis=diagnosis,
         latest_record=latest_record,
         history=history,
@@ -19,7 +19,7 @@ def recommend_action(
     best = evaluations[0]
 
     return Recommendation(
-        action=best.action,
+        actions=best.actions,
         priority=initial_priority_from_forecast(forecast),
         expected_effect=best.expected_effect,
         evidence=diagnosis.evidence,
