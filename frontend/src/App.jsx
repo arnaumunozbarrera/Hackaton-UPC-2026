@@ -12,20 +12,8 @@ import { HUMAN_DEPENDENCIES } from './data/dependencies';
 import { DEFAULT_SIMULATION_CONFIG } from './data/defaultConfig';
 import { getRunTimeline, listRuns } from './services/historianApi';
 import { fetchRunMessages } from './services/messagesApi';
-import { fetchAiPrediction, fetchCurrentModel, fetchPrediction } from './services/modelApi';
+import { fetchCurrentModel, fetchPrediction } from './services/modelApi';
 import { buildAxisTemplate, runSimulation } from './services/simulationApi';
-
-const AI_COMPONENT_IDS = new Set([
-  'cleaning_interface',
-  'heating_elements',
-  'insulation_panels',
-  'linear_guide',
-  'nozzle_plate',
-  'recoater_blade',
-  'recoater_drive_motor',
-  'temperature_sensors',
-  'thermal_firing_resistors'
-]);
 
 export default function App() {
   const [modelState, setModelState] = useState(null);
@@ -33,9 +21,6 @@ export default function App() {
   const [config, setConfig] = useState(DEFAULT_SIMULATION_CONFIG);
   const [timeline, setTimeline] = useState([]);
   const [prediction, setPrediction] = useState(null);
-  const [aiPrediction, setAiPrediction] = useState(null);
-  const [loadingAiPrediction, setLoadingAiPrediction] = useState(false);
-  const [aiPredictionError, setAiPredictionError] = useState('');
   const [messages, setMessages] = useState([]);
   const [dependencies, setDependencies] = useState([]);
   const [historianState, setHistorianState] = useState({ runs: [], latestRun: null });
@@ -54,9 +39,6 @@ export default function App() {
       if (!timeline.length) return;
       const activeRunId = timeline[0]?.run_id || historianState.latestRun?.run_id;
       setDependencies(extractDependenciesFromTimeline(timeline, selectedComponentId));
-      setAiPrediction(null);
-      setAiPredictionError('');
-      setLoadingAiPrediction(false);
 
       if (!activeRunId) {
         setPrediction(null);
@@ -71,24 +53,6 @@ export default function App() {
       } catch (predictionError) {
         if (active) {
           setPrediction(null);
-        }
-      }
-
-      if (!AI_COMPONENT_IDS.has(selectedComponentId)) return;
-
-      setLoadingAiPrediction(true);
-      try {
-        const selectedAiPrediction = await fetchAiPrediction(activeRunId, selectedComponentId);
-        if (active) {
-          setAiPrediction(selectedAiPrediction);
-        }
-      } catch (predictionError) {
-        if (active) {
-          setAiPredictionError(predictionError.message || 'AI prediction failed.');
-        }
-      } finally {
-        if (active) {
-          setLoadingAiPrediction(false);
         }
       }
     }
@@ -168,20 +132,6 @@ export default function App() {
       .filter(Boolean);
   }, [timeline, selectedComponentId]);
 
-  const predictionCurve = useMemo(() => {
-    const aiCurve = aiPrediction?.ai_prediction_curve ?? [];
-    if (aiPrediction?.component_id !== selectedComponentId || !Array.isArray(aiCurve)) {
-      return [];
-    }
-
-    return aiCurve
-      .map((point) => ({
-        usage_count: Number(point.usage_count),
-        ai_health: Number(point.health)
-      }))
-      .filter((point) => Number.isFinite(point.usage_count) && Number.isFinite(point.ai_health));
-  }, [aiPrediction, selectedComponentId]);
-
   const effectiveUsageStep = useMemo(
     () => getEffectiveUsageStep(config.totalUsages, config.usageStep),
     [config.totalUsages, config.usageStep]
@@ -208,9 +158,6 @@ export default function App() {
     setLoading(true);
     setError('');
     setPrediction(null);
-    setAiPrediction(null);
-    setAiPredictionError('');
-    setLoadingAiPrediction(false);
     setMessages([]);
     setDependencies([]);
     setTimeline([]);
@@ -321,13 +268,10 @@ export default function App() {
 
           <TimelineChart
             chartData={chartData}
-            predictionCurve={predictionCurve}
             axisTemplate={axisTemplate}
             totalUsages={config.totalUsages}
             selectedComponentId={selectedComponentId}
             loading={loading}
-            loadingAiPrediction={loadingAiPrediction}
-            aiPredictionError={aiPredictionError}
             error={error}
           />
         </section>
@@ -385,7 +329,7 @@ export default function App() {
           selectedComponentId={selectedComponentId}
         />
 
-        <PredictionPanel className="tile-fill tile-span-3" prediction={aiPrediction || prediction} />
+        <PredictionPanel className="tile-fill tile-span-3" prediction={prediction} />
 
         <Printer3DModel
           className="tile-fill tile-model tile-span-5"

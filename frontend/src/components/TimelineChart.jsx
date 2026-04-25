@@ -14,16 +14,13 @@ import { formatLabel } from '../services/formatters';
 
 export default function TimelineChart({
   chartData,
-  predictionCurve = [],
   axisTemplate,
   totalUsages,
   selectedComponentId,
   loading,
-  loadingAiPrediction = false,
-  aiPredictionError = '',
   error
 }) {
-  const data = mergeSeries(chartData.length ? chartData : axisTemplate, predictionCurve);
+  const data = chartData.length ? chartData : axisTemplate;
   const maxUsage = getMaxUsage(data, totalUsages);
   const domainMax = getDomainMax(maxUsage);
   const ticks = buildTicks(maxUsage);
@@ -90,61 +87,14 @@ export default function TimelineChart({
               strokeLinejoin="round"
               activeDot={{ r: 3, fill: '#58a6ff', stroke: '#0d1117', strokeWidth: 1 }}
             />
-            <Line
-              type="linear"
-              dataKey="ai_health"
-              name="AI prediction"
-              stroke="#3fb950"
-              strokeWidth={2}
-              strokeDasharray="7 5"
-              dot={false}
-              isAnimationActive={false}
-              connectNulls={false}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              activeDot={{ r: 3, fill: '#3fb950', stroke: '#0d1117', strokeWidth: 1 }}
-            />
           </LineChart>
         </ResponsiveContainer>
       </div>
       {!loading && !error && !chartData.length ? <p className="muted chart-note">Run the simulation to render the health curve.</p> : null}
       {loading ? <p className="muted chart-note">Running backend simulation...</p> : null}
-      {!loading && loadingAiPrediction ? <p className="muted chart-note">Loading AI prediction...</p> : null}
-      {!loading && aiPredictionError ? <p className="error-text">{aiPredictionError}</p> : null}
       {error ? <p className="error-text">{error}</p> : null}
     </section>
   );
-}
-
-function mergeSeries(modelData, predictionCurve) {
-  const pointsByUsage = new Map();
-
-  for (const point of modelData) {
-    const usageCount = Number(point.usage_count);
-    if (!Number.isFinite(usageCount)) continue;
-    pointsByUsage.set(toUsageKey(usageCount), {
-      ...point,
-      usage_count: usageCount
-    });
-  }
-
-  for (const point of predictionCurve) {
-    const usageCount = Number(point.usage_count);
-    const aiHealth = Number(point.ai_health);
-    if (!Number.isFinite(usageCount) || !Number.isFinite(aiHealth)) continue;
-    const key = toUsageKey(usageCount);
-    pointsByUsage.set(key, {
-      ...(pointsByUsage.get(key) || { usage_count: usageCount }),
-      usage_count: usageCount,
-      ai_health: aiHealth
-    });
-  }
-
-  return Array.from(pointsByUsage.values()).sort((first, second) => first.usage_count - second.usage_count);
-}
-
-function toUsageKey(value) {
-  return Number(value).toFixed(6);
 }
 
 function UsageTick({ x, y, payload, maxUsage }) {
