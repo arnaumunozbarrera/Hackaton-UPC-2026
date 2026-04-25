@@ -1,14 +1,6 @@
-"""Recoater Blade degradation model.
-
-The Recoater Blade model represents abrasive wear caused by repeated powder
-spreading cycles. The base degradation rate is calibrated using a synthetic
-target lifetime. Operational load increases wear linearly, contamination
-amplifies abrasive damage, humidity worsens powder spreading conditions, and
-maintenance reduces the effective degradation rate.
-"""
+"""Cleaning Interface degradation model for the printhead array."""
 
 from .common import (
-    DAMAGE_PRECISION,
     HEALTH_PRECISION,
     clamp,
     get_component_config,
@@ -16,39 +8,40 @@ from .common import (
     get_reported_damage,
     get_status_from_health,
     snap_health_to_failure_threshold,
+    split_damage_by_pressure,
 )
 
 
-COMPONENT_NAME = "recoater_blade"
+COMPONENT_NAME = "cleaning_interface"
 
 
-def _build_alerts(status, wear_rate, roughness_index, thickness_mm, alerts_config):
+def _build_alerts(status, cleaning_efficiency, residue_buildup, wipe_pressure_factor, alerts_config):
     alerts = []
 
-    if wear_rate >= alerts_config["high_wear_rate_threshold"]:
+    if cleaning_efficiency <= alerts_config["low_cleaning_efficiency_threshold"]:
         alerts.append(
             {
                 "severity": "WARNING",
-                "code": "HIGH_WEAR_RATE",
-                "message": "Recoater blade wear rate exceeds configured threshold.",
+                "code": "LOW_CLEANING_EFFICIENCY",
+                "message": "Printhead cleaning interface efficiency is below threshold.",
             }
         )
 
-    if roughness_index >= alerts_config["high_roughness_threshold"]:
+    if residue_buildup >= alerts_config["high_residue_buildup_threshold"]:
         alerts.append(
             {
                 "severity": "WARNING",
-                "code": "HIGH_ROUGHNESS",
-                "message": "Recoater blade roughness exceeds configured threshold.",
+                "code": "HIGH_RESIDUE_BUILDUP",
+                "message": "Cleaning interface residue buildup exceeds threshold.",
             }
         )
 
-    if thickness_mm <= alerts_config["low_thickness_threshold_mm"]:
+    if wipe_pressure_factor <= alerts_config["low_wipe_pressure_factor"]:
         alerts.append(
             {
                 "severity": "CRITICAL",
-                "code": "LOW_BLADE_THICKNESS",
-                "message": "Recoater blade thickness is below configured threshold.",
+                "code": "LOW_WIPE_PRESSURE",
+                "message": "Cleaning interface wipe pressure is below threshold.",
             }
         )
 
@@ -57,24 +50,24 @@ def _build_alerts(status, wear_rate, roughness_index, thickness_mm, alerts_confi
             {
                 "severity": "CRITICAL",
                 "code": "COMPONENT_FAILED",
-                "message": "Recoater blade health is below the failure threshold.",
+                "message": "Cleaning interface health is below the failure threshold.",
             }
         )
 
     return alerts
 
 
-def calculate_recoater_blade_state(
+def calculate_cleaning_interface_state(
     previous_state: dict,
     drivers: dict,
     config: dict,
 ) -> dict:
-    """Calculate the deterministic Phase 1 state for the recoater blade."""
+    """Calculate deterministic wiper wear and residue accumulation."""
     component_config = get_component_config(config, COMPONENT_NAME)
     health_config = component_config["health"]
     calibration_config = component_config["calibration"]
-    physical_properties = component_config["physical_properties"]
     sensitivity = component_config["sensitivity"]
+    physical_properties = component_config["physical_properties"]
     alerts_config = component_config["alerts"]
 
     previous_health = clamp(
@@ -106,12 +99,7 @@ def calculate_recoater_blade_state(
         * maintenance_factor
     )
 
-    damage = clamp(
-        raw_damage,
-        0.0,
-        previous_health - health_config["min"],
-    )
-
+    damage = clamp(raw_damage, 0.0, previous_health - health_config["min"])
     new_health = clamp(
         previous_health - damage,
         health_config["min"],
@@ -125,48 +113,35 @@ def calculate_recoater_blade_state(
 
     degradation_ratio = 1.0 - rounded_health
 
-    thickness_mm = max(
-        physical_properties["min_thickness_mm"],
-        physical_properties["initial_thickness_mm"] * rounded_health,
+    cleaning_efficiency = clamp(
+        1.0 - physical_properties["max_cleaning_efficiency_loss"] * degradation_ratio,
+        physical_properties["min_cleaning_efficiency"],
+        1.0,
     )
-
-    roughness_index = clamp(
-        degradation_ratio * physical_properties["max_roughness_index"],
+    residue_buildup = clamp(
+        physical_properties["max_residue_buildup"] * degradation_ratio
+        + physical_properties["current_contamination_residue_gain"] * contamination,
         0.0,
-        physical_properties["max_roughness_index"],
+        physical_properties["max_residue_buildup"],
+    )
+    wiper_wear_ratio = clamp(degradation_ratio, 0.0, 1.0)
+    wipe_pressure_factor = clamp(
+        1.0 - physical_properties["max_wipe_pressure_loss"] * degradation_ratio,
+        0.0,
+        1.0,
     )
 
-    wear_rate = reported_damage / max(operational_load, 1.0)
-
-    abrasive_pressure = 1.0
-    contamination_pressure = sensitivity["contamination"] * contamination
-    humidity_pressure = sensitivity["humidity"] * humidity
-
-    total_pressure = (
-        abrasive_pressure
-        + contamination_pressure
-        + humidity_pressure
-    )
-
-    damage_breakdown = {
-        "total": reported_damage,
-        "abrasive_wear": round(
-            reported_damage * abrasive_pressure / total_pressure,
-            DAMAGE_PRECISION,
-        ),
-        "contamination_damage": round(
-            reported_damage * contamination_pressure / total_pressure,
-            DAMAGE_PRECISION,
-        ),
-        "humidity_damage": round(
-            reported_damage * humidity_pressure / total_pressure,
-            DAMAGE_PRECISION,
-        ),
+    pressures = {
+        "mechanical_wear": 1.0,
+        "contamination_residue": sensitivity["contamination"] * contamination,
+        "humidity_swelling": sensitivity["humidity"] * humidity,
     }
+    damage_breakdown = {"total": reported_damage}
+    damage_breakdown.update(split_damage_by_pressure(reported_damage, pressures))
 
-    rounded_thickness_mm = round(thickness_mm, 6)
-    rounded_roughness_index = round(roughness_index, 6)
-    rounded_wear_rate = round(wear_rate, 6)
+    rounded_efficiency = round(cleaning_efficiency, 6)
+    rounded_residue = round(residue_buildup, 6)
+    rounded_pressure = round(wipe_pressure_factor, 6)
 
     return {
         "subsystem": component_config["subsystem"],
@@ -175,18 +150,19 @@ def calculate_recoater_blade_state(
         "status": status,
         "damage": damage_breakdown,
         "metrics": {
-            "thickness_mm": rounded_thickness_mm,
-            "roughness_index": rounded_roughness_index,
-            "wear_rate": rounded_wear_rate,
+            "cleaning_efficiency": rounded_efficiency,
+            "residue_buildup": rounded_residue,
+            "wiper_wear_ratio": round(wiper_wear_ratio, 6),
+            "wipe_pressure_factor": rounded_pressure,
             "contamination_factor": round(contamination_factor, 6),
             "humidity_factor": round(humidity_factor, 6),
             "maintenance_factor": round(maintenance_factor, 6),
         },
         "alerts": _build_alerts(
             status,
-            rounded_wear_rate,
-            rounded_roughness_index,
-            rounded_thickness_mm,
+            rounded_efficiency,
+            rounded_residue,
+            rounded_pressure,
             alerts_config,
         ),
     }
