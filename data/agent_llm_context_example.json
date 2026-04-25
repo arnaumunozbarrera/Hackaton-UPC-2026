@@ -1,0 +1,372 @@
+{
+  "context": {
+    "role": "grounded_maintenance_copilot",
+    "run_id": "run_1777083541387",
+    "user_question": "Why do you recommend this maintenance plan?",
+    "rules": [
+      "Answer only using the provided analysis data.",
+      "Do not invent causes, values, timestamps, actions, or forecasts.",
+      "Every technical claim must be supported by evidence from the analysis.",
+      "If the analysis is insufficient, say that the available data is insufficient.",
+      "Do not override the selected action plan. You may explain it, not replace it."
+    ],
+    "answer_requirements": {
+      "include_priority": true,
+      "include_recommended_actions": true,
+      "include_forecast_without_intervention": true,
+      "include_evidence": true,
+      "include_uncertainty_when_needed": true
+    },
+    "analysis_summary": {
+      "scenario_name": "run_1777083541387",
+      "decision_count": 3,
+      "highest_priority": "WARNING"
+    },
+    "decisions": [
+      {
+        "component_id": "nozzle_plate",
+        "issue": "nozzle_clogging",
+        "diagnosis_severity": "WARNING",
+        "recommendation_priority": "WARNING",
+        "diagnosis_description": "Nozzle plate shows signs of clogging",
+        "forecast_without_intervention": {
+          "horizon_steps": 24,
+          "predicted_status": "DEGRADED",
+          "time_to_critical_steps": 63,
+          "time_to_failure_steps": 246,
+          "risk_score": 84.7167
+        },
+        "selected_plan": {
+          "actions": [
+            "RUN_CLEANING_CYCLE",
+            "SCHEDULE_MAINTENANCE"
+          ],
+          "actions_text": "RUN_CLEANING_CYCLE + SCHEDULE_MAINTENANCE",
+          "expected_effect": "Apply RUN_CLEANING_CYCLE + SCHEDULE_MAINTENANCE. This reduces clogging and recovers printhead efficiency. Projected status becomes FUNCTIONAL with health index 0.780",
+          "projected_status": "FUNCTIONAL",
+          "projected_health_index": 0.7798,
+          "risk_score": 52.0242
+        },
+        "top_alternatives": [
+          {
+            "actions": [
+              "RUN_CLEANING_CYCLE",
+              "SCHEDULE_MAINTENANCE"
+            ],
+            "actions_text": "RUN_CLEANING_CYCLE + SCHEDULE_MAINTENANCE",
+            "projected_health_index": 0.7798,
+            "predicted_status": "FUNCTIONAL",
+            "risk_score": 52.0242,
+            "expected_effect": "Apply RUN_CLEANING_CYCLE + SCHEDULE_MAINTENANCE. This reduces clogging and recovers printhead efficiency. Projected status becomes FUNCTIONAL with health index 0.780"
+          },
+          {
+            "actions": [
+              "SCHEDULE_MAINTENANCE"
+            ],
+            "actions_text": "SCHEDULE_MAINTENANCE",
+            "projected_health_index": 0.6525,
+            "predicted_status": "DEGRADED",
+            "risk_score": 82.7466,
+            "expected_effect": "Apply SCHEDULE_MAINTENANCE. This reduces clogging and recovers printhead efficiency. Projected status becomes DEGRADED with health index 0.653"
+          },
+          {
+            "actions": [
+              "RUN_CLEANING_CYCLE"
+            ],
+            "actions_text": "RUN_CLEANING_CYCLE",
+            "projected_health_index": 0.5909,
+            "predicted_status": "DEGRADED",
+            "risk_score": 82.9108,
+            "expected_effect": "Apply RUN_CLEANING_CYCLE. This reduces clogging and recovers printhead efficiency. Projected status becomes DEGRADED with health index 0.591"
+          },
+          {
+            "actions": [
+              "CONTINUE_OPERATION"
+            ],
+            "actions_text": "CONTINUE_OPERATION",
+            "projected_health_index": 0.4528,
+            "predicted_status": "DEGRADED",
+            "risk_score": 84.7167,
+            "expected_effect": "No intervention applied. Projected status remains DEGRADED with health index 0.453"
+          },
+          {
+            "actions": [
+              "RUN_CLEANING_CYCLE",
+              "REDUCE_LOAD"
+            ],
+            "actions_text": "RUN_CLEANING_CYCLE + REDUCE_LOAD",
+            "projected_health_index": 0.5975,
+            "predicted_status": "DEGRADED",
+            "risk_score": 90.2458,
+            "expected_effect": "Apply RUN_CLEANING_CYCLE + REDUCE_LOAD. This reduces clogging and recovers printhead efficiency. Projected status becomes DEGRADED with health index 0.598"
+          }
+        ],
+        "evidence": [
+          {
+            "run_id": "run_1777083541387",
+            "timestamp": "2026-04-25T08:34:01Z",
+            "component_id": "nozzle_plate",
+            "field": "health_index",
+            "value": 0.4857
+          },
+          {
+            "run_id": "run_1777083541387",
+            "timestamp": "2026-04-25T08:34:01Z",
+            "component_id": "nozzle_plate",
+            "field": "clogging_ratio",
+            "value": 0.378
+          },
+          {
+            "run_id": "run_1777083541387",
+            "timestamp": "2026-04-25T08:34:01Z",
+            "component_id": "nozzle_plate",
+            "field": "blocked_nozzles_pct",
+            "value": 37.8033
+          },
+          {
+            "run_id": "run_1777083541387",
+            "timestamp": "2026-04-25T08:34:01Z",
+            "component_id": "nozzle_plate",
+            "field": "clogging_damage",
+            "value": 0.001
+          }
+        ]
+      },
+      {
+        "component_id": "heating_elements",
+        "issue": "thermal_instability",
+        "diagnosis_severity": "WARNING",
+        "recommendation_priority": "WARNING",
+        "diagnosis_description": "Heating elements are degrading under sustained temperature stress",
+        "forecast_without_intervention": {
+          "horizon_steps": 24,
+          "predicted_status": "DEGRADED",
+          "time_to_critical_steps": 67,
+          "time_to_failure_steps": 252,
+          "risk_score": 84.1987
+        },
+        "selected_plan": {
+          "actions": [
+            "TRIGGER_COOLDOWN",
+            "REDUCE_LOAD",
+            "SCHEDULE_MAINTENANCE"
+          ],
+          "actions_text": "TRIGGER_COOLDOWN + REDUCE_LOAD + SCHEDULE_MAINTENANCE",
+          "expected_effect": "Apply TRIGGER_COOLDOWN + REDUCE_LOAD + SCHEDULE_MAINTENANCE. This reduces thermal stress and slows heat-driven degradation. Projected status becomes FUNCTIONAL with health index 0.728",
+          "projected_status": "FUNCTIONAL",
+          "projected_health_index": 0.728,
+          "risk_score": 63.2002
+        },
+        "top_alternatives": [
+          {
+            "actions": [
+              "TRIGGER_COOLDOWN",
+              "REDUCE_LOAD",
+              "SCHEDULE_MAINTENANCE"
+            ],
+            "actions_text": "TRIGGER_COOLDOWN + REDUCE_LOAD + SCHEDULE_MAINTENANCE",
+            "projected_health_index": 0.728,
+            "predicted_status": "FUNCTIONAL",
+            "risk_score": 63.2002,
+            "expected_effect": "Apply TRIGGER_COOLDOWN + REDUCE_LOAD + SCHEDULE_MAINTENANCE. This reduces thermal stress and slows heat-driven degradation. Projected status becomes FUNCTIONAL with health index 0.728"
+          },
+          {
+            "actions": [
+              "CONTINUE_OPERATION"
+            ],
+            "actions_text": "CONTINUE_OPERATION",
+            "projected_health_index": 0.458,
+            "predicted_status": "DEGRADED",
+            "risk_score": 84.1987,
+            "expected_effect": "No intervention applied. Projected status remains DEGRADED with health index 0.458"
+          },
+          {
+            "actions": [
+              "TRIGGER_COOLDOWN"
+            ],
+            "actions_text": "TRIGGER_COOLDOWN",
+            "projected_health_index": 0.5391,
+            "predicted_status": "DEGRADED",
+            "risk_score": 86.0871,
+            "expected_effect": "Apply TRIGGER_COOLDOWN. This reduces thermal stress and slows heat-driven degradation. Projected status becomes DEGRADED with health index 0.539"
+          },
+          {
+            "actions": [
+              "REDUCE_LOAD"
+            ],
+            "actions_text": "REDUCE_LOAD",
+            "projected_health_index": 0.4726,
+            "predicted_status": "DEGRADED",
+            "risk_score": 90.7368,
+            "expected_effect": "Apply REDUCE_LOAD. This reduces thermal stress and slows heat-driven degradation. Projected status becomes DEGRADED with health index 0.473"
+          },
+          {
+            "actions": [
+              "TRIGGER_COOLDOWN",
+              "REDUCE_LOAD"
+            ],
+            "actions_text": "TRIGGER_COOLDOWN + REDUCE_LOAD",
+            "projected_health_index": 0.5442,
+            "predicted_status": "DEGRADED",
+            "risk_score": 93.5754,
+            "expected_effect": "Apply TRIGGER_COOLDOWN + REDUCE_LOAD. This reduces thermal stress and slows heat-driven degradation. Projected status becomes DEGRADED with health index 0.544"
+          }
+        ],
+        "evidence": [
+          {
+            "run_id": "run_1777083541387",
+            "timestamp": "2026-04-25T08:34:01Z",
+            "component_id": "heating_elements",
+            "field": "health_index",
+            "value": 0.4905
+          },
+          {
+            "run_id": "run_1777083541387",
+            "timestamp": "2026-04-25T08:34:01Z",
+            "component_id": "machine",
+            "field": "temperature_stress",
+            "value": 0.8671
+          },
+          {
+            "run_id": "run_1777083541387",
+            "timestamp": "2026-04-25T08:34:01Z",
+            "component_id": "heating_elements",
+            "field": "thermal_overload",
+            "value": 0.0005
+          },
+          {
+            "run_id": "run_1777083541387",
+            "timestamp": "2026-04-25T08:34:01Z",
+            "component_id": "heating_elements",
+            "field": "electrical_degradation",
+            "value": 0.0003
+          },
+          {
+            "run_id": "run_1777083541387",
+            "timestamp": "2026-04-25T08:34:01Z",
+            "component_id": "heating_elements",
+            "field": "thermal_stability",
+            "value": 0.3629
+          }
+        ]
+      },
+      {
+        "component_id": "recoater_blade",
+        "issue": "recoater_wear",
+        "diagnosis_severity": "WARNING",
+        "recommendation_priority": "WARNING",
+        "diagnosis_description": "Recoater blade wear may increase powder contamination",
+        "forecast_without_intervention": {
+          "horizon_steps": 24,
+          "predicted_status": "DEGRADED",
+          "time_to_critical_steps": 293,
+          "time_to_failure_steps": 571,
+          "risk_score": 65.9042
+        },
+        "selected_plan": {
+          "actions": [
+            "SCHEDULE_MAINTENANCE"
+          ],
+          "actions_text": "SCHEDULE_MAINTENANCE",
+          "expected_effect": "Apply SCHEDULE_MAINTENANCE. This reduces wear propagation and downstream contamination risk. Projected status becomes FUNCTIONAL with health index 0.834",
+          "projected_status": "FUNCTIONAL",
+          "projected_health_index": 0.8339,
+          "risk_score": 34.6117
+        },
+        "top_alternatives": [
+          {
+            "actions": [
+              "SCHEDULE_MAINTENANCE"
+            ],
+            "actions_text": "SCHEDULE_MAINTENANCE",
+            "projected_health_index": 0.8339,
+            "predicted_status": "FUNCTIONAL",
+            "risk_score": 34.6117,
+            "expected_effect": "Apply SCHEDULE_MAINTENANCE. This reduces wear propagation and downstream contamination risk. Projected status becomes FUNCTIONAL with health index 0.834"
+          },
+          {
+            "actions": [
+              "REDUCE_LOAD",
+              "SCHEDULE_MAINTENANCE"
+            ],
+            "actions_text": "REDUCE_LOAD + SCHEDULE_MAINTENANCE",
+            "projected_health_index": 0.8378,
+            "predicted_status": "FUNCTIONAL",
+            "risk_score": 42.2239,
+            "expected_effect": "Apply REDUCE_LOAD + SCHEDULE_MAINTENANCE. This reduces wear propagation and downstream contamination risk. Projected status becomes FUNCTIONAL with health index 0.838"
+          },
+          {
+            "actions": [
+              "CONTINUE_OPERATION"
+            ],
+            "actions_text": "CONTINUE_OPERATION",
+            "projected_health_index": 0.641,
+            "predicted_status": "DEGRADED",
+            "risk_score": 65.9042,
+            "expected_effect": "No intervention applied. Projected status remains DEGRADED with health index 0.641"
+          },
+          {
+            "actions": [
+              "REDUCE_LOAD"
+            ],
+            "actions_text": "REDUCE_LOAD",
+            "projected_health_index": 0.6507,
+            "predicted_status": "DEGRADED",
+            "risk_score": 72.9348,
+            "expected_effect": "Apply REDUCE_LOAD. This reduces wear propagation and downstream contamination risk. Projected status becomes DEGRADED with health index 0.651"
+          },
+          {
+            "actions": [
+              "REPLACE_COMPONENT"
+            ],
+            "actions_text": "REPLACE_COMPONENT",
+            "projected_health_index": 1.0,
+            "predicted_status": "FUNCTIONAL",
+            "risk_score": 85.0,
+            "expected_effect": "Apply REPLACE_COMPONENT. This restores component condition at higher operational cost. Projected status becomes FUNCTIONAL with health index 1.000"
+          }
+        ],
+        "evidence": [
+          {
+            "run_id": "run_1777083541387",
+            "timestamp": "2026-04-25T08:34:01Z",
+            "component_id": "recoater_blade",
+            "field": "health_index",
+            "value": 0.6625
+          },
+          {
+            "run_id": "run_1777083541387",
+            "timestamp": "2026-04-25T08:34:01Z",
+            "component_id": "recoater_blade",
+            "field": "roughness_index",
+            "value": 0.3375
+          },
+          {
+            "run_id": "run_1777083541387",
+            "timestamp": "2026-04-25T08:34:01Z",
+            "component_id": "recoater_blade",
+            "field": "abrasive_wear",
+            "value": 0.0004
+          },
+          {
+            "run_id": "run_1777083541387",
+            "timestamp": "2026-04-25T08:34:01Z",
+            "component_id": "recoater_blade",
+            "field": "contamination_damage",
+            "value": 0.0004
+          }
+        ]
+      }
+    ]
+  },
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are a grounded predictive maintenance copilot for an industrial digital twin. Use only the provided context. Do not invent data. Explain the agent decision clearly and cite the evidence timestamps and metric values included in the context."
+    },
+    {
+      "role": "user",
+      "content": "{\n  \"role\": \"grounded_maintenance_copilot\",\n  \"run_id\": \"run_1777083541387\",\n  \"user_question\": \"Why do you recommend this maintenance plan?\",\n  \"rules\": [\n    \"Answer only using the provided analysis data.\",\n    \"Do not invent causes, values, timestamps, actions, or forecasts.\",\n    \"Every technical claim must be supported by evidence from the analysis.\",\n    \"If the analysis is insufficient, say that the available data is insufficient.\",\n    \"Do not override the selected action plan. You may explain it, not replace it.\"\n  ],\n  \"answer_requirements\": {\n    \"include_priority\": true,\n    \"include_recommended_actions\": true,\n    \"include_forecast_without_intervention\": true,\n    \"include_evidence\": true,\n    \"include_uncertainty_when_needed\": true\n  },\n  \"analysis_summary\": {\n    \"scenario_name\": \"run_1777083541387\",\n    \"decision_count\": 3,\n    \"highest_priority\": \"WARNING\"\n  },\n  \"decisions\": [\n    {\n      \"component_id\": \"nozzle_plate\",\n      \"issue\": \"nozzle_clogging\",\n      \"diagnosis_severity\": \"WARNING\",\n      \"recommendation_priority\": \"WARNING\",\n      \"diagnosis_description\": \"Nozzle plate shows signs of clogging\",\n      \"forecast_without_intervention\": {\n        \"horizon_steps\": 24,\n        \"predicted_status\": \"DEGRADED\",\n        \"time_to_critical_steps\": 63,\n        \"time_to_failure_steps\": 246,\n        \"risk_score\": 84.7167\n      },\n      \"selected_plan\": {\n        \"actions\": [\n          \"RUN_CLEANING_CYCLE\",\n          \"SCHEDULE_MAINTENANCE\"\n        ],\n        \"actions_text\": \"RUN_CLEANING_CYCLE + SCHEDULE_MAINTENANCE\",\n        \"expected_effect\": \"Apply RUN_CLEANING_CYCLE + SCHEDULE_MAINTENANCE. This reduces clogging and recovers printhead efficiency. Projected status becomes FUNCTIONAL with health index 0.780\",\n        \"projected_status\": \"FUNCTIONAL\",\n        \"projected_health_index\": 0.7798,\n        \"risk_score\": 52.0242\n      },\n      \"top_alternatives\": [\n        {\n          \"actions\": [\n            \"RUN_CLEANING_CYCLE\",\n            \"SCHEDULE_MAINTENANCE\"\n          ],\n          \"actions_text\": \"RUN_CLEANING_CYCLE + SCHEDULE_MAINTENANCE\",\n          \"projected_health_index\": 0.7798,\n          \"predicted_status\": \"FUNCTIONAL\",\n          \"risk_score\": 52.0242,\n          \"expected_effect\": \"Apply RUN_CLEANING_CYCLE + SCHEDULE_MAINTENANCE. This reduces clogging and recovers printhead efficiency. Projected status becomes FUNCTIONAL with health index 0.780\"\n        },\n        {\n          \"actions\": [\n            \"SCHEDULE_MAINTENANCE\"\n          ],\n          \"actions_text\": \"SCHEDULE_MAINTENANCE\",\n          \"projected_health_index\": 0.6525,\n          \"predicted_status\": \"DEGRADED\",\n          \"risk_score\": 82.7466,\n          \"expected_effect\": \"Apply SCHEDULE_MAINTENANCE. This reduces clogging and recovers printhead efficiency. Projected status becomes DEGRADED with health index 0.653\"\n        },\n        {\n          \"actions\": [\n            \"RUN_CLEANING_CYCLE\"\n          ],\n          \"actions_text\": \"RUN_CLEANING_CYCLE\",\n          \"projected_health_index\": 0.5909,\n          \"predicted_status\": \"DEGRADED\",\n          \"risk_score\": 82.9108,\n          \"expected_effect\": \"Apply RUN_CLEANING_CYCLE. This reduces clogging and recovers printhead efficiency. Projected status becomes DEGRADED with health index 0.591\"\n        },\n        {\n          \"actions\": [\n            \"CONTINUE_OPERATION\"\n          ],\n          \"actions_text\": \"CONTINUE_OPERATION\",\n          \"projected_health_index\": 0.4528,\n          \"predicted_status\": \"DEGRADED\",\n          \"risk_score\": 84.7167,\n          \"expected_effect\": \"No intervention applied. Projected status remains DEGRADED with health index 0.453\"\n        },\n        {\n          \"actions\": [\n            \"RUN_CLEANING_CYCLE\",\n            \"REDUCE_LOAD\"\n          ],\n          \"actions_text\": \"RUN_CLEANING_CYCLE + REDUCE_LOAD\",\n          \"projected_health_index\": 0.5975,\n          \"predicted_status\": \"DEGRADED\",\n          \"risk_score\": 90.2458,\n          \"expected_effect\": \"Apply RUN_CLEANING_CYCLE + REDUCE_LOAD. This reduces clogging and recovers printhead efficiency. Projected status becomes DEGRADED with health index 0.598\"\n        }\n      ],\n      \"evidence\": [\n        {\n          \"run_id\": \"run_1777083541387\",\n          \"timestamp\": \"2026-04-25T08:34:01Z\",\n          \"component_id\": \"nozzle_plate\",\n          \"field\": \"health_index\",\n          \"value\": 0.4857\n        },\n        {\n          \"run_id\": \"run_1777083541387\",\n          \"timestamp\": \"2026-04-25T08:34:01Z\",\n          \"component_id\": \"nozzle_plate\",\n          \"field\": \"clogging_ratio\",\n          \"value\": 0.378\n        },\n        {\n          \"run_id\": \"run_1777083541387\",\n          \"timestamp\": \"2026-04-25T08:34:01Z\",\n          \"component_id\": \"nozzle_plate\",\n          \"field\": \"blocked_nozzles_pct\",\n          \"value\": 37.8033\n        },\n        {\n          \"run_id\": \"run_1777083541387\",\n          \"timestamp\": \"2026-04-25T08:34:01Z\",\n          \"component_id\": \"nozzle_plate\",\n          \"field\": \"clogging_damage\",\n          \"value\": 0.001\n        }\n      ]\n    },\n    {\n      \"component_id\": \"heating_elements\",\n      \"issue\": \"thermal_instability\",\n      \"diagnosis_severity\": \"WARNING\",\n      \"recommendation_priority\": \"WARNING\",\n      \"diagnosis_description\": \"Heating elements are degrading under sustained temperature stress\",\n      \"forecast_without_intervention\": {\n        \"horizon_steps\": 24,\n        \"predicted_status\": \"DEGRADED\",\n        \"time_to_critical_steps\": 67,\n        \"time_to_failure_steps\": 252,\n        \"risk_score\": 84.1987\n      },\n      \"selected_plan\": {\n        \"actions\": [\n          \"TRIGGER_COOLDOWN\",\n          \"REDUCE_LOAD\",\n          \"SCHEDULE_MAINTENANCE\"\n        ],\n        \"actions_text\": \"TRIGGER_COOLDOWN + REDUCE_LOAD + SCHEDULE_MAINTENANCE\",\n        \"expected_effect\": \"Apply TRIGGER_COOLDOWN + REDUCE_LOAD + SCHEDULE_MAINTENANCE. This reduces thermal stress and slows heat-driven degradation. Projected status becomes FUNCTIONAL with health index 0.728\",\n        \"projected_status\": \"FUNCTIONAL\",\n        \"projected_health_index\": 0.728,\n        \"risk_score\": 63.2002\n      },\n      \"top_alternatives\": [\n        {\n          \"actions\": [\n            \"TRIGGER_COOLDOWN\",\n            \"REDUCE_LOAD\",\n            \"SCHEDULE_MAINTENANCE\"\n          ],\n          \"actions_text\": \"TRIGGER_COOLDOWN + REDUCE_LOAD + SCHEDULE_MAINTENANCE\",\n          \"projected_health_index\": 0.728,\n          \"predicted_status\": \"FUNCTIONAL\",\n          \"risk_score\": 63.2002,\n          \"expected_effect\": \"Apply TRIGGER_COOLDOWN + REDUCE_LOAD + SCHEDULE_MAINTENANCE. This reduces thermal stress and slows heat-driven degradation. Projected status becomes FUNCTIONAL with health index 0.728\"\n        },\n        {\n          \"actions\": [\n            \"CONTINUE_OPERATION\"\n          ],\n          \"actions_text\": \"CONTINUE_OPERATION\",\n          \"projected_health_index\": 0.458,\n          \"predicted_status\": \"DEGRADED\",\n          \"risk_score\": 84.1987,\n          \"expected_effect\": \"No intervention applied. Projected status remains DEGRADED with health index 0.458\"\n        },\n        {\n          \"actions\": [\n            \"TRIGGER_COOLDOWN\"\n          ],\n          \"actions_text\": \"TRIGGER_COOLDOWN\",\n          \"projected_health_index\": 0.5391,\n          \"predicted_status\": \"DEGRADED\",\n          \"risk_score\": 86.0871,\n          \"expected_effect\": \"Apply TRIGGER_COOLDOWN. This reduces thermal stress and slows heat-driven degradation. Projected status becomes DEGRADED with health index 0.539\"\n        },\n        {\n          \"actions\": [\n            \"REDUCE_LOAD\"\n          ],\n          \"actions_text\": \"REDUCE_LOAD\",\n          \"projected_health_index\": 0.4726,\n          \"predicted_status\": \"DEGRADED\",\n          \"risk_score\": 90.7368,\n          \"expected_effect\": \"Apply REDUCE_LOAD. This reduces thermal stress and slows heat-driven degradation. Projected status becomes DEGRADED with health index 0.473\"\n        },\n        {\n          \"actions\": [\n            \"TRIGGER_COOLDOWN\",\n            \"REDUCE_LOAD\"\n          ],\n          \"actions_text\": \"TRIGGER_COOLDOWN + REDUCE_LOAD\",\n          \"projected_health_index\": 0.5442,\n          \"predicted_status\": \"DEGRADED\",\n          \"risk_score\": 93.5754,\n          \"expected_effect\": \"Apply TRIGGER_COOLDOWN + REDUCE_LOAD. This reduces thermal stress and slows heat-driven degradation. Projected status becomes DEGRADED with health index 0.544\"\n        }\n      ],\n      \"evidence\": [\n        {\n          \"run_id\": \"run_1777083541387\",\n          \"timestamp\": \"2026-04-25T08:34:01Z\",\n          \"component_id\": \"heating_elements\",\n          \"field\": \"health_index\",\n          \"value\": 0.4905\n        },\n        {\n          \"run_id\": \"run_1777083541387\",\n          \"timestamp\": \"2026-04-25T08:34:01Z\",\n          \"component_id\": \"machine\",\n          \"field\": \"temperature_stress\",\n          \"value\": 0.8671\n        },\n        {\n          \"run_id\": \"run_1777083541387\",\n          \"timestamp\": \"2026-04-25T08:34:01Z\",\n          \"component_id\": \"heating_elements\",\n          \"field\": \"thermal_overload\",\n          \"value\": 0.0005\n        },\n        {\n          \"run_id\": \"run_1777083541387\",\n          \"timestamp\": \"2026-04-25T08:34:01Z\",\n          \"component_id\": \"heating_elements\",\n          \"field\": \"electrical_degradation\",\n          \"value\": 0.0003\n        },\n        {\n          \"run_id\": \"run_1777083541387\",\n          \"timestamp\": \"2026-04-25T08:34:01Z\",\n          \"component_id\": \"heating_elements\",\n          \"field\": \"thermal_stability\",\n          \"value\": 0.3629\n        }\n      ]\n    },\n    {\n      \"component_id\": \"recoater_blade\",\n      \"issue\": \"recoater_wear\",\n      \"diagnosis_severity\": \"WARNING\",\n      \"recommendation_priority\": \"WARNING\",\n      \"diagnosis_description\": \"Recoater blade wear may increase powder contamination\",\n      \"forecast_without_intervention\": {\n        \"horizon_steps\": 24,\n        \"predicted_status\": \"DEGRADED\",\n        \"time_to_critical_steps\": 293,\n        \"time_to_failure_steps\": 571,\n        \"risk_score\": 65.9042\n      },\n      \"selected_plan\": {\n        \"actions\": [\n          \"SCHEDULE_MAINTENANCE\"\n        ],\n        \"actions_text\": \"SCHEDULE_MAINTENANCE\",\n        \"expected_effect\": \"Apply SCHEDULE_MAINTENANCE. This reduces wear propagation and downstream contamination risk. Projected status becomes FUNCTIONAL with health index 0.834\",\n        \"projected_status\": \"FUNCTIONAL\",\n        \"projected_health_index\": 0.8339,\n        \"risk_score\": 34.6117\n      },\n      \"top_alternatives\": [\n        {\n          \"actions\": [\n            \"SCHEDULE_MAINTENANCE\"\n          ],\n          \"actions_text\": \"SCHEDULE_MAINTENANCE\",\n          \"projected_health_index\": 0.8339,\n          \"predicted_status\": \"FUNCTIONAL\",\n          \"risk_score\": 34.6117,\n          \"expected_effect\": \"Apply SCHEDULE_MAINTENANCE. This reduces wear propagation and downstream contamination risk. Projected status becomes FUNCTIONAL with health index 0.834\"\n        },\n        {\n          \"actions\": [\n            \"REDUCE_LOAD\",\n            \"SCHEDULE_MAINTENANCE\"\n          ],\n          \"actions_text\": \"REDUCE_LOAD + SCHEDULE_MAINTENANCE\",\n          \"projected_health_index\": 0.8378,\n          \"predicted_status\": \"FUNCTIONAL\",\n          \"risk_score\": 42.2239,\n          \"expected_effect\": \"Apply REDUCE_LOAD + SCHEDULE_MAINTENANCE. This reduces wear propagation and downstream contamination risk. Projected status becomes FUNCTIONAL with health index 0.838\"\n        },\n        {\n          \"actions\": [\n            \"CONTINUE_OPERATION\"\n          ],\n          \"actions_text\": \"CONTINUE_OPERATION\",\n          \"projected_health_index\": 0.641,\n          \"predicted_status\": \"DEGRADED\",\n          \"risk_score\": 65.9042,\n          \"expected_effect\": \"No intervention applied. Projected status remains DEGRADED with health index 0.641\"\n        },\n        {\n          \"actions\": [\n            \"REDUCE_LOAD\"\n          ],\n          \"actions_text\": \"REDUCE_LOAD\",\n          \"projected_health_index\": 0.6507,\n          \"predicted_status\": \"DEGRADED\",\n          \"risk_score\": 72.9348,\n          \"expected_effect\": \"Apply REDUCE_LOAD. This reduces wear propagation and downstream contamination risk. Projected status becomes DEGRADED with health index 0.651\"\n        },\n        {\n          \"actions\": [\n            \"REPLACE_COMPONENT\"\n          ],\n          \"actions_text\": \"REPLACE_COMPONENT\",\n          \"projected_health_index\": 1.0,\n          \"predicted_status\": \"FUNCTIONAL\",\n          \"risk_score\": 85.0,\n          \"expected_effect\": \"Apply REPLACE_COMPONENT. This restores component condition at higher operational cost. Projected status becomes FUNCTIONAL with health index 1.000\"\n        }\n      ],\n      \"evidence\": [\n        {\n          \"run_id\": \"run_1777083541387\",\n          \"timestamp\": \"2026-04-25T08:34:01Z\",\n          \"component_id\": \"recoater_blade\",\n          \"field\": \"health_index\",\n          \"value\": 0.6625\n        },\n        {\n          \"run_id\": \"run_1777083541387\",\n          \"timestamp\": \"2026-04-25T08:34:01Z\",\n          \"component_id\": \"recoater_blade\",\n          \"field\": \"roughness_index\",\n          \"value\": 0.3375\n        },\n        {\n          \"run_id\": \"run_1777083541387\",\n          \"timestamp\": \"2026-04-25T08:34:01Z\",\n          \"component_id\": \"recoater_blade\",\n          \"field\": \"abrasive_wear\",\n          \"value\": 0.0004\n        },\n        {\n          \"run_id\": \"run_1777083541387\",\n          \"timestamp\": \"2026-04-25T08:34:01Z\",\n          \"component_id\": \"recoater_blade\",\n          \"field\": \"contamination_damage\",\n          \"value\": 0.0004\n        }\n      ]\n    }\n  ]\n}"
+    }
+  ]
+}
