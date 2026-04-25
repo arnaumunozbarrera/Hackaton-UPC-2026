@@ -62,7 +62,7 @@ export default function TimelineChart({ chartData, axisTemplate, totalUsages, se
             <ReferenceLine y={0.4} stroke="#d29922" strokeDasharray="4 4" label={{ value: 'critical', position: 'insideTopLeft', fill: '#d29922', fontSize: 11 }} />
             <ReferenceLine y={0.15} stroke="#f85149" strokeDasharray="4 4" label={{ value: 'failed', position: 'insideTopLeft', fill: '#f85149', fontSize: 11 }} />
             <Line
-              type="monotone"
+              type="linear"
               dataKey="health"
               name="Health index"
               stroke="#58a6ff"

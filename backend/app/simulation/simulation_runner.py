@@ -41,15 +41,57 @@ def _generate_drivers_for_step(initial_conditions: dict, step_index: int, rng: r
     if step_index == 0 or stochasticity == 0:
         return phase1_drivers
 
-    wave = math.sin(step_index / 3.0)
-    noise = rng.uniform(-1.0, 1.0) * stochasticity
+    short_wave = math.sin(step_index / 3.0)
+    long_wave = math.sin(step_index / 11.0 + 0.8)
+    process_noise = rng.uniform(-1.0, 1.0)
+    shock = 0.0
+
+    if rng.random() < 0.08 * stochasticity:
+        shock = rng.uniform(0.35, 1.0) * stochasticity
 
     adjusted = dict(phase1_drivers)
-    adjusted["temperature_c"] = phase1_drivers["temperature_c"] + 1.8 * wave * stochasticity + 1.2 * noise
-    adjusted["temperature_stress"] = max(0.0, min(phase1_drivers["temperature_stress"] + 0.07 * wave * stochasticity + 0.05 * noise, 1.0))
-    adjusted["humidity"] = max(0.0, min(phase1_drivers["humidity"] + 0.03 * wave * stochasticity, 1.0))
-    adjusted["contamination"] = max(0.0, min(phase1_drivers["contamination"] + 0.04 * noise, 1.0))
-    adjusted["operational_load"] = max(0.0, phase1_drivers["operational_load"] + 0.05 * wave * stochasticity)
+    load_multiplier = (
+        1.0
+        + 0.22 * short_wave * stochasticity
+        + 0.18 * long_wave * stochasticity
+        + 0.28 * process_noise * stochasticity
+        + 1.15 * shock
+    )
+    temperature_stress = (
+        phase1_drivers["temperature_stress"]
+        + 0.14 * short_wave * stochasticity
+        + 0.08 * long_wave * stochasticity
+        + 0.16 * process_noise * stochasticity
+        + 0.45 * shock
+    )
+
+    adjusted["temperature_stress"] = max(0.0, min(temperature_stress, 1.0))
+    temperature_direction = 1.0 if phase1_drivers["temperature_c"] >= 35.0 else -1.0
+    adjusted["temperature_c"] = 35.0 + temperature_direction * (
+        20.0 * adjusted["temperature_stress"]
+    )
+    adjusted["humidity"] = max(
+        0.0,
+        min(
+            phase1_drivers["humidity"]
+            + 0.07 * long_wave * stochasticity
+            + 0.04 * process_noise * stochasticity,
+            1.0,
+        ),
+    )
+    adjusted["contamination"] = max(
+        0.0,
+        min(
+            phase1_drivers["contamination"]
+            + 0.08 * process_noise * stochasticity
+            + 0.22 * shock,
+            1.0,
+        ),
+    )
+    adjusted["operational_load"] = max(
+        0.0,
+        phase1_drivers["operational_load"] * max(0.15, load_multiplier),
+    )
     adjusted["maintenance_level"] = max(0.0, min(phase1_drivers["maintenance_level"], 1.0))
     return adjusted
 
