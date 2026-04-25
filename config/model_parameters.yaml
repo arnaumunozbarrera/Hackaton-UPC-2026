@@ -1,0 +1,107 @@
+components:
+  recoater_blade:
+    enabled: true
+    subsystem: recoating_system
+    model_type: linear_abrasive_wear
+
+    health:
+      initial: 1.0
+      min: 0.0
+      max: 1.0
+      degraded_threshold: 0.70
+      critical_threshold: 0.40
+      failed_threshold: 0.10
+
+    calibration:
+      target_cycles_until_failure: 1500
+      failure_threshold: 0.10
+
+    physical_properties:
+      initial_thickness_mm: 2.0
+      min_thickness_mm: 0.25
+      max_roughness_index: 1.0
+
+    sensitivity:
+      contamination: 2.0
+      humidity: 0.8
+      maintenance_protection: 0.6
+      load_exponent: 1.0
+
+    alerts:
+      high_wear_rate_threshold: 0.003
+      high_roughness_threshold: 0.70
+      low_thickness_threshold_mm: 0.60
+
+  nozzle_plate:
+    enabled: true
+    subsystem: printhead_array
+    model_type: clogging_thermal_fatigue
+
+    health:
+      initial: 1.0
+      min: 0.0
+      max: 1.0
+      degraded_threshold: 0.70
+      critical_threshold: 0.40
+      failed_threshold: 0.10
+
+    calibration:
+      target_cycles_until_failure: 1200
+      failure_threshold: 0.10
+
+    sensitivity:
+      contamination: 3.0
+      humidity: 1.2
+      temperature_stress: 2.0
+      maintenance_protection: 0.7
+      load_exponent: 1.0
+      recoater_cascade: 0.4
+      heating_cascade: 0.3
+
+    damage_weights:
+      clogging: 0.65
+      thermal_fatigue: 0.35
+
+    metrics:
+      max_blocked_nozzles_pct: 100.0
+      min_jetting_efficiency: 0.0
+
+    alerts:
+      high_clogging_threshold: 0.60
+      high_thermal_fatigue_threshold: 0.60
+      low_jetting_efficiency_threshold: 0.50
+
+  heating_elements:
+    enabled: true
+    subsystem: thermal_control
+    model_type: exponential_electrical_degradation
+
+    health:
+      initial: 1.0
+      min: 0.0
+      max: 1.0
+      degraded_threshold: 0.70
+      critical_threshold: 0.40
+      failed_threshold: 0.10
+
+    calibration:
+      target_cycles_until_failure: 2500
+      failure_threshold: 0.10
+
+    sensitivity:
+      temperature_stress: 2.0
+      humidity: 0.6
+      maintenance_protection: 0.5
+      load_exponent: 1.0
+
+    physical_properties:
+      nominal_resistance_ohm: 10.0
+      max_resistance_increase_pct: 0.40
+      max_energy_overhead_factor: 0.60
+      max_temperature_control_error_c: 12.0
+
+    alerts:
+      high_resistance_threshold_ohm: 13.0
+      high_energy_factor_threshold: 1.35
+      low_thermal_stability_threshold: 0.50
+      high_temperature_control_error_c: 6.0
