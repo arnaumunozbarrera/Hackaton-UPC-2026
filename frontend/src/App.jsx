@@ -400,7 +400,7 @@ export default function App() {
         />
 
         <HumanDependencyMap
-          className={`tile-fill tile-dependency tile-span-3 ${hasSimulationRun ? '' : 'no-run-top'}`.trim()}
+          className={`tile-fill tile-dependency tile-span-3  ${hasSimulationRun ? '' : 'no-run-top'}`.trim()}
           selectedComponentId={selectedComponentId}
           dependencies={dependencies}
         />

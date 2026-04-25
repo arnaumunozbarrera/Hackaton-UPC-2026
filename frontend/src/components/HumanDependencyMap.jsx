@@ -23,7 +23,7 @@ export default function HumanDependencyMap({ selectedComponentId, dependencies, 
 
   return (
     <section className={`panel human-map-panel ${className}`.trim()}>
-      <div className="section-title-row compact">
+      <div className="section-title-row compact ">
         <div>
           <p className="eyebrow">Dependency graph</p>
           <h2>Impact map</h2>

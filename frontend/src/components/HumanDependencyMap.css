@@ -1,5 +1,10 @@
 .human-map-panel {
   margin-top: 0;
+  padding-bottom: 0;
+}
+
+.human-map-panel > :last-child {
+  margin-bottom: 0;
 }
 
 .human-map-panel.no-run-top {
@@ -73,4 +78,8 @@
   color: var(--muted);
   font-size: 12px;
   line-height: 1.45;
+}
+
+.dependency-card > :last-child {
+  margin-bottom: 0;
 }
