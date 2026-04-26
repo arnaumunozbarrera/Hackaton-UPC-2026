@@ -1,6 +1,6 @@
 # Hackaton-UPC-2026
 
-This repository contains a predictive maintenance and digital twin prototype focused on subsystem health estimation, simulation, and decision support for maintenance planning.
+This repository contains a digital twin-based maintenance assistant for the HP Metal Jet S100 focused on predictive maintenance and digital twin simulation. The project models how key printer components degrade under operational and environmental stress, simulates their evolution over time, and exposes that state through services and interfaces designed to support diagnosis and maintenance decisions.
 
 ## Architecture
 
@@ -178,17 +178,18 @@ Two complementary improvement approaches are considered:
    This includes incorporating more constant and component-specific parameters such as humidity, degradation rate, temperature exposure, contamination patterns, maintenance history, and other operational variables that affect wear and failure behavior.
 
    The utility of this improvement is that the model would stop relying on a relatively compact synthetic description of machine usage and would start representing a richer operational context. In practice, this would allow the digital twin to:
+
    - Distinguish better between components that fail for similar reasons but under different operating regimes.
    - Capture slower effects such as cumulative environmental exposure, seasonal conditions, or long-term maintenance quality.
    - Reduce oversimplified assumptions in the degradation curves by conditioning them on more realistic combinations of stress factors.
    - Improve the quality of both simulation and prediction outputs, because the backend could generate more nuanced health trajectories instead of a limited number of standard patterns.
 
    In a more advanced version, this could also support better calibration with real telemetry if production data becomes available, making the model progressively less synthetic and more representative of machine behavior in the field.
-
 2. Focus the solution on warning generation and maintenance date estimation.
    The goal is to implement a system more centered on early warnings and on estimating the date when maintenance should be performed.
 
    The utility of this improvement is mainly operational. Instead of using the model only to observe degradation, the platform would become a more actionable decision-support tool. This would make it possible to:
+
    - Trigger interpretable alerts before a component reaches a critical state, giving operators time to react.
    - Estimate when a maintenance intervention should ideally be scheduled, balancing failure risk against unnecessary early replacement.
    - Coordinate maintenance windows with production demand, reducing disruption to machine availability.
