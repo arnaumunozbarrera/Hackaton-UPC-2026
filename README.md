@@ -180,32 +180,34 @@ The Weibull formulation is used for the recoater drive motor to represent fatigu
 
 ### Conclusion
 
-The current prototype delivers a coherent set of prediction functions that are traceable, deterministic, and aligned with the physical interpretation of each subsystem. The main value of the model is not a single universal degradation curve, but the use of the most suitable mathematical behavior for each component type so the digital twin can explain why degradation happens, how it evolves, and when maintenance risk starts to become relevant.
+The current prototype provides a technically coherent foundation for modeling subsystem degradation through prediction functions that are traceable, deterministic, and aligned with the physical behavior of each component. This makes the digital twin not only capable of estimating health evolution, but also of explaining why degradation occurs and how risk builds over time.
+
+Its main value, however, is operational. By turning component-specific degradation signals into understandable forecasts, the system helps move from passive monitoring to earlier and better-informed maintenance decisions. In that sense, the project is valuable not only as a modeling exercise, but as a decision-support layer that can help operators understand what is degrading, why it matters, and when intervention should begin to be planned.
 
 ## Future Improvements
 
 Two complementary improvement approaches are considered:
 
-1. Add more data to the model.
-   This includes incorporating more constant and component-specific parameters such as humidity, degradation rate, temperature exposure, contamination patterns, maintenance history, and other operational variables that affect wear and failure behavior.
+1. Enrich the model with historical health trajectories and contextual operating data.
+   A major improvement would be to incorporate time-series records showing how each component's health has evolved under specific operating conditions. Instead of relying only on a compact synthetic description of usage, the model would learn from the combination of health evolution and the parameters present at each moment, such as temperature, humidity, degradation rate, contamination, maintenance events, and other operational variables.
 
-   The utility of this improvement is that the model would stop relying on a relatively compact synthetic description of machine usage and would start representing a richer operational context. In practice, this would allow the digital twin to:
+   This historical knowledge would be especially valuable for forecasting. By understanding how health has fluctuated over time in response to different conditions, the model could identify more realistic degradation patterns and produce more reliable predictions of future behavior. In practice, this would allow the digital twin to:
 
-   - Distinguish better between components that fail for similar reasons but under different operating regimes.
-   - Capture slower effects such as cumulative environmental exposure, seasonal conditions, or long-term maintenance quality.
-   - Reduce oversimplified assumptions in the degradation curves by conditioning them on more realistic combinations of stress factors.
-   - Improve the quality of both simulation and prediction outputs, because the backend could generate more nuanced health trajectories instead of a limited number of standard patterns.
-
-   In a more advanced version, this could also support better calibration with real telemetry if production data becomes available, making the model progressively less synthetic and more representative of machine behavior in the field.
+   - Recognize how similar health states can lead to different outcomes depending on the operating context.
+   - Capture cumulative and long-term effects that are only visible through historical evolution.
+   - Improve forecast quality by basing predictions on observed health trajectories rather than on simplified assumptions.
+   - Make the model progressively less synthetic and more representative of real machine behavior if production telemetry becomes available.
 2. Focus the solution on warning generation and maintenance date estimation.
-   The goal is to implement a system more centered on early warnings and on estimating the date when maintenance should be performed.
+   The goal is to evolve the system into a decision-support tool that not only detects degradation, but also helps determine when the replacement process should begin.
 
-   The utility of this improvement is mainly operational. Instead of using the model only to observe degradation, the platform would become a more actionable decision-support tool. This would make it possible to:
+   A key improvement would be to incorporate historical data about the total elapsed time between identifying that a component needs replacement and the moment the replacement is actually completed. Knowing this time for each component, together with other temporal operational data, would make it possible to plan interventions earlier and more accurately.
 
-   - Trigger interpretable alerts before a component reaches a critical state, giving operators time to react.
-   - Estimate when a maintenance intervention should ideally be scheduled, balancing failure risk against unnecessary early replacement.
-   - Coordinate maintenance windows with production demand, reducing disruption to machine availability.
-   - Prioritize interventions across components and subsystems according to risk, urgency, and expected operational impact.
-   - Support cost reduction by avoiding both unplanned downtime and excessive preventive maintenance.
+   This would be especially valuable because the optimal decision is not only when to replace a part, but when to start preparing that replacement so it happens at the right moment. In practice, this would allow the platform to:
 
-   In business terms, this would make the system more useful for planning, not only for monitoring. The final value would come from converting health predictions into concrete recommendations: when to intervene, why that intervention is needed, and what operational risk is avoided by acting at that moment.
+   - Trigger warnings early enough to account for the real lead time of each component.
+   - Estimate when the replacement planning should start, not only when the intervention should occur.
+   - Adapt maintenance timing to the historical replacement dynamics of different components and suppliers.
+   - Reduce the risk of reacting too late or replacing parts unnecessarily early.
+   - Turn health forecasts into more actionable maintenance planning decisions.
+
+   In business terms, this would make the system more useful for planning, not only for monitoring. The final value would come from converting health predictions into concrete recommendations about when to initiate the replacement process so that maintenance is executed at the optimal time.
