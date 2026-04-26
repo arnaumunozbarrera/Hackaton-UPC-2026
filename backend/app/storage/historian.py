@@ -128,6 +128,10 @@ CREATE_STATEMENTS = [
 
 
 def _connect() -> sqlite3.Connection:
+    """Open a configured SQLite connection for historian operations.
+
+    @return: SQLite connection with row access by column name and foreign keys enabled.
+    """
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     connection = sqlite3.connect(DB_PATH)
     connection.row_factory = sqlite3.Row
@@ -136,6 +140,10 @@ def _connect() -> sqlite3.Connection:
 
 
 def initialize_database() -> None:
+    """Create or migrate the historian schema required by the backend.
+
+    @return: None.
+    """
     with _connect() as connection:
         _migrate_legacy_schema(connection)
         for statement in CREATE_STATEMENTS:
@@ -144,6 +152,11 @@ def initialize_database() -> None:
 
 
 def _migrate_legacy_schema(connection: sqlite3.Connection) -> None:
+    """Apply lightweight migrations for older local historian databases.
+
+    @param connection: Open SQLite connection inside the initialization transaction.
+    @return: None.
+    """
     existing_tables = {
         row["name"]
         for row in connection.execute(
@@ -193,6 +206,18 @@ def create_run(
     usage_step: float | None = None,
     config: dict | None = None,
 ) -> None:
+    """Replace existing data for a run and create fresh run metadata.
+
+    @param run_id: Unique run identifier.
+    @param scenario_id: Scenario identifier associated with the run.
+    @param created_at: ISO-8601 timestamp for run creation.
+    @param description: Optional human-readable run description.
+    @param selected_component: Component selected for prediction and UI focus.
+    @param total_usages: Configured total usage count for the run.
+    @param usage_step: Configured visible timeline interval.
+    @param config: Full simulation configuration persisted for reloads.
+    @return: None.
+    """
     with _connect() as connection:
         connection.execute("DELETE FROM messages WHERE run_id = ?", (run_id,))
         connection.execute("DELETE FROM predictions WHERE run_id = ?", (run_id,))
@@ -252,6 +277,17 @@ def save_simulation_step(
     drivers: dict,
     phase1_output: dict,
 ) -> int:
+    """Persist one simulation step and all related component details.
+
+    @param run_id: Run identifier for the telemetry record.
+    @param scenario_id: Scenario identifier for the telemetry record.
+    @param step_index: Timeline index of the step.
+    @param usage_count: Accumulated usage represented by the step.
+    @param timestamp: ISO-8601 timestamp for the step.
+    @param drivers: Operating drivers applied to the step.
+    @param phase1_output: Raw Phase 1 output to store and decompose.
+    @return: Generated telemetry record identifier.
+    """
     with _connect() as connection:
         record_id = _insert_simulation_step(
             connection=connection,
@@ -268,6 +304,11 @@ def save_simulation_step(
 
 
 def save_simulation_steps(steps: list[dict]) -> list[int]:
+    """Persist a batch of simulation steps in one transaction.
+
+    @param steps: Ordered step dictionaries containing telemetry and Phase 1 output.
+    @return: Generated telemetry record identifiers in insertion order.
+    """
     if not steps:
         return []
 
@@ -300,6 +341,18 @@ def _insert_simulation_step(
     drivers: dict,
     phase1_output: dict,
 ) -> int:
+    """Insert one telemetry record and decompose nested component data.
+
+    @param connection: Open SQLite connection owned by the caller transaction.
+    @param run_id: Run identifier for the telemetry record.
+    @param scenario_id: Scenario identifier for the telemetry record.
+    @param step_index: Timeline index of the step.
+    @param usage_count: Accumulated usage represented by the step.
+    @param timestamp: ISO-8601 timestamp for the step.
+    @param drivers: Operating drivers applied to the step.
+    @param phase1_output: Raw Phase 1 output to store and decompose.
+    @return: Generated telemetry record identifier.
+    """
     cursor = connection.cursor()
     cursor.execute(
         """
@@ -435,6 +488,14 @@ def _insert_simulation_step(
 
 
 def save_prediction(run_id: str, component_id: str, created_at: str, prediction: dict) -> None:
+    """Persist one prediction result for a component.
+
+    @param run_id: Run identifier that owns the prediction.
+    @param component_id: Component identifier used for prediction lookup.
+    @param created_at: ISO-8601 timestamp when the prediction was created.
+    @param prediction: Prediction payload to serialize.
+    @return: None.
+    """
     with _connect() as connection:
         connection.execute(
             """
@@ -448,6 +509,12 @@ def save_prediction(run_id: str, component_id: str, created_at: str, prediction:
 
 
 def save_messages(run_id: str, messages: list[dict]) -> None:
+    """Persist ranked runtime messages for a run.
+
+    @param run_id: Run identifier that owns the messages.
+    @param messages: Candidate runtime messages generated from the timeline.
+    @return: None.
+    """
     messages = select_top_messages(messages)
     if not messages:
         return
@@ -476,6 +543,10 @@ def save_messages(run_id: str, messages: list[dict]) -> None:
 
 
 def list_runs() -> list[dict]:
+    """List stored simulation runs with persisted configuration metadata.
+
+    @return: Runs ordered from newest to oldest.
+    """
     with _connect() as connection:
         rows = connection.execute(
             """
@@ -513,6 +584,12 @@ def _deserialize_alert(alert_value: str):
 
 
 def _build_components(connection: sqlite3.Connection, record_id: int) -> dict:
+    """Reconstruct component states for one telemetry record from normalized tables.
+
+    @param connection: Open SQLite connection used for read queries.
+    @param record_id: Telemetry record identifier.
+    @return: Component map with health, damage, metrics, and alerts.
+    """
     state_rows = connection.execute(
         """
         SELECT component_id, subsystem, health_index, status
@@ -574,6 +651,12 @@ def _build_components(connection: sqlite3.Connection, record_id: int) -> dict:
 
 
 def _get_run_metadata(connection: sqlite3.Connection, run_id: str) -> dict | None:
+    """Load run metadata needed for timeline reconstruction.
+
+    @param connection: Open SQLite connection used for read queries.
+    @param run_id: Run identifier to resolve.
+    @return: Metadata dictionary, or None when the run is unknown.
+    """
     row = connection.execute(
         """
         SELECT run_id, scenario_id, created_at, description, selected_component, total_usages, usage_step
@@ -588,6 +671,11 @@ def _get_run_metadata(connection: sqlite3.Connection, run_id: str) -> dict | Non
 
 
 def get_run_timeline(run_id: str) -> list[dict]:
+    """Reconstruct the full stored timeline for a run.
+
+    @param run_id: Run identifier to retrieve.
+    @return: Ordered timeline records with drivers and reconstructed components.
+    """
     with _connect() as connection:
         run_metadata = _get_run_metadata(connection, run_id)
         if run_metadata is None:
@@ -644,6 +732,12 @@ def get_run_timeline(run_id: str) -> list[dict]:
 
 
 def get_component_history(run_id: str, component_id: str) -> list[dict]:
+    """Reconstruct the stored history for a single component.
+
+    @param run_id: Run identifier to retrieve.
+    @param component_id: Component identifier to filter.
+    @return: Ordered component-specific timeline records.
+    """
     with _connect() as connection:
         run_metadata = _get_run_metadata(connection, run_id)
         if run_metadata is None:
@@ -747,6 +841,12 @@ def get_component_history(run_id: str, component_id: str) -> list[dict]:
 
 
 def get_recent_history(scenario_name: str, window_steps: int) -> list[dict]:
+    """Load the latest stored records for a scenario in chronological order.
+
+    @param scenario_name: Scenario identifier used by the agent historian adapter.
+    @param window_steps: Maximum number of recent records to return.
+    @return: Recent timeline records ordered oldest to newest.
+    """
     with _connect() as connection:
         rows = connection.execute(
             """
@@ -807,6 +907,12 @@ def get_recent_history(scenario_name: str, window_steps: int) -> list[dict]:
 
 
 def get_raw_phase1_output(run_id: str, step_index: int) -> dict | None:
+    """Return the raw persisted Phase 1 output for a specific timeline step.
+
+    @param run_id: Run identifier to retrieve.
+    @param step_index: Step index within the run timeline.
+    @return: Raw Phase 1 output, or None when the record does not exist.
+    """
     with _connect() as connection:
         row = connection.execute(
             """
@@ -820,6 +926,11 @@ def get_raw_phase1_output(run_id: str, step_index: int) -> dict | None:
 
 
 def get_messages(run_id: str) -> list[dict]:
+    """Load and rank persisted runtime messages for a run.
+
+    @param run_id: Run identifier that owns the messages.
+    @return: Ranked messages suitable for the dashboard.
+    """
     with _connect() as connection:
         rows = connection.execute(
             """
@@ -848,6 +959,12 @@ def get_messages(run_id: str) -> list[dict]:
 
 
 def get_latest_prediction(run_id: str, component_id: str) -> dict | None:
+    """Load the most recent prediction for a component in a run.
+
+    @param run_id: Run identifier that owns the prediction.
+    @param component_id: Component identifier used for prediction lookup.
+    @return: Prediction payload, or None when no prediction is stored.
+    """
     with _connect() as connection:
         row = connection.execute(
             """
@@ -863,6 +980,10 @@ def get_latest_prediction(run_id: str, component_id: str) -> dict | None:
 
 
 def clear_database() -> None:
+    """Delete all historian data while preserving the schema.
+
+    @return: None.
+    """
     with _connect() as connection:
         connection.execute("DELETE FROM messages")
         connection.execute("DELETE FROM predictions")

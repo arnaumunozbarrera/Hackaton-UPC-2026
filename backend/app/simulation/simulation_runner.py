@@ -19,6 +19,11 @@ def _to_iso8601(value: datetime) -> str:
 
 
 def _normalize_config(config: dict) -> dict:
+    """Apply backend defaults to a simulation configuration without mutating input.
+
+    @param config: Partial simulation configuration from the API layer.
+    @return: Complete simulation configuration with required defaults.
+    """
     normalized = deepcopy(config)
     normalized.setdefault("seed", 1234)
     normalized.setdefault("selected_component", "heating_elements")
@@ -35,6 +40,13 @@ def _normalize_config(config: dict) -> dict:
 
 
 def _generate_drivers_for_step(initial_conditions: dict, step_index: int, rng: random.Random) -> dict:
+    """Generate deterministic-or-stochastic Phase 1 drivers for a usage step.
+
+    @param initial_conditions: Baseline user-provided operating conditions.
+    @param step_index: One-based usage index used to vary synthetic conditions.
+    @param rng: Random generator seeded for reproducible stochastic runs.
+    @return: Driver dictionary compatible with the Phase 1 model engine.
+    """
     phase1_drivers = to_phase1_drivers(initial_conditions)
     stochasticity = max(0.0, min(float(initial_conditions.get("stochasticity", 0.0)), 1.0))
 
@@ -97,6 +109,12 @@ def _generate_drivers_for_step(initial_conditions: dict, step_index: int, rng: r
 
 
 def _build_usage_counts(total_usages: float, usage_step: float) -> list[float]:
+    """Build chart and persistence usage checkpoints including the exact final point.
+
+    @param total_usages: Total configured usage duration for the run.
+    @param usage_step: Desired interval between visible timeline checkpoints.
+    @return: Ordered usage counts beginning at zero and ending at total_usages.
+    """
     usage_counts = [0.0]
     current_usage = usage_step
     epsilon = 1e-9
@@ -115,6 +133,12 @@ def _build_initial_phase1_output(
     initial_conditions: dict,
     phase1_config: dict,
 ) -> tuple[dict, dict]:
+    """Create the initial undegraded Phase 1 state used as timeline baseline.
+
+    @param initial_conditions: Baseline user-provided operating conditions.
+    @param phase1_config: Loaded Phase 1 model configuration.
+    @return: Initial Phase 1 output and the no-load drivers that produced it.
+    """
     initial_drivers = to_phase1_drivers(initial_conditions)
     no_load_drivers = dict(initial_drivers)
     no_load_drivers["operational_load"] = 0.0
@@ -125,6 +149,12 @@ def _build_initial_phase1_output(
 
 
 def _scale_drivers_for_usage_delta(drivers: dict, usage_delta: float) -> dict:
+    """Scale operational load when a partial usage interval is simulated.
+
+    @param drivers: Phase 1 drivers generated for a full usage unit.
+    @param usage_delta: Fractional usage interval to apply.
+    @return: Driver copy with operational load adjusted to the interval length.
+    """
     if math.isclose(usage_delta, 1.0):
         return drivers
 
@@ -144,6 +174,16 @@ def _advance_phase1_to_usage(
     rng: random.Random,
     phase1_config: dict,
 ) -> tuple[dict, dict]:
+    """Advance the internal Phase 1 state to an arbitrary visible usage checkpoint.
+
+    @param previous_state: Internal Phase 1 state at current_usage.
+    @param current_usage: Current accumulated usage before advancing.
+    @param target_usage: Target usage count for the next visible timeline point.
+    @param initial_conditions: Baseline operating conditions for driver generation.
+    @param rng: Seeded random generator for stochastic driver variation.
+    @param phase1_config: Loaded Phase 1 model configuration.
+    @return: Updated Phase 1 state and drivers applied for the last sub-step.
+    """
     state = previous_state
     last_drivers = to_phase1_drivers(initial_conditions)
     epsilon = 1e-9
@@ -171,6 +211,11 @@ def _driver_snapshot(drivers: dict) -> dict:
 
 
 def _normalize_previous_model_output(previous_model_output: dict | None) -> dict:
+    """Normalize UI or historian model-output shapes before single-step execution.
+
+    @param previous_model_output: Prior model output from API callers or historian records.
+    @return: Phase 1-compatible previous state.
+    """
     if not previous_model_output:
         return {}
 
@@ -198,6 +243,11 @@ def _normalize_previous_model_output(previous_model_output: dict | None) -> dict
 
 
 def run_simulation(config: dict) -> dict:
+    """Run a full persisted simulation timeline and derive downstream artifacts.
+
+    @param config: Simulation configuration accepted by the API layer.
+    @return: Timeline, prediction, runtime messages, and dependency information.
+    """
     config = _normalize_config(config)
     run_id = config["run_id"]
     scenario_id = config["scenario_id"]
@@ -289,6 +339,11 @@ def run_simulation(config: dict) -> dict:
 
 
 def run_single_step(payload: dict) -> dict:
+    """Run a stateless single-step Phase 1 update for legacy API compatibility.
+
+    @param payload: Step request containing prior output and operating drivers.
+    @return: Single adapted timeline point without persistence.
+    """
     phase1_config = load_phase1_config()
     phase1_drivers = to_phase1_drivers(payload.get("drivers", {}))
     previous_model_output = _normalize_previous_model_output(payload.get("previous_model_output"))

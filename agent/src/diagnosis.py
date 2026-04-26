@@ -172,6 +172,12 @@ DEFAULT_DIAGNOSIS_PROFILE = {
 
 
 def diagnose_latest(run_id: str, latest_record: dict) -> list[Diagnosis]:
+    """Diagnose every component in the latest historian record.
+
+    @param run_id: Run identifier associated with the latest record.
+    @param latest_record: Latest historian record containing drivers and components.
+    @return: Diagnoses for components that require attention.
+    """
     diagnoses: list[Diagnosis] = []
 
     components = latest_record["components"]
@@ -199,6 +205,15 @@ def diagnose_component(
     component: dict,
     drivers: dict,
 ) -> Diagnosis | None:
+    """Diagnose a single component when health, status, alerts, or metrics justify it.
+
+    @param run_id: Run identifier associated with the component state.
+    @param timestamp: Timestamp of the latest record.
+    @param component_id: Component identifier being evaluated.
+    @param component: Latest component state.
+    @param drivers: Operating drivers from the latest record.
+    @return: Diagnosis when attention is required, otherwise None.
+    """
     health_index = component["health_index"]
 
     if not should_diagnose_component(component_id, component, drivers):
@@ -223,6 +238,13 @@ def diagnose_component(
 
 
 def should_diagnose_component(component_id: str, component: dict, drivers: dict) -> bool:
+    """Decide whether a component has enough risk signal to create a diagnosis.
+
+    @param component_id: Component identifier being evaluated.
+    @param component: Latest component state.
+    @param drivers: Operating drivers from the latest record.
+    @return: True when the component should produce a diagnosis.
+    """
     health_index = component["health_index"]
     status = component.get("status", "UNKNOWN")
     alerts = component.get("alerts", [])
@@ -268,6 +290,15 @@ def is_heating_risk(
     thermal_overload: float,
     electrical_degradation: float,
 ) -> bool:
+    """Detect heating-element risk before generic health thresholds are crossed.
+
+    @param health_index: Current heating element health index.
+    @param temperature_stress: Current normalized temperature stress.
+    @param thermal_stability: Current thermal stability metric, when available.
+    @param thermal_overload: Current thermal overload damage contribution.
+    @param electrical_degradation: Current electrical degradation contribution.
+    @return: True when heating behavior is risky enough for diagnosis.
+    """
     if health_index < DEGRADED_HEALTH_THRESHOLD:
         return True
 
@@ -301,6 +332,11 @@ def severity_from_health_index(health_index: float) -> Severity:
 
 
 def severity_from_component(component: dict) -> Severity:
+    """Resolve diagnosis severity from status, health, and alert severity.
+
+    @param component: Latest component state.
+    @return: Severity value used by downstream recommendations.
+    """
     status = component.get("status")
 
     if status == "FAILED":
@@ -330,6 +366,16 @@ def build_component_evidence(
     drivers: dict,
     profile: dict,
 ) -> list[Evidence]:
+    """Build evidence records according to the diagnosis profile for a component.
+
+    @param run_id: Run identifier associated with the evidence.
+    @param timestamp: Timestamp of the latest record.
+    @param component_id: Component identifier being diagnosed.
+    @param component: Latest component state.
+    @param drivers: Operating drivers from the latest record.
+    @param profile: Diagnosis profile defining relevant drivers, metrics, and damage.
+    @return: Evidence list consumed by recommendations and responses.
+    """
     evidence = [
         Evidence(
             run_id,

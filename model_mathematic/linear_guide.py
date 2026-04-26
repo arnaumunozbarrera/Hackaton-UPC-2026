@@ -23,6 +23,15 @@ def _build_alerts(
     carriage_drag_factor,
     alerts_config,
 ):
+    """Build threshold alerts for rail friction, straightness, and carriage drag.
+
+    @param status: Component status after the current degradation step.
+    @param friction_coefficient: Current estimated guide friction coefficient.
+    @param straightness_error_mm: Current straightness error in millimeters.
+    @param carriage_drag_factor: Current normalized carriage drag factor.
+    @param alerts_config: Alert thresholds from the component configuration.
+    @return: Alert dictionaries describing threshold breaches.
+    """
     alerts = []
 
     if friction_coefficient >= alerts_config["high_friction_threshold"]:
@@ -69,7 +78,13 @@ def calculate_linear_guide_state(
     drivers: dict,
     config: dict,
 ) -> dict:
-    """Calculate deterministic wear, friction, and misalignment for the rail."""
+    """Calculate deterministic rail wear, friction, and alignment drift.
+
+    @param previous_state: Previous linear guide state or wrapped machine state.
+    @param drivers: Normalized operating drivers for the current simulation step.
+    @param config: Phase 1 model configuration.
+    @return: Component state containing health, status, damage, metrics, and alerts.
+    """
     component_config = get_component_config(config, COMPONENT_NAME)
     health_config = component_config["health"]
     calibration_config = component_config["calibration"]

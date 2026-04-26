@@ -7,6 +7,12 @@ from agent.src.schemas import ActionPlanEvaluation, AgentDecision, Evidence
 
 
 def build_agent_response(scenario_name: str, decisions: list[AgentDecision]) -> dict[str, Any]:
+    """Serialize agent decisions into the public response contract.
+
+    @param scenario_name: Scenario or run identifier represented by the analysis.
+    @param decisions: Agent decisions produced by the planner.
+    @return: Structured response with summary text, decisions, and priority.
+    """
     return {
         "scenario_name": scenario_name,
         "decision_count": len(decisions),
@@ -20,6 +26,11 @@ def build_agent_response(scenario_name: str, decisions: list[AgentDecision]) -> 
 
 
 def decision_to_dict(decision: AgentDecision) -> dict[str, Any]:
+    """Convert one AgentDecision dataclass into API-safe primitive values.
+
+    @param decision: Agent decision containing diagnosis, forecast, and recommendation.
+    @return: Serialized decision dictionary.
+    """
     selected = find_selected_evaluation(decision.recommendation)
 
     return {
@@ -82,6 +93,11 @@ def evidence_to_dict(evidence: Evidence) -> dict[str, Any]:
 
 
 def get_highest_priority(decisions: list[AgentDecision]) -> str:
+    """Resolve the highest recommendation priority across all decisions.
+
+    @param decisions: Agent decisions produced for a scenario.
+    @return: Highest priority value, or INFO when no decisions exist.
+    """
     if not decisions:
         return "INFO"
 

@@ -16,6 +16,15 @@ COMPONENT_NAME = "temperature_sensors"
 
 
 def _build_alerts(status, drift_c, response_time_ms, calibration_confidence, alerts_config):
+    """Build threshold alerts for sensor drift, latency, and calibration confidence.
+
+    @param status: Component status after the current degradation step.
+    @param drift_c: Current estimated temperature drift in Celsius.
+    @param response_time_ms: Current estimated sensor response time.
+    @param calibration_confidence: Current normalized calibration confidence.
+    @param alerts_config: Alert thresholds from the component configuration.
+    @return: Alert dictionaries describing threshold breaches.
+    """
     alerts = []
 
     if abs(drift_c) >= alerts_config["high_drift_threshold_c"]:
@@ -62,7 +71,13 @@ def calculate_temperature_sensors_state(
     drivers: dict,
     config: dict,
 ) -> dict:
-    """Calculate deterministic drift, noise, and response degradation."""
+    """Calculate deterministic drift, noise, and response degradation.
+
+    @param previous_state: Previous sensor state or wrapped machine state.
+    @param drivers: Normalized operating drivers for the current simulation step.
+    @param config: Phase 1 model configuration.
+    @return: Component state containing health, status, damage, metrics, and alerts.
+    """
     component_config = get_component_config(config, COMPONENT_NAME)
     health_config = component_config["health"]
     calibration_config = component_config["calibration"]

@@ -7,6 +7,14 @@ from agent.src.schemas import AgentDecision, Forecast, Recommendation, Severity
 
 
 def make_agent_decisions(run_id: str, latest_record: dict, history: list[dict], horizon_steps: int) -> list[AgentDecision]:
+    """Create sorted maintenance decisions from diagnosis, forecast, and planning.
+
+    @param run_id: Run identifier associated with the records.
+    @param latest_record: Latest historian record used as current state.
+    @param history: Historical records used for forecasting.
+    @param horizon_steps: Forecast horizon used for recommendations.
+    @return: Agent decisions ordered by priority and projected risk.
+    """
     diagnoses = diagnose_latest(run_id, latest_record)
     decisions: list[AgentDecision] = []
 
@@ -36,6 +44,12 @@ def make_agent_decisions(run_id: str, latest_record: dict, history: list[dict], 
 
 
 def escalate_recommendation_priority(recommendation: Recommendation, forecast: Forecast) -> Recommendation:
+    """Increase recommendation priority when the forecast enters critical horizons.
+
+    @param recommendation: Initial recommendation generated from plan selection.
+    @param forecast: Forecast without intervention.
+    @return: Recommendation with priority escalated when risk timing justifies it.
+    """
     if forecast.predicted_status in {"FAILED", "CRITICAL"}:
         return replace(recommendation, priority=Severity.CRITICAL)
 
@@ -50,6 +64,11 @@ def escalate_recommendation_priority(recommendation: Recommendation, forecast: F
 
 
 def decision_sort_key(decision: AgentDecision) -> tuple[int, int, int, float]:
+    """Build the sort key used to present the most urgent decisions first.
+
+    @param decision: Agent decision to rank.
+    @return: Tuple ordered by recommendation priority, status severity, timing, and risk.
+    """
     severity_rank = {
         Severity.FAILED: 0,
         Severity.CRITICAL: 1,

@@ -2,6 +2,11 @@ from agent.src.schemas import ActionPlanEvaluation, ActionType, AgentDecision
 
 
 def explain_decision(decision: AgentDecision) -> str:
+    """Render one agent decision as a plain-text maintenance explanation.
+
+    @param decision: Agent decision containing diagnosis, forecast, and recommendation.
+    @return: Multi-line explanation including alternatives and evidence.
+    """
     diagnosis = decision.diagnosis
     recommendation = decision.recommendation
     selected = find_selected_evaluation(decision)
@@ -54,6 +59,11 @@ def explain_decisions(decisions: list[AgentDecision]) -> str:
 
 
 def build_forecast_sentence(decision: AgentDecision) -> str:
+    """Build the forecast sentence used inside a decision explanation.
+
+    @param decision: Agent decision containing the forecast without intervention.
+    @return: Human-readable forecast sentence.
+    """
     forecast = decision.forecast
 
     if forecast.predicted_status == "UNKNOWN":
@@ -73,6 +83,12 @@ def build_forecast_sentence(decision: AgentDecision) -> str:
 
 
 def build_selection_reason(decision: AgentDecision, selected: ActionPlanEvaluation) -> str:
+    """Explain why the selected action plan was preferred.
+
+    @param decision: Agent decision containing alternatives and forecast context.
+    @param selected: Evaluation corresponding to the selected action plan.
+    @return: Human-readable selection rationale.
+    """
     forecast = decision.forecast
     best_raw = decision.recommendation.alternatives[0]
 

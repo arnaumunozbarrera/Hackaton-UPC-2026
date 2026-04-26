@@ -16,6 +16,15 @@ COMPONENT_NAME = "insulation_panels"
 
 
 def _build_alerts(status, insulation_efficiency, heat_loss_factor, thermal_gradient_c, alerts_config):
+    """Build threshold alerts for insulation efficiency and heat-loss behavior.
+
+    @param status: Component status after the current degradation step.
+    @param insulation_efficiency: Current normalized insulation efficiency.
+    @param heat_loss_factor: Current normalized heat-loss factor.
+    @param thermal_gradient_c: Current estimated thermal gradient in Celsius.
+    @param alerts_config: Alert thresholds from the component configuration.
+    @return: Alert dictionaries describing threshold breaches.
+    """
     alerts = []
 
     if insulation_efficiency <= alerts_config["low_insulation_efficiency_threshold"]:
@@ -62,7 +71,13 @@ def calculate_insulation_panels_state(
     drivers: dict,
     config: dict,
 ) -> dict:
-    """Calculate deterministic thermal cycling and insulation loss."""
+    """Calculate deterministic thermal cycling and insulation loss.
+
+    @param previous_state: Previous insulation panel state or wrapped machine state.
+    @param drivers: Normalized operating drivers for the current simulation step.
+    @param config: Phase 1 model configuration.
+    @return: Component state containing health, status, damage, metrics, and alerts.
+    """
     component_config = get_component_config(config, COMPONENT_NAME)
     health_config = component_config["health"]
     calibration_config = component_config["calibration"]

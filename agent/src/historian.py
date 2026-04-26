@@ -4,6 +4,11 @@ from pathlib import Path
 
 class JsonHistorian:
     def __init__(self, scenarios_dir: Path | str) -> None:
+        """Create a JSON-backed historian adapter for synthetic scenarios.
+
+        @param scenarios_dir: Directory containing scenario history JSON files.
+        @return: None.
+        """
         self.scenarios_dir = Path(scenarios_dir)
 
     def list_scenarios(self) -> list[str]:
@@ -13,6 +18,13 @@ class JsonHistorian:
         return sorted(path.stem for path in self.scenarios_dir.glob("*.json"))
 
     def load_history(self, scenario_name: str) -> list[dict]:
+        """Load and validate one scenario history file.
+
+        @param scenario_name: Scenario filename stem to load.
+        @return: Non-empty list of historical records.
+        @raises FileNotFoundError: If the scenario file is missing.
+        @raises ValueError: If the file does not contain a non-empty list.
+        """
         path = self.scenarios_dir / f"{scenario_name}.json"
 
         if not path.exists():
@@ -38,6 +50,13 @@ class JsonHistorian:
         return history[-1]
 
     def get_recent_history(self, scenario_name: str, window_steps: int | None = None) -> list[dict]:
+        """Load full or windowed scenario history in chronological order.
+
+        @param scenario_name: Scenario filename stem to load.
+        @param window_steps: Optional number of recent records to return.
+        @return: Historical records ordered oldest to newest.
+        @raises ValueError: If window_steps is provided and not positive.
+        """
         history = self.load_history(scenario_name)
 
         if window_steps is None:
@@ -54,6 +73,13 @@ class JsonHistorian:
         component_id: str,
         window_steps: int | None = None,
     ) -> list[dict]:
+        """Load recent scenario records containing a specific component.
+
+        @param scenario_name: Scenario filename stem to load.
+        @param component_id: Component identifier to filter.
+        @param window_steps: Optional number of recent records to inspect.
+        @return: Component-specific history records.
+        """
         history = self.get_recent_history(scenario_name, window_steps)
 
         result = []

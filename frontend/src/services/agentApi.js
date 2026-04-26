@@ -2,6 +2,13 @@ import { fetchJson } from './apiClient';
 
 const DEFAULT_LLM_QUESTION = 'Why do you recommend this maintenance plan?';
 
+/**
+ * Requests an agent-backed LLM explanation for a stored simulation run.
+ *
+ * @param {string} runId - Historian run identifier.
+ * @param {object} options - Optional question, horizon, history, and alternative limits.
+ * @returns {Promise<object>} LLM answer payload from the backend.
+ */
 export async function fetchAgentLlmAnswer(runId, options = {}) {
   const provider = import.meta.env.VITE_AGENT_LLM_PROVIDER || 'ollama';
   const model = import.meta.env.VITE_AGENT_LLM_MODEL || null;

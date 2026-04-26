@@ -8,6 +8,14 @@ def build_llm_context(
     analysis: dict[str, Any],
     max_alternatives_per_decision: int = 3,
 ) -> dict[str, Any]:
+    """Build the constrained context object supplied to the maintenance LLM.
+
+    @param run_id: Run identifier associated with the analysis.
+    @param question: User question to answer.
+    @param analysis: Structured agent analysis response.
+    @param max_alternatives_per_decision: Maximum alternatives retained per decision.
+    @return: Context dictionary containing rules, summary, decisions, and evidence.
+    """
     return {
         "role": "grounded_maintenance_copilot",
         "run_id": run_id,
@@ -37,6 +45,12 @@ def build_llm_context(
 
 
 def compact_decision(decision: dict[str, Any], max_alternatives: int) -> dict[str, Any]:
+    """Reduce one decision to the exact fields needed by the LLM.
+
+    @param decision: Structured decision dictionary from the agent response.
+    @param max_alternatives: Maximum alternatives to retain.
+    @return: Compact decision dictionary preserving selected plan and evidence.
+    """
     return {
         "component_id": decision["component_id"],
         "issue": decision["issue"],
@@ -69,6 +83,11 @@ def compact_decision(decision: dict[str, Any], max_alternatives: int) -> dict[st
 
 
 def build_llm_messages(context: dict[str, Any]) -> list[dict[str, str]]:
+    """Build the system and user messages for grounded LLM generation.
+
+    @param context: Constrained LLM context generated from the agent analysis.
+    @return: Chat messages ready for the configured LLM client.
+    """
     system_message = (
         "You are a grounded predictive maintenance copilot. "
         "You must only explain the provided agent analysis. "
@@ -94,6 +113,11 @@ def build_llm_messages(context: dict[str, Any]) -> list[dict[str, str]]:
 
 
 def build_strict_user_prompt(context: dict[str, Any]) -> str:
+    """Build a prompt that constrains answer format and factual grounding.
+
+    @param context: Constrained LLM context generated from the agent analysis.
+    @return: User prompt containing exact output rules and serialized analysis data.
+    """
     required_components = context["analysis_summary"]["required_components"]
 
     sections = [

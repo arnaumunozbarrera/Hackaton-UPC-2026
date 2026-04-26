@@ -1,5 +1,12 @@
 import { fetchJson } from './apiClient';
 
+/**
+ * Builds placeholder chart points so the usage axis is stable before results arrive.
+ *
+ * @param {number} totalUsages - Total configured usage count.
+ * @param {number} usageStep - Desired spacing between visible usage points.
+ * @returns {Array<object>} Placeholder points with null health and status values.
+ */
 export function buildAxisTemplate(totalUsages, usageStep) {
   const usageCounts = [0];
   const epsilon = 1e-9;

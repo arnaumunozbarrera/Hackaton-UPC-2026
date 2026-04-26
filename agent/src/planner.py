@@ -9,6 +9,15 @@ def recommend_action(
     history: list[dict],
     horizon_steps: int,
 ) -> Recommendation:
+    """Select a recommendation by evaluating and ranking candidate action plans.
+
+    @param diagnosis: Diagnosis that requires an action recommendation.
+    @param forecast: Forecast without intervention.
+    @param latest_record: Latest historian record used as current state.
+    @param history: Historical records used for action evaluation.
+    @param horizon_steps: Forecast horizon used for projected outcomes.
+    @return: Recommendation with selected actions and evaluated alternatives.
+    """
     evaluations = evaluate_candidate_action_plans(
         diagnosis=diagnosis,
         latest_record=latest_record,
@@ -28,6 +37,13 @@ def recommend_action(
 
 
 def select_best_plan(evaluations: list[ActionPlanEvaluation], forecast: Forecast) -> ActionPlanEvaluation:
+    """Select a low-burden plan within an acceptable risk tolerance.
+
+    @param evaluations: Candidate plans sorted by projected risk.
+    @param forecast: Forecast without intervention used to set risk tolerance.
+    @return: Selected action plan evaluation.
+    @raises ValueError: If no evaluations are supplied.
+    """
     if not evaluations:
         raise ValueError("No action plan evaluations available")
 
@@ -71,6 +87,11 @@ def status_rank(status: str) -> int:
     return ranks.get(status, 4)
 
 def risk_tolerance_from_forecast(forecast: Forecast) -> float:
+    """Derive how much extra risk is acceptable when choosing a less invasive plan.
+
+    @param forecast: Forecast without intervention.
+    @return: Risk-score tolerance used during plan selection.
+    """
     if forecast.predicted_status == "FAILED":
         return 8.0
 
@@ -84,6 +105,11 @@ def risk_tolerance_from_forecast(forecast: Forecast) -> float:
 
 
 def plan_burden(actions: tuple[ActionType, ...]) -> float:
+    """Compute the operational burden of an action plan.
+
+    @param actions: Action tuple being ranked.
+    @return: Additive burden score where lower values are preferred.
+    """
     burdens = {
         ActionType.CONTINUE_OPERATION: 100.0,
         ActionType.REDUCE_LOAD: 3.0,

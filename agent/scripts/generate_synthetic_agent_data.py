@@ -3,6 +3,11 @@ from pathlib import Path
 
 
 def build_record(step: int) -> dict:
+    """Build one synthetic maintenance record for the demonstration scenario.
+
+    @param step: Synthetic time step to encode in drivers and component state.
+    @return: Historian-compatible record dictionary.
+    """
     timestamp = f"2026-04-25T{step:02d}:00:00"
 
     heating_health = max(0.0, 0.95 - step * 0.035)

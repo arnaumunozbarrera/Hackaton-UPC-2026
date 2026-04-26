@@ -2,6 +2,11 @@ from typing import Any
 
 
 def build_safe_summary(analysis: dict[str, Any]) -> str:
+    """Build a deterministic source summary before optional LLM rewriting.
+
+    @param analysis: Structured agent analysis response.
+    @return: Plain-text summary preserving exact recommendations and evidence.
+    """
     if analysis["decision_count"] == 0:
         return "Overall summary: No immediate maintenance action is required based on the current analysis."
 

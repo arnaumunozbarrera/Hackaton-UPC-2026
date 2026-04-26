@@ -116,6 +116,13 @@ function UsageTick({ x, y, payload, maxUsage }) {
   );
 }
 
+/**
+ * Resolves the largest visible usage value from chart data and configuration.
+ *
+ * @param {Array<object>} data - Chart data or axis template points.
+ * @param {number|string} fallbackTotalUsages - Configured total usage count.
+ * @returns {number} Positive maximum usage value for axis calculations.
+ */
 function getMaxUsage(data, fallbackTotalUsages) {
   const usageValues = data
     .map((point) => Number(point.usage_count))
@@ -130,6 +137,12 @@ function getMaxUsage(data, fallbackTotalUsages) {
   return Number.isFinite(maxUsage) && maxUsage > 0 ? maxUsage : 1;
 }
 
+/**
+ * Builds stable axis ticks that always include the final usage value.
+ *
+ * @param {number} maxUsage - Maximum usage value to represent on the x-axis.
+ * @returns {Array<number>} Deduplicated normalized tick values.
+ */
 function buildTicks(maxUsage) {
   const divisions = 6;
   const ticks = Array.from({ length: divisions + 1 }, (_, index) => normalizeUsageTick((maxUsage / divisions) * index));
@@ -153,6 +166,12 @@ function formatUsageValue(value) {
   });
 }
 
+/**
+ * Formats usage ticks with compact notation for large values.
+ *
+ * @param {number|string} value - Raw usage value from the chart axis.
+ * @returns {string|number} Display-ready usage label.
+ */
 function formatUsageTick(value) {
   const numericValue = Number(value);
   if (!Number.isFinite(numericValue)) return value;

@@ -35,6 +35,31 @@ def build_record(
     thermal_stability_base: float,
     thermal_stability_decay: float,
 ) -> dict:
+    """Build one synthetic historian record from scenario degradation parameters.
+
+    @param run_id: Synthetic run identifier assigned to the generated record.
+    @param step: Synthetic time step to encode in drivers and component state.
+    @param heating_decay: Per-step health decay for heating elements.
+    @param nozzle_decay: Per-step health decay for the nozzle plate.
+    @param recoater_decay: Per-step health decay for the recoater blade.
+    @param temperature_base: Initial normalized temperature stress.
+    @param temperature_growth: Per-step increase in temperature stress.
+    @param contamination_base: Initial normalized contamination.
+    @param contamination_growth: Per-step increase in contamination.
+    @param load_base: Initial normalized operational load.
+    @param load_growth: Per-step increase in operational load.
+    @param humidity_base: Initial normalized humidity.
+    @param humidity_growth: Per-step increase in humidity.
+    @param maintenance_base: Initial normalized maintenance level.
+    @param maintenance_decay: Per-step decrease in maintenance level.
+    @param clogging_base: Initial nozzle clogging ratio.
+    @param clogging_growth: Per-step increase in nozzle clogging.
+    @param roughness_base: Initial recoater roughness index.
+    @param roughness_growth: Per-step increase in recoater roughness.
+    @param thermal_stability_base: Initial heating thermal stability.
+    @param thermal_stability_decay: Per-step decrease in thermal stability.
+    @return: Historian-compatible record dictionary.
+    """
     timestamp = f"2026-04-25T{step:02d}:00:00"
 
     heating_health = max(0.0, 0.95 - step * heating_decay)
@@ -116,6 +141,13 @@ def build_record(
 
 
 def build_scenario(run_id: str, config: dict, steps: int = 24) -> list[dict]:
+    """Build a complete synthetic scenario history.
+
+    @param run_id: Synthetic run identifier assigned to every generated record.
+    @param config: Scenario degradation parameters passed to build_record.
+    @param steps: Number of records to generate.
+    @return: Ordered historian-compatible records.
+    """
     return [
         build_record(run_id=run_id, step=step, **config)
         for step in range(steps)

@@ -32,6 +32,12 @@ export default function ChatbotPanel({ runId, selectedComponentId, disabled }) {
     historyRef.current.scrollTop = 0;
   }, [chatEntries, loading]);
 
+  /**
+   * Sends a grounded chat query and appends the response to the local thread.
+   *
+   * @param {string} nextQuestion - Question text to submit.
+   * @returns {Promise<void>} Resolves after the query has completed.
+   */
   async function submitQuestion(nextQuestion) {
     const normalizedQuestion = nextQuestion.trim();
     if (!normalizedQuestion) return;

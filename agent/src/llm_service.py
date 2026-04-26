@@ -16,6 +16,18 @@ def generate_llm_answer(
     client: LLMClient | None = None,
     mode: str = "rewrite",
 ) -> dict[str, Any]:
+    """Generate a grounded LLM answer from agent analysis.
+
+    @param run_id: Run identifier associated with the analysis.
+    @param question: User question to answer.
+    @param analysis: Structured agent analysis response.
+    @param max_alternatives_per_decision: Maximum alternatives retained in full-context mode.
+    @param provider: LLM provider name.
+    @param model: Optional provider-specific model name.
+    @param client: Optional preconstructed LLM client for tests or callers.
+    @param mode: Generation mode, either rewrite or full-context answer.
+    @return: LLM answer payload without internal prompt context.
+    """
     llm_client = client or build_llm_client(provider=provider, model=model)
 
     if mode == "rewrite":
@@ -66,6 +78,18 @@ def generate_llm_answer_with_context(
     client: LLMClient | None = None,
     mode: str = "rewrite",
 ) -> dict[str, Any]:
+    """Generate a grounded LLM answer and include the prompt context for inspection.
+
+    @param run_id: Run identifier associated with the analysis.
+    @param question: User question to answer.
+    @param analysis: Structured agent analysis response.
+    @param max_alternatives_per_decision: Maximum alternatives retained in full-context mode.
+    @param provider: LLM provider name.
+    @param model: Optional provider-specific model name.
+    @param client: Optional preconstructed LLM client for tests or callers.
+    @param mode: Generation mode, either rewrite or full-context answer.
+    @return: LLM answer payload including context and messages when applicable.
+    """
     llm_client = client or build_llm_client(provider=provider, model=model)
 
     if mode == "rewrite":
@@ -109,6 +133,12 @@ def generate_llm_answer_with_context(
 
 
 def rewrite_or_return_source(llm_client: LLMClient, source_summary: str) -> str:
+    """Rewrite a deterministic summary when the client supports rewriting.
+
+    @param llm_client: LLM client implementing generate and optionally rewrite.
+    @param source_summary: Grounded deterministic source summary.
+    @return: Rewritten summary, or the source summary when rewriting is unavailable.
+    """
     rewrite = getattr(llm_client, "rewrite", None)
 
     if rewrite is None:
@@ -118,6 +148,11 @@ def rewrite_or_return_source(llm_client: LLMClient, source_summary: str) -> str:
 
 
 def to_plain_text(value: str) -> str:
+    """Strip Markdown-like formatting from LLM output before API return.
+
+    @param value: Raw LLM output.
+    @return: Plain-text answer with simple lines and no Markdown markers.
+    """
     text = str(value or "")
     text = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", text)
     text = text.replace("```", "")

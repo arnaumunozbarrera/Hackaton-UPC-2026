@@ -120,6 +120,13 @@ function SelectedComponentModel({ selectedComponentId }) {
   return <primitive object={normalizedScene} />;
 }
 
+/**
+ * Clones, centers, scales, and restyles a loaded GLB scene for consistent viewing.
+ *
+ * @param {object} scene - Loaded Three.js scene from useGLTF.
+ * @param {string} selectedComponentId - Component identifier associated with the model.
+ * @returns {object} Normalized scene clone ready for rendering.
+ */
 function normalizeModelScene(scene, selectedComponentId) {
   const clone = scene.clone(true);
   const bounds = new Box3().setFromObject(clone);
@@ -184,6 +191,9 @@ function MissingModel({ selectedLabel }) {
   );
 }
 
+/**
+ * Contains GLB loading failures so the 3D panel can render a fallback model.
+ */
 class ModelLoadBoundary extends Component {
   constructor(props) {
     super(props);

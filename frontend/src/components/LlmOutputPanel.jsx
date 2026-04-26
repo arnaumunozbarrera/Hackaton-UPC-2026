@@ -70,6 +70,12 @@ export default function LlmOutputPanel({
   );
 }
 
+/**
+ * Splits plain LLM output into display paragraphs with an empty-content fallback.
+ *
+ * @param {string} answer - Raw answer returned by the backend.
+ * @returns {Array<string>} Paragraph blocks suitable for rendering.
+ */
 function formatLlmAnswer(answer) {
   const blocks = toPlainText(answer)
     .split(/\n{2,}/)
@@ -79,6 +85,12 @@ function formatLlmAnswer(answer) {
   return blocks.length ? blocks : ['No answer content was returned.'];
 }
 
+/**
+ * Removes Markdown-like markers from LLM output before rendering.
+ *
+ * @param {string} value - Raw LLM output.
+ * @returns {string} Plain text with normalized line content.
+ */
 function toPlainText(value) {
   return String(value || '')
     .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')

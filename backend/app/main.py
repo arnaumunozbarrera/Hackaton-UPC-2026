@@ -53,6 +53,13 @@ historian.initialize_database()
 AGENT_HISTORIAN = SQLiteHistorian(Path(__file__).resolve().parents[1] / "storage" / "historian.sqlite")
 
 def _structured_error(status_code: int, code: str, message: str) -> HTTPException:
+    """Create the API error shape consumed by the frontend.
+
+    @param status_code: HTTP status code returned to the client.
+    @param code: Stable machine-readable error code.
+    @param message: Human-readable error message.
+    @return: HTTPException with structured detail payload.
+    """
     return HTTPException(status_code=status_code, detail={"code": code, "message": message})
 
 
@@ -181,6 +188,12 @@ def get_agent_llm_context(run_id: str, request: AgentLLMContextRequest) -> dict:
 
 @app.post("/api/agent/runs/{run_id}/llm-answer")
 def get_agent_llm_answer(run_id: str, request: AgentLLMAnswerRequest) -> dict:
+    """Generate an agent-backed LLM answer with optional prompt context included.
+
+    @param run_id: Historian run identifier used as the agent scenario name.
+    @param request: LLM generation request and grounding options.
+    @return: LLM answer payload, optionally including context and messages.
+    """
     try:
         analysis = analyze_scenario_response(
             historian=AGENT_HISTORIAN,

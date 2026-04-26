@@ -23,6 +23,11 @@ def health_to_severity(health: float) -> str:
 
 
 def _dominant_damage(component: dict) -> tuple[str | None, float]:
+    """Select the strongest non-total damage contributor for a component.
+
+    @param component: Component state containing a damage map.
+    @return: Damage name and value, or None with zero when no contributor exists.
+    """
     damage = component.get("damage", {})
     candidates = [(key, value) for key, value in damage.items() if key != "total"]
     if not candidates:
@@ -43,6 +48,11 @@ def _component_health(component: dict) -> float:
 
 
 def _message_rank(message: dict) -> tuple[int, float, float, str]:
+    """Rank runtime messages by severity, health impact, usage, and timestamp.
+
+    @param message: Runtime message generated from the timeline.
+    @return: Sortable rank tuple where larger values indicate higher priority.
+    """
     evidence = message.get("evidence", {})
     health = evidence.get("health")
     health_priority = 0.0 if health is None else 1.0 - float(health)
@@ -59,7 +69,12 @@ def select_top_messages(
     messages: list[dict],
     limit: int = TOP_RUNTIME_MESSAGE_LIMIT,
 ) -> list[dict]:
-    """Return the highest-impact runtime messages without repeated event spam."""
+    """Return the highest-impact runtime messages without repeated event spam.
+
+    @param messages: Candidate runtime messages generated for a run.
+    @param limit: Maximum number of messages to return.
+    @return: Deduplicated messages sorted by operational relevance.
+    """
     if limit <= 0:
         return []
 
@@ -74,6 +89,12 @@ def select_top_messages(
 
 
 def generate_messages(run_id: str, timeline: list[dict]) -> list[dict]:
+    """Generate concise runtime messages from component state transitions.
+
+    @param run_id: Simulation run identifier.
+    @param timeline: Ordered simulation timeline containing component states.
+    @return: Deduplicated and ranked runtime messages for display and storage.
+    """
     messages = []
     previous_severity_by_component = {}
     previous_damage_by_component = {}
