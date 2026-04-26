@@ -30,10 +30,9 @@ The backend reads environment variables from the repository root `.env` file. Fo
 OLLAMA_BASE_URL=http://localhost:11434
 AGENT_LLM_PROVIDER=ollama
 AGENT_LLM_MODEL=llama3.2:3b
-OLLAMA_MODEL=llama3.2:3b
 ```
 
-`OLLAMA_BASE_URL` is shared by the Ollama-backed integrations. `AGENT_LLM_PROVIDER` and `AGENT_LLM_MODEL` configure the agent explanation flow, while `OLLAMA_MODEL` is used by the backend chatbot path.
+`AGENT_LLM_PROVIDER` and `AGENT_LLM_MODEL` configure the agent explanation flow, while `OLLAMA_MODEL` is used by the backend chatbot path.
 
 If Ollama is not installed or running, use the mock provider for the frontend agent panel by creating `frontend/.env.local` with:
 
@@ -192,18 +191,17 @@ Two complementary improvement approaches are considered:
    A major improvement would be to incorporate time-series records showing how each component's health has evolved under specific operating conditions. Instead of relying only on a compact synthetic description of usage, the model would learn from the combination of health evolution and the parameters present at each moment, such as temperature, humidity, degradation rate, contamination, maintenance events, and other operational variables.
 
    This historical knowledge would be especially valuable for forecasting. By understanding how health has fluctuated over time in response to different conditions, the model could identify more realistic degradation patterns and produce more reliable predictions of future behavior. In practice, this would allow the digital twin to:
-
    - Recognize how similar health states can lead to different outcomes depending on the operating context.
    - Capture cumulative and long-term effects that are only visible through historical evolution.
    - Improve forecast quality by basing predictions on observed health trajectories rather than on simplified assumptions.
    - Make the model progressively less synthetic and more representative of real machine behavior if production telemetry becomes available.
+
 2. Focus the solution on warning generation and maintenance date estimation.
    The goal is to evolve the system into a decision-support tool that not only detects degradation, but also helps determine when the replacement process should begin.
 
    A key improvement would be to incorporate historical data about the total elapsed time between identifying that a component needs replacement and the moment the replacement is actually completed. Knowing this time for each component, together with other temporal operational data, would make it possible to plan interventions earlier and more accurately.
 
    This would be especially valuable because the optimal decision is not only when to replace a part, but when to start preparing that replacement so it happens at the right moment. In practice, this would allow the platform to:
-
    - Trigger warnings early enough to account for the real lead time of each component.
    - Estimate when the replacement planning should start, not only when the intervention should occur.
    - Adapt maintenance timing to the historical replacement dynamics of different components and suppliers.
