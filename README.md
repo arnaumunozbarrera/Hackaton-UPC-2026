@@ -1,6 +1,6 @@
 # Hackaton-UPC-2026
 
-This repository contains a digital twin-based maintenance assistant for the HP Metal Jet S100 focused on predictive maintenance and digital twin simulation. The project models how key printer components degrade under operational and environmental stress, simulates their evolution over time, and exposes that state through services and interfaces designed to support diagnosis and maintenance decisions.
+This repository contains a predictive maintenance and digital twin platform for the HP Metal Jet S100. It models how key printer components degrade under operational and environmental stress, simulates their evolution over time, and stores that telemetry so it can be queried through dashboards and grounded maintenance-oriented interfaces. In practice, the repository combines mathematical degradation models, a simulation backend with historian persistence, and interaction layers for diagnosis and decision support.
 
 ## Architecture
 
@@ -13,7 +13,7 @@ The solution is organized as a modular system with a clear separation between si
 - `data/`: synthetic histories, example contexts, and agent scenarios used to test the system.
 - `docs/`, `config/`, `tests/`, and `3d-models/`: supporting material, configuration, validation, and visualization assets.
 
-At a high level, the mathematical models generate the health and degradation behavior of each subsystem, the backend coordinates predictions and storage, and the frontend presents the results through dashboards and timelines.
+At a high level, the repository follows the three hackathon phases: `model_mathematic/` implements the Phase 1 degradation models, `backend/` executes the Phase 2 simulation and historian workflow, and `agent/` plus `frontend/` provide the Phase 3 interaction and decision-support layers. The mathematical models generate the health and degradation behavior of each subsystem, the backend coordinates predictions and storage, and the frontend presents the results through dashboards and timelines.
 
 ## Prerequisites
 
@@ -24,13 +24,16 @@ Install the following tools before running the project:
 - Git, if you are cloning the repository.
 - Optional: Ollama, if you want to use the local LLM explanation flow instead of the mock LLM provider.
 
-The backend reads environment variables from the repository root `.env` file. The current local LLM configuration uses:
+The backend reads environment variables from the repository root `.env` file. For the local Ollama-backed flows, use:
 
 ```env
 OLLAMA_BASE_URL=http://localhost:11434
 AGENT_LLM_PROVIDER=ollama
 AGENT_LLM_MODEL=llama3.2:3b
+OLLAMA_MODEL=llama3.2:3b
 ```
+
+`OLLAMA_BASE_URL` is shared by the Ollama-backed integrations. `AGENT_LLM_PROVIDER` and `AGENT_LLM_MODEL` configure the agent explanation flow, while `OLLAMA_MODEL` is used by the backend chatbot path.
 
 If Ollama is not installed or running, use the mock provider for the frontend agent panel by creating `frontend/.env.local` with:
 
@@ -129,6 +132,15 @@ python -m pytest
 ```
 
 The backend creates its local SQLite historian database automatically under `backend/storage/` when the API starts.
+
+## Typical Flow
+
+A typical end-to-end run through the project looks like this:
+
+- Open the frontend to inspect the current component snapshot exposed by the backend model endpoints.
+- Launch a simulation run so the backend advances component degradation over time and persists each step in the SQLite historian.
+- Review the generated timeline, component health trends, alerts, and dependency effects in the dashboard.
+- Query the resulting run through the chat and agent-backed analysis paths to obtain grounded maintenance explanations based on stored telemetry.
 
 ## Elements
 
