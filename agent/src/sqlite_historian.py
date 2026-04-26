@@ -6,6 +6,11 @@ from typing import Any
 
 class SQLiteHistorian:
     def __init__(self, db_path: Path | str) -> None:
+        """Create a read-oriented historian adapter for the backend SQLite schema.
+
+        @param db_path: Path to the historian SQLite database.
+        @return: None.
+        """
         self.db_path = Path(db_path)
 
     def list_runs(self) -> list[dict[str, Any]]:
@@ -49,6 +54,12 @@ class SQLiteHistorian:
         return runs[0] if runs else None
 
     def get_latest_run_id_for_scenario(self, scenario_id: str) -> str:
+        """Resolve the newest run identifier for a stored scenario.
+
+        @param scenario_id: Scenario identifier to resolve.
+        @return: Latest run identifier for the scenario.
+        @raises ValueError: If no run exists for the scenario.
+        """
         with self._connect() as connection:
             row = connection.execute(
                 """
@@ -67,6 +78,11 @@ class SQLiteHistorian:
         return row["run_id"]
 
     def resolve_run_id(self, run_or_scenario_id: str) -> str:
+        """Resolve a direct run identifier or fall back to latest run for a scenario.
+
+        @param run_or_scenario_id: Run identifier or scenario identifier.
+        @return: Concrete run identifier.
+        """
         with self._connect() as connection:
             row = connection.execute(
                 """
@@ -87,6 +103,12 @@ class SQLiteHistorian:
         return self.resolve_run_id(run_or_scenario_id)
 
     def get_latest_record(self, run_or_scenario_id: str) -> dict[str, Any]:
+        """Load the most recent telemetry record for a run or scenario.
+
+        @param run_or_scenario_id: Run identifier or scenario identifier.
+        @return: Reconstructed latest telemetry record.
+        @raises ValueError: If the run has no telemetry records.
+        """
         run_id = self.resolve_run_id(run_or_scenario_id)
 
         with self._connect() as connection:
@@ -107,6 +129,13 @@ class SQLiteHistorian:
             return self._build_record(connection, row)
 
     def get_recent_history(self, run_or_scenario_id: str, window_steps: int | None = None) -> list[dict[str, Any]]:
+        """Load chronological telemetry history for a run or scenario.
+
+        @param run_or_scenario_id: Run identifier or scenario identifier.
+        @param window_steps: Optional limit for the most recent records.
+        @return: Reconstructed telemetry records ordered oldest to newest.
+        @raises ValueError: If window_steps is provided and not positive.
+        """
         run_id = self.resolve_run_id(run_or_scenario_id)
 
         with self._connect() as connection:
@@ -147,6 +176,13 @@ class SQLiteHistorian:
         component_id: str,
         window_steps: int | None = None,
     ) -> list[dict[str, Any]]:
+        """Load recent history records that contain a specific component.
+
+        @param run_or_scenario_id: Run identifier or scenario identifier.
+        @param component_id: Component identifier to filter.
+        @param window_steps: Optional limit for the most recent records.
+        @return: Reconstructed records containing the component.
+        """
         history = self.get_recent_history(run_or_scenario_id, window_steps)
 
         return [
@@ -156,6 +192,11 @@ class SQLiteHistorian:
         ]
 
     def _connect(self) -> sqlite3.Connection:
+        """Open a read connection to the configured historian database.
+
+        @return: SQLite connection with row access by column name and foreign keys enabled.
+        @raises FileNotFoundError: If the database file does not exist.
+        """
         if not self.db_path.exists():
             raise FileNotFoundError(f"SQLite historian not found: {self.db_path}")
 
@@ -165,6 +206,13 @@ class SQLiteHistorian:
         return connection
 
     def _build_record(self, connection: sqlite3.Connection, row: sqlite3.Row) -> dict[str, Any]:
+        """Reconstruct one telemetry record from normalized historian tables.
+
+        @param connection: Open SQLite connection used for read queries.
+        @param row: Telemetry row containing record metadata.
+        @return: Record with drivers and reconstructed component state.
+        @raises ValueError: If driver values are missing for the record.
+        """
         driver_row = connection.execute(
             """
             SELECT operational_load, contamination, humidity, temperature_stress, maintenance_level
@@ -194,6 +242,12 @@ class SQLiteHistorian:
         }
 
     def _build_components(self, connection: sqlite3.Connection, record_id: int) -> dict[str, Any]:
+        """Reconstruct all component states for one telemetry record.
+
+        @param connection: Open SQLite connection used for read queries.
+        @param record_id: Telemetry record identifier.
+        @return: Component map with health, damage, metrics, and alerts.
+        """
         state_rows = connection.execute(
             """
             SELECT component_id, subsystem, health_index, status

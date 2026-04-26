@@ -41,6 +41,8 @@ COMPONENT_ALIASES = {
 
 @dataclass
 class GroundedContext:
+    """Container for historian facts, UI evidence, and optional LLM context."""
+
     run_id: str | None
     scenario_id: str | None
     component_id: str | None
@@ -58,6 +60,13 @@ class GroundedContext:
 
 
 def answer_chat_question(question: str, run_id: str | None = None, component_id: str | None = None) -> dict[str, Any]:
+    """Answer a chat question using only supported historian-grounded topics.
+
+    @param question: User question submitted from the dashboard.
+    @param run_id: Optional run identifier; the latest run is used when omitted.
+    @param component_id: Optional selected component identifier.
+    @return: Chat response with answer text, grounding facts, evidence, and UI support data.
+    """
     normalized_question = " ".join((question or "").strip().split())
     topic_match = _match_supported_topics(normalized_question)
 
@@ -117,6 +126,13 @@ def answer_chat_question(question: str, run_id: str | None = None, component_id:
 
 
 def _build_grounded_context(question: str, run_id: str | None, component_id: str | None) -> GroundedContext:
+    """Assemble the historian-backed context required to answer a chat question.
+
+    @param question: Normalized user question.
+    @param run_id: Optional run identifier requested by the caller.
+    @param component_id: Optional component identifier requested by the caller.
+    @return: Grounded context containing facts, evidence, summaries, and LLM payload data.
+    """
     topic_match = _match_supported_topics(question)
     target_run_id = run_id or (historian.get_latest_run() or {}).get("run_id")
     if not target_run_id:
@@ -293,6 +309,12 @@ def _build_grounded_context(question: str, run_id: str | None, component_id: str
 
 
 def _summarize_component_history(component_history: list[dict], component_id: str) -> dict[str, Any]:
+    """Summarize component history into facts, evidence, and compact LLM context.
+
+    @param component_history: Ordered historian records for one component.
+    @param component_id: Component identifier represented by the history.
+    @return: Facts, evidence objects, and LLM-oriented component summary.
+    """
     if not component_history:
         return {
             "facts": [f"There is no stored history available for {component_id}."],
@@ -368,6 +390,18 @@ def _compose_summary(
     messages: list[dict[str, Any]],
     evidence: list[dict[str, Any]],
 ) -> tuple[str, bool]:
+    """Choose a deterministic fallback summary tailored to the requested topic.
+
+    @param question: Normalized user question.
+    @param run_metadata: Stored run metadata for the active run.
+    @param latest_point: Latest timeline point for the run.
+    @param component_id: Inferred or requested component identifier.
+    @param prediction: Optional prediction payload for the component.
+    @param facts: Facts assembled from historian data.
+    @param messages: Runtime messages available for the run.
+    @param evidence: Evidence records assembled from historian data.
+    @return: Summary text and a flag indicating whether the data is sufficient.
+    """
     lower_question = question.lower()
 
     if component_id and component_id not in latest_point["components"]:
@@ -447,6 +481,11 @@ def _compose_summary(
 
 
 def _generate_grounded_llm_answer(context: GroundedContext) -> dict[str, Any] | None:
+    """Generate an optional Ollama answer constrained to grounded context.
+
+    @param context: Grounded context prepared from historian data.
+    @return: Model answer and model metadata, or None when LLM generation is unavailable.
+    """
     if not context.sufficient_data or not context.llm_context:
         return None
 
@@ -506,6 +545,11 @@ def _generate_grounded_llm_answer(context: GroundedContext) -> dict[str, Any] | 
 
 
 def _build_narrative_fallback(context: GroundedContext) -> str:
+    """Build a deterministic narrative answer when the local LLM is unavailable.
+
+    @param context: Grounded context prepared from historian data.
+    @return: Professional paragraph-style answer grounded in stored records.
+    """
     component = context.llm_context.get("component") or {}
     component_id = context.component_id or "the component"
     messages = context.llm_context.get("messages") or []
@@ -541,6 +585,15 @@ def _ollama_is_available(base_url: str) -> bool:
 
 
 def _ollama_post(base_url: str, path: str, payload: dict[str, Any] | None, method: str = "POST") -> dict[str, Any]:
+    """Send a short-lived request to an Ollama endpoint.
+
+    @param base_url: Base URL of the Ollama server.
+    @param path: API path to call.
+    @param payload: JSON payload for POST requests, or None for GET requests.
+    @param method: HTTP method to use.
+    @return: Decoded JSON response body.
+    @raises OSError: If the request fails, times out, or returns invalid JSON.
+    """
     data = None if payload is None else json.dumps(payload).encode("utf-8")
     req = request.Request(
         f"{base_url}{path}",
@@ -556,6 +609,11 @@ def _ollama_post(base_url: str, path: str, payload: dict[str, Any] | None, metho
 
 
 def _match_supported_topics(question: str) -> dict[str, Any]:
+    """Gate chat requests to topics that can be answered from historian data.
+
+    @param question: Normalized user question.
+    @return: Topic matches, best score, and relevance decision.
+    """
     normalized_question = question.lower().strip()
     tokens = set(_tokenize(normalized_question))
     matches = []
@@ -582,6 +640,13 @@ def _match_supported_topics(question: str) -> dict[str, Any]:
 
 
 def _topic_similarity_score(question: str, question_tokens: set[str], keywords: tuple[str, ...]) -> float:
+    """Score the overlap between a question and one supported topic keyword set.
+
+    @param question: Lowercase question text.
+    @param question_tokens: Tokenized question terms.
+    @param keywords: Keyword phrases associated with one topic.
+    @return: Similarity score between zero and one.
+    """
     best = 0.0
     for keyword in keywords:
         keyword_tokens = set(_tokenize(keyword))
@@ -612,6 +677,12 @@ def _tokenize(text: str) -> list[str]:
 
 
 def _infer_component_id(question: str, latest_point: dict[str, Any]) -> str | None:
+    """Infer the requested component from explicit identifiers or known aliases.
+
+    @param question: Normalized user question.
+    @param latest_point: Latest timeline point containing available component IDs.
+    @return: Matching component identifier, or None when no component is implied.
+    """
     component_ids = latest_point.get("components", {}).keys()
     normalized_question = question.lower()
     for component_id in component_ids:
@@ -629,6 +700,11 @@ def _infer_component_id(question: str, latest_point: dict[str, Any]) -> str | No
 
 
 def _prediction_fact(prediction: dict[str, Any]) -> str | None:
+    """Convert a prediction payload into one grounded natural-language fact.
+
+    @param prediction: Prediction payload from storage or live calculation.
+    @return: Fact sentence, or None when no prediction is available.
+    """
     if not prediction:
         return None
 
@@ -652,6 +728,12 @@ def _prediction_fact(prediction: dict[str, Any]) -> str | None:
 
 
 def _build_support_metrics(latest_point: dict[str, Any], component_id: str | None) -> list[dict[str, Any]]:
+    """Select the most relevant metrics to display beside a chat answer.
+
+    @param latest_point: Latest timeline point for the active run.
+    @param component_id: Optional component identifier selected by the user.
+    @return: Up to three ranked support metrics for the UI.
+    """
     ranked_metrics: list[tuple[int, dict[str, Any]]] = []
 
     for driver_name, driver_value in latest_point.get("drivers", {}).items():
@@ -675,6 +757,11 @@ def _build_support_metrics(latest_point: dict[str, Any], component_id: str | Non
 
 
 def _prediction_support_metrics(prediction: dict[str, Any] | None) -> list[dict[str, Any]]:
+    """Extract compact UI metrics from a prediction payload.
+
+    @param prediction: Optional prediction payload.
+    @return: Prediction metrics suitable for merging with component metrics.
+    """
     if not prediction:
         return []
 
@@ -690,6 +777,13 @@ def _prediction_support_metrics(prediction: dict[str, Any] | None) -> list[dict[
 
 
 def _build_action_options(component_id: str, component: dict[str, Any], prediction: dict[str, Any] | None) -> list[dict[str, Any]]:
+    """Build conservative action options from latest component state and prediction.
+
+    @param component_id: Component identifier for the selected state.
+    @param component: Latest component state from the historian timeline.
+    @param prediction: Optional prediction payload for the component.
+    @return: Action option cards ordered by expected operational relevance.
+    """
     status = str(component.get("status", "UNKNOWN")).upper()
     options: list[dict[str, Any]] = []
 
@@ -741,6 +835,13 @@ def _action_option(option_id: str, label: str, priority: str, rationale: str) ->
 
 
 def _format_metric_entry(metric_name: str, metric_value: Any, scope: str) -> dict[str, Any] | None:
+    """Normalize one raw metric into the label-value-unit shape used by the UI.
+
+    @param metric_name: Raw metric key from drivers or component metrics.
+    @param metric_value: Raw metric value.
+    @param scope: Display scope, such as Component or Operating condition.
+    @return: Formatted metric entry, or None when the value is unavailable.
+    """
     if metric_value is None:
         return None
 
@@ -780,6 +881,13 @@ def _metric_config(metric_name: str) -> dict[str, str]:
 
 
 def _metric_priority(metric_name: str, metric_value: Any, scope: str) -> int:
+    """Rank support metrics by domain importance and current severity.
+
+    @param metric_name: Raw metric key from drivers or component metrics.
+    @param metric_value: Display-ready metric value.
+    @param scope: Display scope used to bias component metrics above drivers.
+    @return: Integer priority used for descending metric selection.
+    """
     try:
         value = float(metric_value)
     except (TypeError, ValueError):
@@ -817,6 +925,12 @@ def _metric_priority(metric_name: str, metric_value: Any, scope: str) -> int:
 
 
 def _merge_support_metrics(base_metrics: list[dict[str, Any]], extra_metrics: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Merge support metric lists while preserving prediction metrics first.
+
+    @param base_metrics: Existing component and driver metrics.
+    @param extra_metrics: Additional metrics, usually derived from prediction data.
+    @return: Deduplicated metric list capped for dashboard display.
+    """
     merged = []
     seen = set()
     for metric in [*extra_metrics, *base_metrics]:
@@ -829,6 +943,12 @@ def _merge_support_metrics(base_metrics: list[dict[str, Any]], extra_metrics: li
 
 
 def _describe_parameter_effects(component_id: str | None, latest_point: dict[str, Any]) -> str:
+    """Explain how recorded operating drivers relate to observed degradation.
+
+    @param component_id: Optional component identifier requested by the user.
+    @param latest_point: Latest timeline point for the active run.
+    @return: Deterministic answer for parameter-effect questions.
+    """
     component_text = component_id if component_id else "the observed components"
     active_drivers = latest_point.get("drivers", {})
     influences = []
@@ -857,6 +977,13 @@ def _describe_parameter_effects(component_id: str | None, latest_point: dict[str
 
 
 def _describe_replacement_timing(component_id: str | None, latest_point: dict[str, Any], prediction: dict[str, Any] | None) -> str:
+    """Explain replacement timing from current status and available prediction.
+
+    @param component_id: Optional component identifier requested by the user.
+    @param latest_point: Latest timeline point for the active run.
+    @param prediction: Optional prediction payload for the component.
+    @return: Replacement-timing guidance grounded in stored state.
+    """
     if not component_id:
         return "I need a specific component to explain replacement timing. Ask about a component such as the recoater blade or nozzle plate."
 
@@ -887,6 +1014,11 @@ def _describe_replacement_timing(component_id: str | None, latest_point: dict[st
 
 
 def _prediction_summary(prediction: dict[str, Any]) -> dict[str, Any]:
+    """Reduce a prediction payload to the fields safe for LLM context.
+
+    @param prediction: Prediction payload from storage or live calculation.
+    @return: Compact prediction summary.
+    """
     if not prediction:
         return {}
 
@@ -900,6 +1032,11 @@ def _prediction_summary(prediction: dict[str, Any]) -> dict[str, Any]:
 
 
 def _interesting_metric_phrases(metrics: dict[str, Any]) -> list[str]:
+    """Choose metric names worth mentioning in narrative fallback text.
+
+    @param metrics: Latest component metric dictionary.
+    @return: Human-readable metric phrases ordered by diagnostic relevance.
+    """
     phrases = []
     priority = [
         ("blocked_nozzles_pct", "blocked nozzle percentage"),
@@ -924,6 +1061,11 @@ def _interesting_metric_phrases(metrics: dict[str, Any]) -> list[str]:
 
 
 def _interesting_damage_phrases(damage: dict[str, Any]) -> list[str]:
+    """Choose damage contributors worth mentioning in narrative fallback text.
+
+    @param damage: Latest component damage dictionary.
+    @return: Human-readable damage phrases ordered by diagnostic relevance.
+    """
     phrases = []
     priority = [
         ("contamination_deposits", "contamination deposits"),
@@ -958,6 +1100,14 @@ def _build_progression_sentence(
     metric_interest: list[str],
     damage_interest: list[str],
 ) -> str:
+    """Build the opening fallback sentence from final status and notable signals.
+
+    @param component_id: Component identifier represented by the narrative.
+    @param status: Final component status.
+    @param metric_interest: Human-readable metric phrases.
+    @param damage_interest: Human-readable damage phrases.
+    @return: Opening sentence describing progression and main signals.
+    """
     component_name = component_id.replace("_", " ")
     if status == "FAILED":
         opener = f"{component_name.capitalize()} followed a deteriorating path through the stored observations and eventually reached failure."
@@ -984,6 +1134,13 @@ def _build_interest_sentence(
     damage_interest: list[str],
     alert_sentence: str,
 ) -> str:
+    """Build a compact middle fallback sentence from metrics, damage, and alerts.
+
+    @param metric_interest: Human-readable metric phrases.
+    @param damage_interest: Human-readable damage phrases.
+    @param alert_sentence: Optional alert-focused sentence.
+    @return: Sentence describing notable supporting evidence, or an empty string.
+    """
     clauses = []
     if metric_interest:
         clauses.append(
@@ -1007,6 +1164,14 @@ def _build_latest_state_sentence(
     latest_timestamp: str | None,
     prediction: dict[str, Any] | None,
 ) -> str:
+    """Build the closing fallback sentence from the latest stored component state.
+
+    @param component_id: Component identifier represented by the narrative.
+    @param status: Final component status.
+    @param latest_timestamp: Timestamp of the latest stored record.
+    @param prediction: Optional prediction payload, retained for signature symmetry.
+    @return: Sentence describing the latest observed state.
+    """
     component_name = component_id.replace("_", " ")
     if status == "FAILED":
         sentence = f"By the most recent record, {component_name} had already moved into a failed condition"

@@ -35,6 +35,16 @@ def _build_alerts(
     temperature_control_error_c,
     alerts_config,
 ):
+    """Build threshold alerts for heating element electrical and thermal behavior.
+
+    @param status: Component status after the current degradation step.
+    @param resistance_ohm: Current estimated electrical resistance.
+    @param energy_factor: Current normalized energy demand.
+    @param thermal_stability: Current normalized thermal stability.
+    @param temperature_control_error_c: Current estimated control error in Celsius.
+    @param alerts_config: Alert thresholds from the component configuration.
+    @return: Alert dictionaries describing threshold breaches.
+    """
     alerts = []
 
     if resistance_ohm >= alerts_config["high_resistance_threshold_ohm"]:
@@ -92,13 +102,14 @@ def calculate_heating_elements_state(
     temperature_sensors_state: dict | None = None,
     insulation_panels_state: dict | None = None,
 ) -> dict:
-    """Calculate the deterministic Phase 1 state for the heating elements.
+    """Calculate deterministic electrical degradation for the heating elements.
 
-    Required drivers:
-        - operational_load: cycles/layers in this timestep
-        - temperature_stress: normalized value from 0.0 to 1.0
-        - humidity: normalized value from 0.0 to 1.0
-        - maintenance_level: normalized value from 0.0 to 1.0
+    @param previous_state: Previous heating element state or wrapped machine state.
+    @param drivers: Normalized operating drivers for the current simulation step.
+    @param config: Phase 1 model configuration.
+    @param temperature_sensors_state: Upstream sensor state used for control cascade.
+    @param insulation_panels_state: Upstream insulation state used for heat-loss cascade.
+    @return: Component state containing health, status, damage, metrics, and alerts.
     """
     component_config = get_component_config(config, COMPONENT_NAME)
     health_config = component_config["health"]

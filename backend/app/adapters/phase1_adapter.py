@@ -58,6 +58,12 @@ DEPENDENCY_MAP = [
 
 
 def _normalize_component(component_id: str, component_state: dict) -> dict:
+    """Convert a raw Phase 1 component state into the backend response contract.
+
+    @param component_id: Component identifier from the Phase 1 output.
+    @param component_state: Raw component state returned by the mathematical model.
+    @return: Component state with stable response keys and numeric health.
+    """
     component_state = deepcopy(component_state)
     damage = component_state.get("damage", {})
     metrics = component_state.get("metrics", {})
@@ -72,6 +78,11 @@ def _normalize_component(component_id: str, component_state: dict) -> dict:
 
 
 def adapt_phase1_output(phase1_output: dict) -> dict:
+    """Adapt mathematical model output into the dashboard machine-state contract.
+
+    @param phase1_output: Raw output from the Phase 1 logic engine.
+    @return: Response payload containing aggregate machine state and normalized components.
+    """
     raw_components = phase1_output.get("components", {})
     components = {
         component_id: _normalize_component(component_id, component_state)
@@ -112,6 +123,11 @@ def adapt_phase1_output(phase1_output: dict) -> dict:
 
 
 def get_dependencies_for_component(component_id: str) -> list[dict]:
+    """Return human-readable dependency relationships touching a component.
+
+    @param component_id: Component identifier selected by the user or simulation.
+    @return: Dependency records where the component is either source or target.
+    """
     return [
         dependency
         for dependency in DEPENDENCY_MAP

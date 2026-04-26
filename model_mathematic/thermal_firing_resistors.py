@@ -20,6 +20,15 @@ COMPONENT_NAME = "thermal_firing_resistors"
 
 
 def _build_alerts(status, resistance_ohm, pulse_uniformity, misfire_risk, alerts_config):
+    """Build threshold alerts for firing resistor electrical instability.
+
+    @param status: Component status after the current degradation step.
+    @param resistance_ohm: Current estimated electrical resistance.
+    @param pulse_uniformity: Current normalized pulse uniformity.
+    @param misfire_risk: Current normalized misfire risk.
+    @param alerts_config: Alert thresholds from the component configuration.
+    @return: Alert dictionaries describing threshold breaches.
+    """
     alerts = []
 
     if resistance_ohm >= alerts_config["high_resistance_threshold_ohm"]:
@@ -67,7 +76,14 @@ def calculate_thermal_firing_resistors_state(
     config: dict,
     heating_elements_state: dict | None = None,
 ) -> dict:
-    """Calculate deterministic electrical and thermal fatigue of firing resistors."""
+    """Calculate deterministic electrical and thermal fatigue of firing resistors.
+
+    @param previous_state: Previous firing resistor state or wrapped machine state.
+    @param drivers: Normalized operating drivers for the current simulation step.
+    @param config: Phase 1 model configuration.
+    @param heating_elements_state: Upstream heating state used for thermal cascade.
+    @return: Component state containing health, status, damage, metrics, and alerts.
+    """
     component_config = get_component_config(config, COMPONENT_NAME)
     health_config = component_config["health"]
     calibration_config = component_config["calibration"]

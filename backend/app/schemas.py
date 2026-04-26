@@ -18,6 +18,11 @@ class InitialConditions(BaseModel):
     @model_validator(mode="before")
     @classmethod
     def normalize_legacy_fields(cls, data: dict) -> dict:
+        """Accept legacy frontend field names for initial conditions.
+
+        @param data: Raw request payload before Pydantic field parsing.
+        @return: Payload with canonical snake_case keys.
+        """
         payload = dict(data)
         if "temperatureC" in payload and "temperature_c" not in payload:
             payload["temperature_c"] = payload["temperatureC"]
@@ -45,6 +50,11 @@ class SimulationRunRequest(BaseModel):
     @model_validator(mode="before")
     @classmethod
     def normalize_legacy_fields(cls, data: dict) -> dict:
+        """Accept legacy simulation-run field names from older clients.
+
+        @param data: Raw request payload before Pydantic field parsing.
+        @return: Payload with canonical snake_case keys.
+        """
         payload = dict(data)
         if "runId" in payload and "run_id" not in payload:
             payload["run_id"] = payload["runId"]
@@ -78,6 +88,11 @@ class SimulationStepRequest(BaseModel):
     @model_validator(mode="before")
     @classmethod
     def normalize_legacy_fields(cls, data: dict) -> dict:
+        """Accept legacy single-step field names and nested driver aliases.
+
+        @param data: Raw request payload before Pydantic field parsing.
+        @return: Payload with canonical snake_case keys.
+        """
         payload = dict(data)
         if "runId" in payload and "run_id" not in payload:
             payload["run_id"] = payload["runId"]
@@ -109,6 +124,11 @@ class PredictionRequest(BaseModel):
     @model_validator(mode="before")
     @classmethod
     def normalize_legacy_fields(cls, data: dict) -> dict:
+        """Accept legacy prediction field names from older clients.
+
+        @param data: Raw request payload before Pydantic field parsing.
+        @return: Payload with canonical snake_case keys.
+        """
         payload = dict(data)
         if "runId" in payload and "run_id" not in payload:
             payload["run_id"] = payload["runId"]
@@ -127,6 +147,11 @@ class ChatQueryRequest(BaseModel):
     @model_validator(mode="before")
     @classmethod
     def normalize_legacy_fields(cls, data: dict) -> dict:
+        """Accept legacy chat field names from older clients.
+
+        @param data: Raw request payload before Pydantic field parsing.
+        @return: Payload with canonical snake_case keys.
+        """
         payload = dict(data)
         if "runId" in payload and "run_id" not in payload:
             payload["run_id"] = payload["runId"]

@@ -26,6 +26,13 @@ COMPONENT_NAME = "recoater_drive_motor"
 
 
 def _get_previous_metric(previous_state, metric_name, default_value=0.0):
+    """Read a persisted motor metric from either wrapped or direct prior state.
+
+    @param previous_state: Previous motor state or wrapped machine state.
+    @param metric_name: Metric key to retrieve from the previous state.
+    @param default_value: Value returned when the metric is unavailable.
+    @return: Previous metric value or the supplied default.
+    """
     component_state = get_previous_component_state(previous_state, COMPONENT_NAME)
     metrics = component_state.get("metrics", {})
     return metrics.get(metric_name, default_value)
@@ -37,6 +44,14 @@ def _infer_weibull_age_from_health(
     weibull_scale_cycles,
     weibull_shape_beta,
 ):
+    """Infer effective Weibull age from a persisted health value.
+
+    @param health: Current persisted health value.
+    @param initial_health: Health value at zero effective age.
+    @param weibull_scale_cycles: Scale parameter calibrated from target lifetime.
+    @param weibull_shape_beta: Weibull shape parameter for the hazard curve.
+    @return: Effective age in cycles implied by the health value.
+    """
     if health >= initial_health:
         return 0.0
 
@@ -52,6 +67,15 @@ def _build_alerts(
     vibration_index,
     alerts_config,
 ):
+    """Build threshold alerts for motor torque, current draw, and vibration.
+
+    @param status: Component status after the current degradation step.
+    @param torque_margin: Current normalized torque margin.
+    @param current_draw_factor: Current normalized current draw factor.
+    @param vibration_index: Current motor vibration metric.
+    @param alerts_config: Alert thresholds from the component configuration.
+    @return: Alert dictionaries describing threshold breaches.
+    """
     alerts = []
 
     if torque_margin <= alerts_config["low_torque_margin_threshold"]:
@@ -99,7 +123,14 @@ def calculate_recoater_drive_motor_state(
     config: dict,
     linear_guide_state: dict | None = None,
 ) -> dict:
-    """Calculate deterministic Weibull fatigue, thermal stress, and ingress."""
+    """Calculate deterministic Weibull fatigue, thermal stress, and ingress.
+
+    @param previous_state: Previous motor state or wrapped machine state.
+    @param drivers: Normalized operating drivers for the current simulation step.
+    @param config: Phase 1 model configuration.
+    @param linear_guide_state: Upstream guide state used for drag cascade.
+    @return: Component state containing health, status, damage, metrics, and alerts.
+    """
     component_config = get_component_config(config, COMPONENT_NAME)
     health_config = component_config["health"]
     calibration_config = component_config["calibration"]

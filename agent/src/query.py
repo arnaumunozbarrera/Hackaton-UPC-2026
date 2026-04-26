@@ -2,6 +2,12 @@ from typing import Any
 
 
 def answer_question(response: dict[str, Any], question: str) -> str:
+    """Route a user question to a deterministic answer template.
+
+    @param response: Structured agent response.
+    @param question: User question to classify.
+    @return: Plain-text answer built from agent response data.
+    """
     normalized_question = question.lower().strip()
 
     if is_status_question(normalized_question):
@@ -92,6 +98,11 @@ def answer_recommendations(response: dict[str, Any]) -> str:
 
 
 def answer_why(response: dict[str, Any]) -> str:
+    """Build rationale text that links forecast, recommendation, and evidence.
+
+    @param response: Structured agent response.
+    @return: Plain-text rationale answer.
+    """
     if response["decision_count"] == 0:
         return "INFO: No issue was detected, so no intervention is currently recommended."
 

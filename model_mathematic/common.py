@@ -35,7 +35,12 @@ def get_status_from_health(health, health_config):
 
 
 def is_component_enabled(config: dict, component_name: str) -> bool:
-    """Return whether a component exists in config and is enabled."""
+    """Determine whether a component should be evaluated for the given config.
+
+    @param config: Phase 1 configuration in wrapped or single-component form.
+    @param component_name: Component identifier expected by the degradation engine.
+    @return: True when the component is configured and not explicitly disabled.
+    """
     config = config or {}
     components_config = config.get("components", {})
 
@@ -54,7 +59,11 @@ def is_component_enabled(config: dict, component_name: str) -> bool:
 
 
 def infer_component_name_from_config(config: dict) -> str | None:
-    """Infer a component name from a single-component config."""
+    """Infer the component represented by a legacy single-component config.
+
+    @param config: Component-level configuration without a top-level components map.
+    @return: Matching component identifier, or None when the config cannot be inferred.
+    """
     if not config or "components" in config:
         return None
 
@@ -75,7 +84,12 @@ def get_previous_components_for_engine(
     previous_state: dict,
     config: dict,
 ) -> dict:
-    """Return previous component states for wrapped or single-component inputs."""
+    """Normalize prior state so the logic engine can read component states uniformly.
+
+    @param previous_state: Previous engine output in wrapped or component-only form.
+    @param config: Configuration used to infer the component for legacy inputs.
+    @return: Mapping of component identifiers to prior component states.
+    """
     if not previous_state:
         return {}
 
@@ -91,7 +105,11 @@ def get_previous_components_for_engine(
 
 
 def iter_configured_components(config: dict):
-    """Yield component configs from wrapped or single-component config input."""
+    """Iterate component definitions from supported Phase 1 config shapes.
+
+    @param config: Phase 1 configuration in wrapped or legacy single-component form.
+    @return: Iterator yielding component name and component configuration pairs.
+    """
     config = config or {}
 
     if "components" in config:
@@ -105,7 +123,12 @@ def iter_configured_components(config: dict):
 
 
 def validate_component_config(component_name: str, component_config: dict) -> None:
-    """Validate the Phase 1 config contract for one component."""
+    """Validate the required Phase 1 configuration contract for one component.
+
+    @param component_name: Component identifier being validated.
+    @param component_config: Configuration section for the component.
+    @raises ValueError: If required sections, thresholds, or calibration values are invalid.
+    """
     required_sections = {
         "enabled",
         "subsystem",
@@ -250,7 +273,11 @@ def validate_component_config(component_name: str, component_config: dict) -> No
 
 
 def validate_phase1_config(config: dict) -> None:
-    """Validate all configured Phase 1 components."""
+    """Validate every component that appears in a Phase 1 configuration.
+
+    @param config: Phase 1 configuration in wrapped or single-component form.
+    @raises ValueError: If any configured component violates the expected contract.
+    """
     for component_name, component_config in iter_configured_components(config):
         validate_component_config(component_name, component_config)
 
@@ -292,7 +319,12 @@ def get_component_health(component_state: dict | None) -> float:
 
 
 def get_reported_damage(previous_health: float, rounded_health: float) -> float:
-    """Return damage that exactly matches the public rounded health loss."""
+    """Calculate damage from rounded health values to preserve public consistency.
+
+    @param previous_health: Health value before applying the current degradation step.
+    @param rounded_health: Rounded health value returned by the model.
+    @return: Non-negative damage value that reconciles with the visible health delta.
+    """
     return max(
         0.0,
         round(previous_health - rounded_health, DAMAGE_PRECISION),
@@ -303,7 +335,12 @@ def snap_health_to_failure_threshold(
     rounded_health: float,
     health_config: dict,
 ) -> float:
-    """Snap near-threshold health to FAILED threshold for calibrated lifetimes."""
+    """Snap near-threshold health to the configured failure threshold.
+
+    @param rounded_health: Rounded health value after degradation.
+    @param health_config: Health configuration containing the failed threshold.
+    @return: Health value adjusted only when it is within calibration tolerance.
+    """
     failed_threshold = health_config["failed_threshold"]
 
     if abs(rounded_health - failed_threshold) <= FAILURE_THRESHOLD_TOLERANCE:
@@ -313,7 +350,12 @@ def snap_health_to_failure_threshold(
 
 
 def split_damage_by_pressure(total_damage: float, pressures: dict[str, float]) -> dict:
-    """Split damage proportionally by pressure values."""
+    """Allocate total damage across named degradation pressure contributors.
+
+    @param total_damage: Damage value to distribute.
+    @param pressures: Relative contribution weights by degradation source.
+    @return: Per-source damage mapping rounded to model damage precision.
+    """
     total_pressure = sum(pressures.values())
 
     if total_pressure <= 0:

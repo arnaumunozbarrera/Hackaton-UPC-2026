@@ -23,6 +23,15 @@ COMPONENT_NAME = "recoater_blade"
 
 
 def _build_alerts(status, wear_rate, roughness_index, thickness_mm, alerts_config):
+    """Build threshold alerts for visible recoater blade degradation.
+
+    @param status: Component status after the current degradation step.
+    @param wear_rate: Reported blade wear normalized by current operational load.
+    @param roughness_index: Current blade roughness metric.
+    @param thickness_mm: Current estimated blade thickness in millimeters.
+    @param alerts_config: Alert thresholds from the component configuration.
+    @return: Alert dictionaries describing threshold breaches.
+    """
     alerts = []
 
     if wear_rate >= alerts_config["high_wear_rate_threshold"]:
@@ -69,7 +78,13 @@ def calculate_recoater_blade_state(
     drivers: dict,
     config: dict,
 ) -> dict:
-    """Calculate the deterministic Phase 1 state for the recoater blade."""
+    """Calculate deterministic abrasive wear for the recoater blade.
+
+    @param previous_state: Previous recoater blade state or wrapped machine state.
+    @param drivers: Normalized operating drivers for the current simulation step.
+    @param config: Phase 1 model configuration.
+    @return: Component state containing health, status, damage, metrics, and alerts.
+    """
     component_config = get_component_config(config, COMPONENT_NAME)
     health_config = component_config["health"]
     calibration_config = component_config["calibration"]

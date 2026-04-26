@@ -27,6 +27,13 @@ COMPONENT_NAME = "nozzle_plate"
 
 
 def _get_previous_metric(previous_state, metric_name, default_value=0.0):
+    """Read a persisted nozzle metric from either wrapped or direct prior state.
+
+    @param previous_state: Previous nozzle plate state or wrapped machine state.
+    @param metric_name: Metric key to retrieve from the previous state.
+    @param default_value: Value returned when the metric is unavailable.
+    @return: Previous metric value or the supplied default.
+    """
     component_state = get_previous_component_state(previous_state, COMPONENT_NAME)
     metrics = component_state.get("metrics", {})
     return metrics.get(metric_name, default_value)
@@ -39,6 +46,15 @@ def _build_alerts(
     jetting_efficiency,
     alerts_config,
 ):
+    """Build threshold alerts for nozzle clogging and thermal fatigue.
+
+    @param status: Component status after the current degradation step.
+    @param clogging_ratio: Accumulated normalized clogging ratio.
+    @param thermal_fatigue_index: Accumulated normalized thermal fatigue.
+    @param jetting_efficiency: Current estimated jetting efficiency.
+    @param alerts_config: Alert thresholds from the component configuration.
+    @return: Alert dictionaries describing threshold breaches.
+    """
     alerts = []
 
     if clogging_ratio >= alerts_config["high_clogging_threshold"]:
@@ -89,7 +105,17 @@ def calculate_nozzle_plate_state(
     cleaning_interface_state: dict | None = None,
     thermal_firing_resistors_state: dict | None = None,
 ) -> dict:
-    """Calculate the deterministic Phase 1 state for the nozzle plate."""
+    """Calculate deterministic clogging and thermal fatigue for the nozzle plate.
+
+    @param previous_state: Previous nozzle plate state or wrapped machine state.
+    @param drivers: Normalized operating drivers for the current simulation step.
+    @param config: Phase 1 model configuration.
+    @param recoater_blade_state: Upstream recoater blade state used for contamination cascade.
+    @param heating_elements_state: Upstream heating state used for thermal cascade.
+    @param cleaning_interface_state: Upstream cleaning state used for residue cascade.
+    @param thermal_firing_resistors_state: Upstream firing resistor state used for jetting cascade.
+    @return: Component state containing health, status, damage, metrics, and alerts.
+    """
     component_config = get_component_config(config, COMPONENT_NAME)
     health_config = component_config["health"]
     calibration_config = component_config["calibration"]

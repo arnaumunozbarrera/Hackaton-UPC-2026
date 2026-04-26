@@ -40,6 +40,11 @@ export default function App() {
   useEffect(() => {
     let active = true;
 
+    /**
+     * Loads prediction and dependency context whenever the selected component changes.
+     *
+     * @returns {Promise<void>} Resolves after component context has been refreshed.
+     */
     async function loadSelectedComponentContext() {
       if (!timeline.length) return;
       const activeRunId = timeline[0]?.run_id || historianState.latestRun?.run_id;
@@ -72,6 +77,11 @@ export default function App() {
     let active = true;
     const activeRunId = historianState.latestRun?.run_id;
 
+    /**
+     * Loads the agent-backed LLM explanation for the active stored run.
+     *
+     * @returns {Promise<void>} Resolves after the LLM panel state has been updated.
+     */
     async function loadLlmOutput() {
       if (!activeRunId) {
         setLlmOutput(null);
@@ -107,6 +117,11 @@ export default function App() {
   useEffect(() => {
     let active = true;
 
+    /**
+     * Loads initial model state, historian metadata, and latest run artifacts.
+     *
+     * @returns {Promise<void>} Resolves after the dashboard bootstrap sequence completes.
+     */
     async function loadInitialData() {
       try {
         const [currentModel, runsPayload] = await Promise.all([fetchCurrentModel(), listRuns()]);
@@ -195,6 +210,11 @@ export default function App() {
   const storedRuns = historianState.runs.length;
   const hasSimulationRun = timeline.length > 0;
 
+  /**
+   * Runs a persisted backend simulation and refreshes all dependent dashboard state.
+   *
+   * @returns {Promise<void>} Resolves after the run completes or the error state is set.
+   */
   async function handleRunTimeline() {
     setLoading(true);
     setError('');
@@ -442,6 +462,14 @@ export default function App() {
   );
 }
 
+/**
+ * Converts UI simulation state into the backend simulation-run contract.
+ *
+ * @param {object} config - UI simulation settings.
+ * @param {string} selectedComponentId - Component selected for prediction and focus.
+ * @returns {object} Backend request payload using snake_case field names.
+ * @throws {Error} When required numeric or scenario fields are invalid.
+ */
 function toBackendSimulationConfig(config, selectedComponentId) {
   const totalUsages = Number(config.totalUsages);
   const temperatureC = Number(config.temperatureC);
@@ -480,6 +508,12 @@ function toBackendSimulationConfig(config, selectedComponentId) {
   };
 }
 
+/**
+ * Selects the most useful run to hydrate the dashboard on startup.
+ *
+ * @param {object} runsPayload - Historian response containing available runs.
+ * @returns {object|null} Preferred complete run, latest run, or null.
+ */
 function selectInitialRun(runsPayload) {
   const runs = runsPayload?.runs || [];
   const defaultTotalUsages = Number(DEFAULT_SIMULATION_CONFIG.totalUsages);
@@ -488,6 +522,12 @@ function selectInitialRun(runsPayload) {
   return completeRun || runsPayload?.latest_run || null;
 }
 
+/**
+ * Reconstructs editable UI simulation settings from stored run metadata.
+ *
+ * @param {object} run - Historian run metadata with persisted configuration.
+ * @returns {object} UI configuration merged with dashboard defaults.
+ */
 function configFromRun(run) {
   const rawConfig = run?.config || {};
   const initialConditions = rawConfig.initial_conditions || {};
@@ -530,6 +570,13 @@ function getFiniteNumber(value, fallback) {
   return Number.isFinite(numericValue) ? numericValue : fallback;
 }
 
+/**
+ * Computes a positive usage step that cannot exceed the configured run length.
+ *
+ * @param {number|string} totalUsages - Configured total usage count.
+ * @param {number|string} configuredUsageStep - User-provided usage step.
+ * @returns {number} Safe usage step used by the chart and backend payload.
+ */
 function getEffectiveUsageStep(totalUsages, configuredUsageStep) {
   const total = Number(totalUsages);
   const configuredStep = Number(configuredUsageStep);
@@ -544,6 +591,13 @@ function getEffectiveUsageStep(totalUsages, configuredUsageStep) {
   return Math.max(1, Math.min(positiveUsageStep, total));
 }
 
+/**
+ * Filters human-readable dependencies to those relevant to the selected component.
+ *
+ * @param {Array<object>} timeline - Normalized timeline shown in the dashboard.
+ * @param {string} selectedComponentId - Component selected by the user.
+ * @returns {Array<object>} Dependencies where the selected component is source or target.
+ */
 function extractDependenciesFromTimeline(timeline, selectedComponentId) {
   if (!timeline?.length) return [];
   const finalPoint = timeline[timeline.length - 1];
@@ -554,6 +608,12 @@ function extractDependenciesFromTimeline(timeline, selectedComponentId) {
   );
 }
 
+/**
+ * Normalizes historian timeline records into the same shape as live simulation output.
+ *
+ * @param {Array<object>} timeline - Timeline from the backend or historian API.
+ * @returns {Array<object>} Timeline points with model_output and component health fields.
+ */
 function normalizeTimelineForUi(timeline) {
   return (timeline || []).map((point) => {
     if (point.model_output?.components) {
@@ -584,6 +644,13 @@ function normalizeTimelineForUi(timeline) {
   });
 }
 
+/**
+ * Merges the default model snapshot with the latest available component state.
+ *
+ * @param {object|null} baseModelState - Initial model snapshot from the backend.
+ * @param {object|null} latestModelState - Latest timeline model state, when available.
+ * @returns {object} Aggregated model state used by summary and 3D panels.
+ */
 function mergeModelStates(baseModelState, latestModelState) {
   const components = {
     ...(baseModelState?.components || {}),
@@ -596,6 +663,12 @@ function mergeModelStates(baseModelState, latestModelState) {
   };
 }
 
+/**
+ * Recomputes aggregate machine health and status from component states.
+ *
+ * @param {object} components - Component map keyed by component identifier.
+ * @returns {object} Machine-state summary with overall health and critical lists.
+ */
 function buildMachineStateFromComponents(components) {
   const componentValues = Object.values(components);
   const overallHealth = componentValues.length

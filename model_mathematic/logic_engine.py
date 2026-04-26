@@ -17,19 +17,13 @@ from .thermal_firing_resistors import calculate_thermal_firing_resistors_state
 
 
 def update_machine_state(previous_state: dict, drivers: dict, config: dict) -> dict:
-    """Update machine state for Phase 1 without temporal simulation or persistence.
+    """Update enabled Phase 1 components without simulation timing or persistence.
 
-    This function is the public entry point for Phase 2.
-
-    Phase 2 should call:
-        update_machine_state(previous_state, drivers, config)
-
-    This function does not add:
-        - timestamp
-        - run_id
-        - scenario_id
-        - step
-        - persistence
+    @param previous_state: Previous Phase 1 state in wrapped or component-only form.
+    @param drivers: Normalized operating drivers for the current update.
+    @param config: Phase 1 model configuration containing enabled components.
+    @return: Machine state containing updated component states only.
+    @raises ValueError: If the supplied component configuration is invalid.
     """
     config = config or {}
     validate_phase1_config(config)

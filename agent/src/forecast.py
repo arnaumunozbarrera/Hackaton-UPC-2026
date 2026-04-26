@@ -6,6 +6,13 @@ from agent.src.schemas import Forecast
 
 
 def forecast_from_health_trend(history: list[dict], component_id: str, horizon_steps: int) -> Forecast:
+    """Forecast component status from the observed average health trend.
+
+    @param history: Ordered historian records.
+    @param component_id: Component identifier to forecast.
+    @param horizon_steps: Number of future steps to project.
+    @return: Forecast with predicted status, risk, and threshold timing.
+    """
     component_history = [
         record
         for record in history

@@ -16,6 +16,15 @@ COMPONENT_NAME = "cleaning_interface"
 
 
 def _build_alerts(status, cleaning_efficiency, residue_buildup, wipe_pressure_factor, alerts_config):
+    """Build threshold alerts for cleaning efficiency and residue accumulation.
+
+    @param status: Component status after the current degradation step.
+    @param cleaning_efficiency: Current normalized cleaning efficiency.
+    @param residue_buildup: Current normalized residue buildup.
+    @param wipe_pressure_factor: Current normalized wipe pressure factor.
+    @param alerts_config: Alert thresholds from the component configuration.
+    @return: Alert dictionaries describing threshold breaches.
+    """
     alerts = []
 
     if cleaning_efficiency <= alerts_config["low_cleaning_efficiency_threshold"]:
@@ -62,7 +71,13 @@ def calculate_cleaning_interface_state(
     drivers: dict,
     config: dict,
 ) -> dict:
-    """Calculate deterministic wiper wear and residue accumulation."""
+    """Calculate deterministic wiper wear and residue accumulation.
+
+    @param previous_state: Previous cleaning interface state or wrapped machine state.
+    @param drivers: Normalized operating drivers for the current simulation step.
+    @param config: Phase 1 model configuration.
+    @return: Component state containing health, status, damage, metrics, and alerts.
+    """
     component_config = get_component_config(config, COMPONENT_NAME)
     health_config = component_config["health"]
     calibration_config = component_config["calibration"]

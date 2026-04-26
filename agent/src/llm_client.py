@@ -21,6 +21,11 @@ class MockLLMClient:
     model = "mock-grounded-maintenance-copilot"
 
     def generate(self, messages: list[dict[str, str]]) -> str:
+        """Generate deterministic text from the supplied LLM context.
+
+        @param messages: Chat messages containing serialized context in the user message.
+        @return: Plain-text maintenance explanation for tests and offline use.
+        """
         context = extract_context(messages)
 
         if context["analysis_summary"]["decision_count"] == 0:
@@ -68,10 +73,22 @@ class OllamaLLMClient:
     provider = "ollama"
 
     def __init__(self, model: str | None = None, base_url: str | None = None) -> None:
+        """Configure an Ollama-backed LLM client from arguments or environment.
+
+        @param model: Optional Ollama model name.
+        @param base_url: Optional Ollama base URL.
+        @return: None.
+        """
         self.model = model or os.getenv("AGENT_LLM_MODEL", "llama3.2")
         self.base_url = (base_url or os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")).rstrip("/")
 
     def generate(self, messages: list[dict[str, str]]) -> str:
+        """Send chat messages to Ollama and return the model content.
+
+        @param messages: Chat messages generated from grounded agent context.
+        @return: Model response content.
+        @raises RuntimeError: If Ollama cannot be reached or returns no content.
+        """
         payload = {
             "model": self.model,
             "messages": messages,
@@ -108,6 +125,12 @@ class OllamaLLMClient:
         return content
     
     def rewrite(self, source_text: str) -> str:
+        """Ask Ollama to rewrite a grounded source summary without changing facts.
+
+        @param source_text: Deterministic source summary produced by the agent.
+        @return: Rewritten plain-text summary.
+        @raises RuntimeError: If Ollama cannot be reached or returns no content.
+        """
         payload = {
             "model": self.model,
             "messages": [
@@ -163,6 +186,13 @@ class OllamaLLMClient:
 
 
 def build_llm_client(provider: str = "mock", model: str | None = None) -> LLMClient:
+    """Construct the configured LLM client implementation.
+
+    @param provider: Provider name, such as mock, ollama, or local.
+    @param model: Optional model name for provider-backed clients.
+    @return: LLM client implementation.
+    @raises ValueError: If the provider is unsupported.
+    """
     normalized_provider = provider.lower().strip()
 
     if normalized_provider == "mock":
@@ -175,6 +205,12 @@ def build_llm_client(provider: str = "mock", model: str | None = None) -> LLMCli
 
 
 def extract_context(messages: list[dict[str, str]]) -> dict[str, Any]:
+    """Extract serialized LLM context from the latest user message.
+
+    @param messages: Chat messages passed to a mock generation client.
+    @return: Parsed context dictionary.
+    @raises ValueError: If no user message is present.
+    """
     for message in reversed(messages):
         if message["role"] == "user":
             return json.loads(message["content"])

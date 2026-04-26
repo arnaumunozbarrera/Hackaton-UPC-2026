@@ -12,6 +12,14 @@ def evaluate_candidate_action_plans(
     history: list[dict],
     horizon_steps: int,
 ) -> list[ActionPlanEvaluation]:
+    """Evaluate all plausible action plans for a diagnosis.
+
+    @param diagnosis: Diagnosis that identifies the component and issue.
+    @param latest_record: Latest historian record used as the current state.
+    @param history: Historical records used to estimate degradation rate.
+    @param horizon_steps: Forecast horizon used for projected health.
+    @return: Action plan evaluations ordered by ascending risk score.
+    """
     plans = candidate_action_plans_for_issue(diagnosis.issue)
     evaluations = []
 
@@ -30,6 +38,11 @@ def evaluate_candidate_action_plans(
 
 
 def candidate_action_plans_for_issue(issue: str) -> list[tuple[ActionType, ...]]:
+    """Select candidate action combinations that match an issue category.
+
+    @param issue: Diagnosis issue identifier.
+    @return: Ordered action tuples that should be evaluated for the issue.
+    """
     if issue in {"thermal_instability", "firing_resistor_instability"}:
         return [
             (ActionType.CONTINUE_OPERATION,),
@@ -101,6 +114,15 @@ def evaluate_action_plan(
     history: list[dict],
     horizon_steps: int,
 ) -> ActionPlanEvaluation:
+    """Project component health and risk for one action plan.
+
+    @param actions: Action tuple being evaluated.
+    @param diagnosis: Diagnosis that identifies the component and issue.
+    @param latest_record: Latest historian record used as the current state.
+    @param history: Historical records used to estimate degradation rate.
+    @param horizon_steps: Forecast horizon used for projected health.
+    @return: ActionPlanEvaluation with projected status, risk, and expected effect.
+    """
     component_id = diagnosis.component_id
     current_health = latest_record["components"][component_id]["health_index"]
     degradation_rate = estimate_degradation_rate(history, component_id)
@@ -134,6 +156,12 @@ def evaluate_action_plan(
 
 
 def estimate_degradation_rate(history: list[dict], component_id: str) -> float:
+    """Estimate per-step health loss from the available component history.
+
+    @param history: Ordered historian records.
+    @param component_id: Component identifier to inspect.
+    @return: Non-negative average degradation rate per recorded step.
+    """
     component_history = [
         record
         for record in history
@@ -156,6 +184,12 @@ def combined_degradation_multiplier(actions: tuple[ActionType, ...], issue: str)
 
 
 def degradation_multiplier(action: ActionType, issue: str) -> float:
+    """Return the expected degradation multiplier for one action and issue.
+
+    @param action: Candidate action being scored.
+    @param issue: Diagnosis issue identifier.
+    @return: Multiplicative factor applied to projected degradation.
+    """
     if action == ActionType.CONTINUE_OPERATION:
         return 1.0
 
@@ -192,6 +226,12 @@ def combined_immediate_recovery(actions: tuple[ActionType, ...], issue: str) -> 
 
 
 def immediate_recovery(action: ActionType, issue: str) -> float:
+    """Return the immediate health recovery expected from one action.
+
+    @param action: Candidate action being scored.
+    @param issue: Diagnosis issue identifier.
+    @return: Additive projected health recovery.
+    """
     if action == ActionType.RUN_CLEANING_CYCLE and issue in {
         "nozzle_clogging",
         "cleaning_interface_degradation",
@@ -224,6 +264,11 @@ def combined_action_cost(actions: tuple[ActionType, ...]) -> float:
 
 
 def action_cost(action: ActionType) -> float:
+    """Return the operational burden used as cost in risk scoring.
+
+    @param action: Candidate action being scored.
+    @return: Cost penalty used by the risk model.
+    """
     costs = {
         ActionType.CONTINUE_OPERATION: 0.0,
         ActionType.REDUCE_LOAD: 8.0,
@@ -244,6 +289,14 @@ def build_expected_effect(
     predicted_status: str,
     projected_health: float,
 ) -> str:
+    """Build a human-readable expected effect for an evaluated action plan.
+
+    @param actions: Action tuple being evaluated.
+    @param issue: Diagnosis issue identifier.
+    @param predicted_status: Status projected after applying the actions.
+    @param projected_health: Health index projected after applying the actions.
+    @return: Explanation of the action plan effect.
+    """
     action_names = format_actions(actions)
 
     if actions == (ActionType.CONTINUE_OPERATION,):

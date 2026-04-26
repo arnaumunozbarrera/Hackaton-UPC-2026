@@ -1,5 +1,13 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
+/**
+ * Fetches JSON from the backend and normalizes transport or API errors.
+ *
+ * @param {string} path - Backend API path relative to the configured base URL.
+ * @param {object} options - Fetch options merged into the request.
+ * @returns {Promise<object|null>} Decoded JSON response payload.
+ * @throws {Error} When the backend is unreachable or returns a failed response.
+ */
 export async function fetchJson(path, options = {}) {
   let response;
 

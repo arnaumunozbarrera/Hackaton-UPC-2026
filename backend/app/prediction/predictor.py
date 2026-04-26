@@ -19,6 +19,12 @@ def _to_iso8601(value: datetime) -> str:
 
 
 def _not_enough_data(run_id: str, component_id: str) -> dict:
+    """Build the standard low-confidence prediction response.
+
+    @param run_id: Run identifier requested by the caller.
+    @param component_id: Component identifier requested by the caller.
+    @return: Prediction response explaining that trend data is insufficient.
+    """
     return {
         "run_id": run_id,
         "component_id": component_id,
@@ -28,6 +34,11 @@ def _not_enough_data(run_id: str, component_id: str) -> dict:
 
 
 def _normalize_timeline_for_prediction(timeline: list[dict]) -> list[dict]:
+    """Normalize API and historian timeline shapes before trend estimation.
+
+    @param timeline: Timeline points from either simulation output or historian storage.
+    @return: Timeline points with top-level component maps and health_index fields.
+    """
     normalized = []
     for point in timeline:
         if "components" in point:
@@ -63,6 +74,13 @@ def predict_component_failure_from_timeline(
     component_id: str,
     timeline: list[dict],
 ) -> dict:
+    """Estimate component failure from a simple observed health trend.
+
+    @param run_id: Run identifier associated with the timeline.
+    @param component_id: Component whose health trend should be projected.
+    @param timeline: Historical timeline records containing component health values.
+    @return: Prediction payload with failure estimate, confidence, and supporting evidence.
+    """
     timeline = [
         point
         for point in _normalize_timeline_for_prediction(timeline)
